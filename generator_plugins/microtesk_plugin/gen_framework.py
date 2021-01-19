@@ -22,7 +22,7 @@ def gen_cmd_list(gen_config, seed, count, outputdir, moduledir):
     try:
         env_gen_list = EnvYAML(gen_config)
     except:
-        logger.error("Is the $MICROTESK_HOME set?")
+        logger.error("Is your plugin YAML file properly configured?")
         raise SystemExit
 
     with open(gen_config) as fh:
