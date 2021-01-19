@@ -47,11 +47,12 @@ class AapgPlugin(object):
     # gets the yaml file with list of configs; test count; parallel
     # isa is obtained from riscv_config
     @gen_hookimpl
-    def gen(self, gen_config, jobs, filter, seed, count, outputdir, moduledir):
+    def gen(self, gen_config, jobs, filter, seed, count, output_dir,
+            module_dir):
         logger.debug('AAPG Plugin gen phase')
         logger.debug('plugin again')
-        logger.debug(moduledir)
-        pytest_file = moduledir + '/aapg_plugin/gen_framework.py'
+        logger.debug(module_dir)
+        pytest_file = module_dir + '/aapg_plugin/gen_framework.py'
         logger.debug(pytest_file)
 
         # if norun:
@@ -62,9 +63,9 @@ class AapgPlugin(object):
             pytest_file, '-n={0}'.format(jobs), '-k={0}'.format(filter),
             '--configlist={0}'.format(gen_config), '-v',
             '--seed={0}'.format(seed), '--count={0}'.format(count),
-            '--html={0}/aapg_gen.html'.format(outputdir),
-            '--self-contained-html', '--outputdir={0}'.format(outputdir),
-            '--moduledir={0}'.format(moduledir)
+            '--html={0}/aapg_gen.html'.format(output_dir),
+            '--self-contained-html', '--output_dir={0}'.format(output_dir),
+            '--module_dir={0}'.format(module_dir)
         ])
 
     # generates the regress list from the generation

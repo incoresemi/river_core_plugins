@@ -15,7 +15,7 @@ import pytest
 from envyaml import EnvYAML
 
 
-def gen_cmd_list(gen_config, seed, count, outputdir, moduledir):
+def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
 
     logger.debug('gen plugin')
     pwd = os.getcwd()
@@ -37,13 +37,13 @@ def gen_cmd_list(gen_config, seed, count, outputdir, moduledir):
     for key, value in gen_list.items():
         if key == 'global_config_path':
             ## Here's the moduledir being used, earlier code a value from constant being loaded
-            config_path = moduledir + gen_list[key]
+            config_path = module_dir + gen_list[key]
         if key == 'global_command':
             command = 'bash {0}/bin/{1}'.format(gen_list['global_home'],
                                                 gen_list[key])
         if key == 'global_args':
             args = gen_list[key]
-        dirname = outputdir + '/microtesk'
+        dirname = output_dir + '/microtesk'
         if not re.search('^global_', key):
             config_file_path = config_path + '/' + gen_list[key]['path']
             logger.debug(key)
@@ -86,8 +86,8 @@ def pytest_generate_tests(metafunc):
         test_list = gen_cmd_list(metafunc.config.getoption("configlist"),
                                  metafunc.config.getoption("seed"),
                                  metafunc.config.getoption("count"),
-                                 metafunc.config.getoption("outputdir"),
-                                 metafunc.config.getoption("moduledir"))
+                                 metafunc.config.getoption("output_dir"),
+                                 metafunc.config.getoption("module_dir"))
         metafunc.parametrize('test_input', test_list, ids=idfnc, indirect=True)
 
 
