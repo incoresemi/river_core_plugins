@@ -1,39 +1,9 @@
-global_home: 
-global_config_path: /aapg_plugin/
+global_config_path: /aapg_plugin
 global_command: aapg gen 
-global_args:
-# global_output: ${OUTPUT_DIR}/aapg
-global_seed: random
-global_jobs: 1
-global_count: 2
 
-rv64imafdc_branches1:
-  path: templates/iclass
-rv64imafdc_branches1_s:
-  path: templates/iclass
-rv64imafdc_branches1_u:
-  path: templates/iclass
-rv64imafdc_bringup:
-  path: templates/iclass
-rv64imafdc_bringup_s:
-  path: templates/iclass
-rv64imafdc_bringup_u:
-  path: templates/iclass
-rv64imafdc_exceptions:
-  path: templates/iclass
-rv64imafdc_exceptions_s:
-  path: templates/iclass
-rv64imafdc_exceptions_u:
-  path: templates/iclass
-rv64imafdc_hazards:
-  path: templates/iclass
-rv64imafdc_hazards_s:
-  path: templates/iclass
-rv64imafdc_hazards_u:
-  path: templates/iclass
-rv64imafdc_illegal:
-  path: templates/iclass
-rv64imafdc_illegal_s:
-  path: templates/iclass
-rv64imafdc_illegal_u:
-  path: templates/iclass
+# Template key ;
+# You can add a class or type of test into a folder and mention it here
+# Preferred name scheme is given as an example
+templates:
+    rv64imafdc:
+        path: templates/iclass
