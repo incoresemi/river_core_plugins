@@ -22,8 +22,6 @@ gen_hookimpl = pluggy.HookimplMarker("generator")
 class MicroTESKPlugin(object):
     """ Generator hook implementation """
 
-    isa = 'rv64imafdc'
-
     #@gen_hookimpl
     #def load_config(self, isa, platform):
     #    pwd = os.getcwd()
@@ -38,21 +36,29 @@ class MicroTESKPlugin(object):
 
     # creates gendir and any setup related things
     @gen_hookimpl
-    def pre_gen(self, gendir):
+    def pre_gen(self, output_dir):
         logger.debug('Microtesk Pre Gen Stage')
-        if (os.path.isdir(gendir)):
+        if (os.path.isdir(output_dir)):
             logger.debug('exists')
-            shutil.rmtree(gendir, ignore_errors=True)
-        os.makedirs(gendir)
+            shutil.rmtree(output_dir, ignore_errors=True)
+        os.makedirs(output_dir)
 
     # gets the yaml file with list of configs; test count; parallel
     # isa is obtained from riscv_config
     @gen_hookimpl
-    def gen(self, gen_config, jobs, filter, seed, count, output_dir,
-            module_dir):
+    def gen(self, gen_config, spec_config, module_dir, output_dir):
+
+        logger.debug('Extracting info from list')
+        # Extract plugin specific info
+        jobs = spec_config['jobs']
+        seed = spec_config['seed']
+        count = spec_config['count']
+        filter = spec_config['filter']
+        # TODO Might  be useful later on
+        # Eventually add support for riscv_config
+        isa = spec_config['isa']
+
         logger.debug('Microtesk Gen Stage')
-        logger.debug('plugin again')
-        # Place to mod things here!!!!
         logger.debug(module_dir)
         pytest_file = module_dir + '/microtesk_plugin/gen_framework.py'
         logger.debug(pytest_file)
@@ -72,7 +78,7 @@ class MicroTESKPlugin(object):
 
     # generates the regress list from the generation
     @gen_hookimpl
-    def post_gen(self, gendir, regressfile):
+    def post_gen(self, output_dir, regressfile):
         logger.debug('Microtesk Post Gen Stage')
         test_dict = dict()
         test_files = []
@@ -82,16 +88,17 @@ class MicroTESKPlugin(object):
         """
         Overwrites the microtesk entries in the regressfile with the latest present in the gendir
         """
-        logger.debug(gendir)
+        logger.debug(output_dir)
         logger.debug(regressfile)
         remove_list = dict()
-        if os.path.isdir(gendir):
-            gendir_list = []
-            for dir, _, _ in os.walk(gendir):
-                gendir_list.extend(glob(os.path.join(dir, 'microtesk_*/*.S')))
-            logger.debug('Generated S files:{0}'.format(gendir_list))
+        if os.path.isdir(output_dir):
+            output_dir_list = []
+            for dir, _, _ in os.walk(output_dir):
+                output_dir_list.extend(
+                    glob(os.path.join(dir, 'microtesk_*/*.S')))
+            logger.debug('Generated S files:{0}'.format(output_dir_list))
             testdir = ''
-            for gentest in gendir_list:
+            for gentest in output_dir_list:
                 testdir = os.path.dirname(gentest)
                 testname = os.path.basename(gentest).replace('.S', '')
                 ldname = os.path.basename(testdir)
@@ -108,11 +115,11 @@ class MicroTESKPlugin(object):
                 logger.debug('Removing directory: {0}'.format(testdir))
                 shutil.rmtree(key)
 
-        testdirs = os.listdir(gendir)
-        test_dict['microtesk']['microtesk_global_testpath'] = gendir
+        testdirs = os.listdir(output_dir)
+        test_dict['microtesk']['microtesk_global_testpath'] = output_dir
         for testdir in testdirs:
             test_dict['microtesk'][testdir] = {'testname': '', 'ld': ''}
-            testpath = gendir + '/' + testdir
+            testpath = output_dir + '/' + testdir
             tests = os.listdir(testpath)
             for file in tests:
                 name = testpath + '/' + file

@@ -22,8 +22,6 @@ gen_hookimpl = pluggy.HookimplMarker("generator")
 class AapgPlugin(object):
     """ Generator hook implementation """
 
-    isa = 'rv64imafdc'
-
     #@gen_hookimpl
     #def load_config(self, isa, platform):
     #    pwd = os.getcwd()
@@ -38,19 +36,28 @@ class AapgPlugin(object):
 
     # creates gendir and any setup related things
     @gen_hookimpl
-    def pre_gen(self, gendir):
-        if (os.path.isdir(gendir)):
+    def pre_gen(self, output_dir):
+        # Check if the path exists or not
+        if (os.path.isdir(output_dir)):
             logger.debug('exists')
-            shutil.rmtree(gendir, ignore_errors=True)
-        os.makedirs(gendir)
+            shutil.rmtree(output_dir, ignore_errors=True)
+        os.makedirs(output_dir)
 
     # gets the yaml file with list of configs; test count; parallel
     # isa is obtained from riscv_config
     @gen_hookimpl
-    def gen(self, gen_config, jobs, filter, seed, count, output_dir,
-            module_dir):
+    def gen(self, gen_config, spec_config, module_dir, output_dir):
+        logger.debug('Extracting info from list')
+        # Extract plugin specific info
+        jobs = spec_config['jobs']
+        seed = spec_config['seed']
+        count = spec_config['count']
+        filter = spec_config['filter']
+        # TODO Might  be useful later on
+        # Eventually add support for riscv_config
+        isa = spec_config['isa']
+
         logger.debug('AAPG Plugin gen phase')
-        logger.debug('plugin again')
         logger.debug(module_dir)
         pytest_file = module_dir + '/aapg_plugin/gen_framework.py'
         logger.debug(pytest_file)
@@ -70,7 +77,7 @@ class AapgPlugin(object):
 
     # generates the regress list from the generation
     @gen_hookimpl
-    def post_gen(self, gendir, regressfile):
+    def post_gen(self, output_dir, regressfile):
         test_dict = dict()
         test_files = []
         test_file = ''
@@ -80,10 +87,10 @@ class AapgPlugin(object):
         Overwrites the aapg entries in the regressfile with the latest present in the gendir
         """
         remove_list = dict()
-        test_dict['aapg']['aapg_global_testpath'] = gendir
-        if os.path.isdir(gendir):
-            gendir_list = []
-            for dirname in os.listdir(gendir):
+        test_dict['aapg']['aapg_global_testpath'] = output_dir
+        if os.path.isdir(output_dir):
+            output_dir_list = []
+            for dirname in os.listdir(output_dir):
                 if re.match('^aapg_.*', dirname):
                     test_dict['aapg'][dirname] = {
                         'testname': '',
