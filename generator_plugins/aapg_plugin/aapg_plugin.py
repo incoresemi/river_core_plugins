@@ -36,26 +36,36 @@ class AapgPlugin(object):
 
     # creates gendir and any setup related things
     @gen_hookimpl
-    def pre_gen(self, output_dir):
+    def pre_gen(self, spec_config, output_dir):
+        '''
+
+         Pre-Gen Stage.
+
+         Check if the output_dir exists
+
+         Add load plugin specific config
+
+        '''
+
         # Check if the path exists or not
+        logger.debug('AAPG Pre Gen Stage')
         if (os.path.isdir(output_dir)):
             logger.debug('exists')
             shutil.rmtree(output_dir, ignore_errors=True)
         os.makedirs(output_dir)
-
-    # gets the yaml file with list of configs; test count; parallel
-    # isa is obtained from riscv_config
-    @gen_hookimpl
-    def gen(self, gen_config, spec_config, module_dir, output_dir):
         logger.debug('Extracting info from list')
         # Extract plugin specific info
-        jobs = spec_config['jobs']
-        seed = spec_config['seed']
-        count = spec_config['count']
-        filter = spec_config['filter']
+        self.jobs = spec_config['jobs']
+        self.seed = spec_config['seed']
+        self.count = spec_config['count']
+        self.filter = spec_config['filter']
         # TODO Might  be useful later on
         # Eventually add support for riscv_config
-        isa = spec_config['isa']
+        self.isa = spec_config['isa']
+
+    # gets the yaml file with list of configs; test count; parallel
+    @gen_hookimpl
+    def gen(self, gen_config, module_dir, output_dir):
 
         logger.debug('AAPG Plugin gen phase')
         logger.debug(module_dir)
@@ -67,9 +77,9 @@ class AapgPlugin(object):
         #     pytest.main([pytest_file, '--collect-only', '-n={0}'.format(jobs), '-k={0}'.format(filter), '--configlist={0}'.format(gen_config), '-v',  '--seed={0}'.format(seed), '--count={0}'.format(count), '--html=aapg_gen.html', '--self-contained-html'])
         # else:
         pytest.main([
-            pytest_file, '-n={0}'.format(jobs), '-k={0}'.format(filter),
+            pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(self.filter),
             '--configlist={0}'.format(gen_config), '-v',
-            '--seed={0}'.format(seed), '--count={0}'.format(count),
+            '--seed={0}'.format(self.seed), '--count={0}'.format(self.count),
             '--html={0}/aapg_gen.html'.format(output_dir),
             '--self-contained-html', '--output_dir={0}'.format(output_dir),
             '--module_dir={0}'.format(module_dir)
