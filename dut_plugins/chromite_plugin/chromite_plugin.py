@@ -22,7 +22,7 @@ class ChromitePlugin(object):
     '''
 
     @compile_hookimpl
-    def pre_compile(self, chromite_ini_config, chromite_yaml_config):
+    def pre_compile(self, chromite_ini_config, chromite_yaml_config, output_dir):
         logger.debug('Pre Compile Stage')
         # Get plugin specific configs from ini
         self.jobs = chromite_ini_config['jobs']
@@ -31,6 +31,14 @@ class ChromitePlugin(object):
         # TODO Might  be useful later on
         # Eventually add support for riscv_config
         self.isa = chromite_ini_config['isa']
+        # Check if dir exists
+        if (os.path.isdir(output_dir)):
+            logger.debug('Directory exists')
+            # shutil.rmtree(output_dir, ignore_errors=True)
+        os.makedirs(output_dir + '/chromite_plugin')
+        # Generic commands
+        self.compile_output_path = output_dir + '/chromite_plugin'
+        self.regress_list = '{0}/regresslist.yaml'.format(compile_output_path)
         # Load YAML file
         logger.debug('Load YAML file')
         with open(chromite_yaml_config, 'r') as cfile:
@@ -49,22 +57,17 @@ class ChromitePlugin(object):
             self.elf2hex_bin = chromite_yaml_config['elf2hex']['command']
             # Sim
             self.sim_bin = chromite_yaml_config['sim']['command']
-            #
 
     @compile_hookimpl
-    def compile(self, compile_config, module_dir):
+    def compile(self, compile_config, module_dir, asm_dir):
         logger.debug('Compile Hook')
         logger.debug(module_dir)
         pytest_file = module_dir + '/chromite_plugin/gen_framework.py'
         logger.debug(pytest_file)
 
-        # if norun:
-        #     # to display test items
-        #     pytest.main([pytest_file, '--collect-only', '-n={0}'.format(jobs), '-k={0}'.format(filter), '--regresslist={0}'.format(regress_list), '-v', '--compileconfig={0}'.format(compile_config), '--tsuite={0}'.format(suite),'--html=compile.html', '--self-contained-html'])
-        # else:
         # TODO Regression list currently removed, check back later
-        pytest.main([pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(self.filter), '-v', '--compileconfig={0}'.format(compile_config), '--html=compile.html', '--self-contained-html'])
-
+        # pytest.main([pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(self.filter), '-v', '--compileconfig={0}'.format(compile_config), '--html=compile.html', '--self-contained-html'])
+        pytest.main([pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(self.filter), '--regress_list={0}'.format(self.regress_list), '-v', '--compileconfig={0}'.format(compile_config), '--html={0}/compile.html'.format(self.compile_output_path), '--self-contained-html'])
 
     @compile_hookimpl
     def post_compile(self):

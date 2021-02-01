@@ -19,15 +19,16 @@ pwd = os.getcwd()
 gen = ''
 
 
-def gen_cmd_list(regress_list, compile_config, generator):
+def gen_cmd_list(regress_list, generator):
 
     global gen
     gen = generator
     clist = dict()
-    with open(compile_config, 'r') as cfile:
-        clist = yaml.safe_load(cfile)
+    # with open(compile_config, 'r') as cfile:
+    #     clist = yaml.safe_load(cfile)
 
-    logger.debug('Framework generate commands')
+    logger.debug('Generating commands from gen_framework ')
+    # TODO Change
     with open(regress_list, 'r') as rfile:
         rlist = yaml.safe_load(rfile)
     run_command = []
@@ -67,6 +68,8 @@ def gen_cmd_list(regress_list, compile_config, generator):
                 run_cmd_list[test].append(
                     'sys_command(\'rm -rf {0}\')'.format(file))
 
+            # TODO Change
+            # Remove dependence on order
             for order in clist['order']:
                 if order == 'gcc':
                     if generator == 'aapg':
@@ -123,7 +126,9 @@ def idfnc(val):
 def pytest_generate_tests(metafunc):
 
     if 'test_input' in metafunc.fixturenames:
-        test_list = gen_cmd_list(metafunc.config.getoption("regresslist"),
+        # TODO Change
+        test_list = gen_cmd_list(
+                                 metafunc.config.getoption("regress_list"),
                                  metafunc.config.getoption("compileconfig"),
                                  metafunc.config.getoption("tsuite"))
         metafunc.parametrize('test_input', test_list, ids=idfnc, indirect=True)
@@ -131,6 +136,7 @@ def pytest_generate_tests(metafunc):
 
 def run_list(cmd_list, program):
     result = 0
+    # TODO Change
     os.chdir('{0}/{1}/{2}'.format(os.environ['OUTPUT_DIR'], gen, program))
     for i in range(len(cmd_list)):
         result, out, err = eval(cmd_list[i])
@@ -152,6 +158,7 @@ def test_input(request):
     os.chdir(pwd)
     program = request.param
     if not run_list(run_cmd_list[program], program):
+        # TODO Change
         logger.debug('PASSED')
         sys_command('touch STATUS_PASSED')
         return 0
