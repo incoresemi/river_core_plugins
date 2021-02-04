@@ -21,7 +21,7 @@ def compile_cmd_list(output_dir, asm_dir, yaml_config):
     run_commands = []
     make_file = os.path.join(output_dir, 'Makefile.chromite')
     # Load YAML file
-    logger.debug('Load YAML file')
+    logger.debug('Load Original YAML file i.e {0}'.format(yaml_config))
     with open(yaml_config, 'r') as cfile:
         chromite_yaml_config = yaml.safe_load(cfile)
         # TODO Check all necessary flags
@@ -30,6 +30,12 @@ def compile_cmd_list(output_dir, asm_dir, yaml_config):
         # GCC Specific
         gcc_compile_bin = chromite_yaml_config['gcc']['command']
         gcc_compile_args = chromite_yaml_config['gcc']['args']
+        include_dir = chromite_yaml_config['gcc']['include']
+        asm = chromite_yaml_config['gcc']['asm_dir']
+        # Linker
+        linker_bin = chromite_yaml_config['linker']['ld']
+        linker_args = chromite_yaml_config['linker']['args']
+        crt_file = chromite_yaml_config['linker']['crt']
         # Spike
         spike_bin = chromite_yaml_config['spike']['command']
         # Disass
@@ -38,12 +44,18 @@ def compile_cmd_list(output_dir, asm_dir, yaml_config):
         elf2hex_bin = chromite_yaml_config['elf2hex']['command']
         # Sim
         sim_bin = chromite_yaml_config['sim']['command']
-    print(gcc_compile_bin)
-    # with open(make_file, "w") as makefile:
-    # with open(compile_config, 'r') as cfile:
-    #     clist = yaml.safe_load(cfile)
+
+        # # Get files from the directory
+        # asm_files = glob.glob(asm_dir+'*.S')
     os.chdir(output_dir)
-    logger.debug('Generating commands from gen_framework')
+    with open(make_file, "w") as makefile:
+        makefile.write("ASM_SRC_DIR := " + asm_dir + asm)
+        makefile.write("\nCRT_FILE := " + asm_dir + crt_file)
+        makefile.write("\n\nchromite-build: $ASM_SRC_DIR/%.S")
+        makefile.write("\n     $(info ===== Starting build ====== )")
+        makefile.write("\n     " + gcc_compile_bin + " " + gcc_compile_args + " -I " + asm_dir + include_dir + " -o $@ $< $(CRT_FILE) " + linker_args + " $(<D)/$*.ld")
+        makefile.write("\n\n.PHONY : chromite-build")
+        logger.debug('Generating commands from gen_framework')
     return run_commands
 
 
@@ -88,7 +100,6 @@ def test_input(request):
     program = request.param
     # if run_list(compile_cmd_list[program], program):
     #     # TODO Change
-    logger.debug('PASSED')
     # sys_command('touch STATUS_PASSED')
     return 0
     # else:

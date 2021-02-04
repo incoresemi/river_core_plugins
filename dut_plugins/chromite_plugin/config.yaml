@@ -1,8 +1,15 @@
 # isa: rv64imafdc
 abi: lp64
+arch: rv64imafd
 gcc:
   command: riscv64-unknown-elf-gcc
-  args: -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -DENTROPY=0x9629af2 -std=gnu99 -O2
+  args: -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -std=gnu99 -O2
+  include: common
+  asm_dir: asm 
+linker:
+  ld: ld
+  args: -static -nostdlib -nostartfiles -lm -lgcc -T
+  crt: common/crt.S 
 spike:
   command: 'spike -c'
 objdump:
