@@ -1,0 +1,9 @@
+global_config_path: /aapg_plugin
+global_command: aapg gen 
+
+# Template key ;
+# You can add a class or type of test into a folder and mention it here
+# Preferred name scheme is given as an example
+templates:
+    rv64imafdc:
+        path: templates/iclass
