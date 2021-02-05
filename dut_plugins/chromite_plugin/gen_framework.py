@@ -16,7 +16,7 @@ from river_core.log import logger
 from river_core.utils import *
 
 
-def compile_cmd_list(asm_dir, yaml_config):
+def compile_cmd_list(asm_dir, yaml_config, gen_suite):
 
     run_commands = []
     make_file = os.path.join(asm_dir, 'Makefile.chromite')
@@ -48,23 +48,42 @@ def compile_cmd_list(asm_dir, yaml_config):
         # # Get files from the directory
         # asm_files = glob.glob(asm_dir+'*.S')
     os.chdir(asm_dir)
-    with open(make_file, "w") as makefile:
-        makefile.write("# Auto generated makefile created by river_core compile")
-        makefile.write("\n# Generated on: {0}\n".format(datetime.datetime.now()))
-        # Get the variables into the file
-        makefile.write("\nASM_SRC_DIR := " + asm_dir + asm)
-        makefile.write("\nCRT_FILE := " + asm_dir + crt_file)
-        makefile.write("\nBIN_DIR := bin")
-        makefile.write("\nBASE_SRC_FILES := $(wildcard $(ASM_SRC_DIR)/*.S) \nSRC_FILES := $(filter-out $(wildcard $(ASM_SRC_DIR)/*template.S),$(BASE_SRC_FILES))\nBIN_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(BIN_DIR)/%.riscv, $(SRC_FILES))")
-        # Main part for compliing
-        makefile.write("\n\nbuild: $(BIN_FILES)")
-        makefile.write("\n\t$(info ===== Build complete ====== )")
-        makefile.write("\n\n$(BIN_DIR)/%.riscv: $(ASM_SRC_DIR)/%.S")
-        makefile.write("\n\t$(info ================ Compiling asm to binary ============)")
-        makefile.write("\n\t" + gcc_compile_bin + " " + gcc_compile_args + " -I " + asm_dir + include_dir + " -o $@ $< $(CRT_FILE) " + linker_args + " $(<D)/$*.ld")
-        makefile.write("\n\n.PHONY : build")
-        logger.debug('Generating commands from gen_framework')
+    if gen_suite == 'aapg':
+        make_file = make_file+'.aapg'
+        with open(make_file, "w") as makefile:
+            makefile.write("# auto generated makefile created by river_core compile for aapg based asm files")
+            makefile.write("\n# generated on: {0}\n".format(datetime.datetime.now()))
+            # get the variables into the file
+            makefile.write("\nASM_SRC_DIR := " + asm_dir + asm)
+            makefile.write("\nCRT_FILE := " + asm_dir + crt_file)
+            makefile.write("\nBIN_DIR := bin")
+            makefile.write("\nBASE_SRC_FILES := $(wildcard $(ASM_SRC_DIR)/*.S) \nSRC_FILES := $(filter-out $(wildcard $(ASM_SRC_DIR)/*template.S),$(BASE_SRC_FILES))\nBIN_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(BIN_DIR)/%.riscv, $(SRC_FILES))")
+            # Main part for compliing
+            makefile.write("\n\nbuild: $(BIN_FILES)")
+            makefile.write("\n\t$(info ===== Build complete ====== )")
+            makefile.write("\n\n$(BIN_DIR)/%.riscv: $(ASM_SRC_DIR)/%.S")
+            makefile.write("\n\t$(info ================ Compiling asm to binary ============)")
+            makefile.write("\n\t" + gcc_compile_bin + " " + gcc_compile_args + " -I " + asm_dir + include_dir + " -o $@ $< $(CRT_FILE) " + linker_args + " $(<D)/$*.ld")
+            makefile.write("\n\n.PHONY : build")
 
+    if gen_suite == 'microtesk':
+        make_file = make_file+'.microtesk'
+        # TODO This implementation is still broken, because of file naming difference in microtesk generation :
+        with open(make_file, "w") as makefile:
+            makefile.write("# Auto generated makefile created by river_core compile for microtesk based ASM files")
+            makefile.write("\n# Generated on: {0}\n".format(datetime.datetime.now()))
+            # Get simple data
+            makefile.write("\nASM_SRC_DIR := asm")
+            makefile.write("\nBIN_DIR := bin")
+            makefile.write("\nSRC_FILES := $(wildcard $(ASM_SRC_DIR)/*.S)")
+            makefile.write("\nBIN_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(BIN_DIR)/%.riscv, $(SRC_FILES))")
+            # Main part for compliing
+            makefile.write("\n\nbuild: $(BIN_FILES)")
+            makefile.write("\n\t$(info ===== Build complete ====== )")
+            makefile.write("\n\n$(BIN_DIR)/%.riscv: $(ASM_SRC_DIR)/%.S")
+            makefile.write("\n\t$(info ================ Compiling asm to binary ============)")
+            makefile.write("\n\t" + gcc_compile_bin + " " + gcc_compile_args + " -o $@ " + linker_args + " $(<D)/$*.ld")
+            makefile.write("\n\n.PHONY : build")
     run_commands.append('make -f {0}'.format(make_file))
     return run_commands
 
@@ -81,7 +100,8 @@ def pytest_generate_tests(metafunc):
         test_list = compile_cmd_list(
                                  # metafunc.config.getoption("output_dir"),
                                  metafunc.config.getoption("asm_dir"),
-                                 metafunc.config.getoption("yaml_config"))
+                                 metafunc.config.getoption("yaml_config"),
+                                 metafunc.config.getoption("gen_suite"))
         metafunc.parametrize('test_input', test_list, ids=idfnc, indirect=True)
 
 

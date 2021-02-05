@@ -24,6 +24,10 @@ def pytest_addoption(parser):
         "--yaml_config",
         action="store"
     )
+    parser.addoption(
+        "--gen_suite",
+        action="store"
+    )
 
 
 # @pytest.mark.optionalhook
