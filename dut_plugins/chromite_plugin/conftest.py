@@ -16,10 +16,10 @@ def pytest_addoption(parser):
         "--asm_dir",
         action="store"
     )
-    parser.addoption(
-        "--output_dir",
-        action="store"
-    )
+    # parser.addoption(
+    #     "--output_dir",
+    #     action="store"
+    # )
     parser.addoption(
         "--yaml_config",
         action="store"

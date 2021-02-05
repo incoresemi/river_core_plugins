@@ -16,10 +16,10 @@ from river_core.log import logger
 from river_core.utils import *
 
 
-def compile_cmd_list(output_dir, asm_dir, yaml_config):
+def compile_cmd_list(asm_dir, yaml_config):
 
     run_commands = []
-    make_file = os.path.join(output_dir, 'Makefile.chromite')
+    make_file = os.path.join(asm_dir, 'Makefile.chromite')
     # Load YAML file
     logger.debug('Load Original YAML file i.e {0}'.format(yaml_config))
     with open(yaml_config, 'r') as cfile:
@@ -47,13 +47,21 @@ def compile_cmd_list(output_dir, asm_dir, yaml_config):
 
         # # Get files from the directory
         # asm_files = glob.glob(asm_dir+'*.S')
-    os.chdir(output_dir)
+    os.chdir(asm_dir)
     with open(make_file, "w") as makefile:
-        makefile.write("ASM_SRC_DIR := " + asm_dir + asm)
+        makefile.write("# Auto generated makefile created by river_core compile")
+        makefile.write("\n# Generated on: {0}\n".format(datetime.datetime.now()))
+        # Get the variables into the file
+        makefile.write("\nASM_SRC_DIR := " + asm_dir + asm)
         makefile.write("\nCRT_FILE := " + asm_dir + crt_file)
-        makefile.write("\n\nchromite-build: $ASM_SRC_DIR/%.S")
-        makefile.write("\n     $(info ===== Starting build ====== )")
-        makefile.write("\n     " + gcc_compile_bin + " " + gcc_compile_args + " -I " + asm_dir + include_dir + " -o $@ $< $(CRT_FILE) " + linker_args + " $(<D)/$*.ld")
+        makefile.write("\DIR_nBIN := bin")
+        makefile.write("\nBASE_SRC_FILES := $(wildcard $(ASM_SRC_DIR)/*.S) \nSRC_FILES := $(filter-out $(wildcard $(ASM_SRC_DIR)/*template.S),$(BASE_SRC_FILES))\nBIN_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(BIN_DIR)/%.riscv, $(SRC_FILES))")
+        # Main part for compliing
+        makefile.write("\n\nbuild: $(BIN_FILES)")
+        makefile.write("\n\t$(info ===== Build complete ====== )")
+        makefile.write("\n\n$(BIN_DIR)/%.riscv: $(ASM_SRC_DIR)/%.S")
+        makefile.write("\n\t$(info ================ Compiling asm to binary ============)")
+        makefile.write("\n\t" + gcc_compile_bin + " " + gcc_compile_args + " -I " + asm_dir + include_dir + " -o $@ $< $(CRT_FILE) " + linker_args + " $(<D)/$*.ld")
         makefile.write("\n\n.PHONY : chromite-build")
         logger.debug('Generating commands from gen_framework')
     return run_commands
@@ -69,7 +77,7 @@ def pytest_generate_tests(metafunc):
         # TODO Change
         logger.debug('Generating commands from pytest_framework')
         test_list = compile_cmd_list(
-                                 metafunc.config.getoption("output_dir"),
+                                 # metafunc.config.getoption("output_dir"),
                                  metafunc.config.getoption("asm_dir"),
                                  metafunc.config.getoption("yaml_config"))
         metafunc.parametrize('test_input', test_list, ids=idfnc, indirect=True)
