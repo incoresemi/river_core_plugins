@@ -53,7 +53,7 @@ class ChromitePlugin(object):
         # TODO Regression list currently removed, check back later
         # TODO The logger doesn't exactly work like in the pytest module
         # pytest.main([pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(self.filter), '-v', '--compileconfig={0}'.format(compile_config), '--html=compile.html', '--self-contained-html'])
-        pytest.main([pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(self.filter), '--html={0}/compile.html'.format(self.compile_output_path), '--self-contained-html', '--asm_dir={0}'.format(asm_dir), '--yaml_config={0}'.format(self.yaml_config)])
+        pytest.main([pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(self.filter), '--html={0}/compile.html'.format(self.compile_output_path), '--self-contained-html', '--asm_dir={0}'.format(asm_dir), '--yaml_config={0}'.format(self.yaml_config),"--log-cli-level=DEBUG"])
         # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
 
     @compile_hookimpl

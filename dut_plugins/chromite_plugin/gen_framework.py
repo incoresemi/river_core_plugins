@@ -54,7 +54,7 @@ def compile_cmd_list(asm_dir, yaml_config):
         # Get the variables into the file
         makefile.write("\nASM_SRC_DIR := " + asm_dir + asm)
         makefile.write("\nCRT_FILE := " + asm_dir + crt_file)
-        makefile.write("\DIR_nBIN := bin")
+        makefile.write("\nBIN_DIR := bin")
         makefile.write("\nBASE_SRC_FILES := $(wildcard $(ASM_SRC_DIR)/*.S) \nSRC_FILES := $(filter-out $(wildcard $(ASM_SRC_DIR)/*template.S),$(BASE_SRC_FILES))\nBIN_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(BIN_DIR)/%.riscv, $(SRC_FILES))")
         # Main part for compliing
         makefile.write("\n\nbuild: $(BIN_FILES)")
@@ -62,8 +62,10 @@ def compile_cmd_list(asm_dir, yaml_config):
         makefile.write("\n\n$(BIN_DIR)/%.riscv: $(ASM_SRC_DIR)/%.S")
         makefile.write("\n\t$(info ================ Compiling asm to binary ============)")
         makefile.write("\n\t" + gcc_compile_bin + " " + gcc_compile_args + " -I " + asm_dir + include_dir + " -o $@ $< $(CRT_FILE) " + linker_args + " $(<D)/$*.ld")
-        makefile.write("\n\n.PHONY : chromite-build")
+        makefile.write("\n\n.PHONY : build")
         logger.debug('Generating commands from gen_framework')
+
+    run_commands.append('make -f {0}'.format(make_file))
     return run_commands
 
 
@@ -106,10 +108,12 @@ def test_input(request):
     # compile tests
     logger.debug('Generating commands from test_input fixture')
     program = request.param
+    (ret, out, err) = sys_command(program)
+    return ret
     # if run_list(compile_cmd_list[program], program):
     #     # TODO Change
     # sys_command('touch STATUS_PASSED')
-    return 0
+    # return 0
     # else:
     #     return 1
 
