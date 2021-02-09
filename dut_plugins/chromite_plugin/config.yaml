@@ -13,13 +13,16 @@ linker:
 spike:
   command: 'spike -c'
 objdump:
-  command: 'riscv64-unknown-elf-objdump -D'
+  command: riscv64-unknown-elf-objdump
+  args: -D 
 elf2hex:
   command: elf2hex
   args: [8, 4194304, 2147483648]
   out_file: code.mem
 sim:
-  command: ./chromite_core +rtldump
+  command: chromite_core
+  path: /home/silipwn/tools/chromite/bin/
+  args: +rtldump
 # extras_1:
 #   command: 'ln -sf /home/rise/lavanya/gitlab/incore/chromite/bin/chromite_core .'
 # extras_2:
