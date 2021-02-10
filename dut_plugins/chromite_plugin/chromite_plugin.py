@@ -228,9 +228,11 @@ class ChromitePlugin(object):
         pytest.main([
             pytest_file, '-n={0}'.format(self.jobs),
             '-k={0}'.format(self.filter),
-            '--html={0}/compile.html'.format(self.compile_output_path),
+            '--html={0}/chromite_{1}.html'.format(self.compile_output_path,datetime.datetime.now().strftime("%Y%m%d-%H%M%S")),
             '--self-contained-html', '--asm_dir={0}'.format(asm_dir),
-            '--make_file={0}'.format(self.make_file), '--log-cli-level=DEBUG'
+            '--make_file={0}'.format(self.make_file),
+            # TODO Debug parameters, remove later on
+            '--log-cli-level=DEBUG', '-o log_cli=true'
         ])
         # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
 

@@ -19,11 +19,17 @@ from river_core.utils import *
 def compile_cmd_list(make_file, asm_dir):
 
     run_commands = []
+    stage = []
     os.chdir(asm_dir)
-    # TODO Improve Logging for the following steps
-    run_commands.append('make -B -f {0} build'.format(make_file))
-    run_commands.append('make -B -f {0} objdump'.format(make_file))
-    run_commands.append('make -f {0} sim'.format(make_file))
+    logger.debug("Now starting to build ASM files")
+    run_commands.append('make -f {0} build'.format(make_file))
+    stage.append('build')
+    logger.debug("Now starting to take objdump")
+    run_commands.append('make -f {0} objdump'.format(make_file))
+    stage.append('objdump')
+    logger.debug("Now starting to run on core")
+    # run_commands.append('make -f {0} sim'.format(make_file))
+    stage.append('sim')
     return run_commands
 
 
@@ -65,8 +71,9 @@ def test_input(request):
     # compile tests
     logger.debug('Generating commands from test_input fixture')
     program = request.param
+    stage = program.split()[-1]
     (ret, out, err) = sys_command(program)
-    return ret
+    return ret, err, stage
     # if run_list(compile_cmd_list[program], program):
     #     # TODO Change
     # sys_command('touch STATUS_PASSED')
@@ -76,4 +83,4 @@ def test_input(request):
 
 
 def test_eval(test_input):
-    assert test_input == 0
+    assert test_input[0] == 0, "Tests failed because of {0} at {1} stage".format(test_input[1], test_input[2])
