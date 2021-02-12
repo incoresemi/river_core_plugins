@@ -34,9 +34,11 @@ def pytest_addoption(parser):
 def pytest_html_results_table_header(cells):
     cells.insert(1, html.th('Stage'))
 
+
 @pytest.mark.optionalhook
 def pytest_html_results_table_row(report, cells):
     cells.insert(1, html.td(report.ticket))
+
 
 @pytest.mark.hookwrapper
 def pytest_runtest_makereport(item, call):

@@ -9,6 +9,7 @@ import random
 import re
 import datetime
 import pytest
+import glob
 
 from river_core.log import logger
 from river_core.utils import *
@@ -42,7 +43,7 @@ class ChromitePlugin(object):
         self.compile_output_path = output_dir + 'chromite_plugin'
         self.regress_list = '{0}/regresslist.yaml'.format(
             self.compile_output_path)
-        self.output_dir = output_dir + '/chromite_plugin'
+        self.output_dir = output_dir
         # Save YAML to load again in gen_framework.yaml
         self.yaml_config = yaml_config
 
@@ -131,8 +132,10 @@ class ChromitePlugin(object):
                 makefile.write("\nBIN_DIR := bin")
                 makefile.write("\nOBJ_DIR := objdump")
                 makefile.write("\nSIM_DIR := sim")
+                # ROOT Dir for resutls
+                makefile.write("\nROOT_DIR := chromite")
                 makefile.write(
-                    "\nBASE_SRC_FILES := $(wildcard $(ASM_SRC_DIR)/*.S) \nSRC_FILES := $(filter-out $(wildcard $(ASM_SRC_DIR)/*template.S),$(BASE_SRC_FILES))\nBIN_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(BIN_DIR)/%.riscv, $(SRC_FILES))\nOBJ_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(OBJ_DIR)/%.objdump, $(SRC_FILES))\nSIM_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(SIM_DIR)/%.log, $(SRC_FILES))"
+                    "\nBASE_SRC_FILES := $(wildcard $(ASM_SRC_DIR)/*.S) \nSRC_FILES := $(filter-out $(wildcard $(ASM_SRC_DIR)/*template.S),$(BASE_SRC_FILES))\nBIN_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(BIN_DIR)/%.riscv, $(SRC_FILES))\nOBJ_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(OBJ_DIR)/%.objdump, $(SRC_FILES))\nSIM_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(SIM_DIR)/%.log, $(SRC_FILES))"
                 )
                 # Add all section
                 makefile.write("\n\nall: build objdump sim")
@@ -141,10 +144,12 @@ class ChromitePlugin(object):
                 # Main part for compliing
                 makefile.write("\n\nbuild: $(BIN_FILES)")
                 makefile.write("\n\t$(info ===== Build complete ====== )")
-                makefile.write("\n\n$(BIN_DIR)/%.riscv: $(ASM_SRC_DIR)/%.S")
+                makefile.write(
+                    "\n\n$(ROOT_DIR)/$(BIN_DIR)/%.riscv: $(ASM_SRC_DIR)/%.S")
                 makefile.write(
                     "\n\t$(info ================ Compiling asm to binary ============)"
                 )
+                makefile.write("\n\tmkdir -p $(ROOT_DIR)/$(BIN_DIR)")
                 makefile.write("\n\t" + gcc_compile_bin + " " +
                                gcc_compile_args + " -I " + asm_dir +
                                include_dir + " -o $@ $< $(CRT_FILE) " +
@@ -155,25 +160,31 @@ class ChromitePlugin(object):
                     "\n\t$(info ========= Objdump Completed ============)")
                 makefile.write("\n\t$(info )")
 
-                makefile.write("\n$(OBJ_DIR)/%.objdump: $(BIN_DIR)/%.riscv")
+                makefile.write(
+                    "\n$(ROOT_DIR)/$(OBJ_DIR)/%.objdump: $(ROOT_DIR)/$(BIN_DIR)/%.riscv"
+                )
                 makefile.write(
                     "\n\t$(info ========== Disassembling binary ===============)"
                 )
+                makefile.write("\n\tmkdir -p $(ROOT_DIR)/$(OBJ_DIR)")
                 makefile.write("\n\t" + objdump_bin + " " + objdump_args +
                                " " + "$< > $@")
                 # Run on target
                 makefile.write("\n\n.ONESHELL:")
                 makefile.write("\nsim: $(SIM_FILES)")
-                makefile.write("\n$(SIM_DIR)/%.log: $(BIN_DIR)/%.riscv")
+                makefile.write(
+                    "\n$(ROOT_DIR)/$(SIM_DIR)/%.log: $(ROOT_DIR)/$(BIN_DIR)/%.riscv"
+                )
                 makefile.write(
                     "\n\t$(info ===== Now Running on Chromite =====)")
-                makefile.write("\n\tmkdir -p sim/$<")
+                makefile.write("\n\tmkdir -p $(basename $<)")
                 makefile.write("\n\t$(info ===== Creating code.mem ===== )")
                 makefile.write("\n\t" + elf2hex_bin + " " +
                                str(elf2hex_args[0]) + " " +
                                str(elf2hex_args[1]) + " $< " +
-                               str(elf2hex_args[2]) + " > sim/$</code.mem ")
-                makefile.write("\n\tcd sim/$<")
+                               str(elf2hex_args[2]) +
+                               " > $(basename $<)/code.mem ")
+                makefile.write("\n\tcd $(basename $<)")
                 makefile.write(
                     "\n\t $(info ===== Copying chromite_core and files ===== )"
                 )
@@ -226,16 +237,25 @@ class ChromitePlugin(object):
         # TODO The logger doesn't exactly work like in the pytest module
         # pytest.main([pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(self.filter), '-v', '--compileconfig={0}'.format(compile_config), '--html=compile.html', '--self-contained-html'])
         pytest.main([
-            pytest_file, '-n={0}'.format(self.jobs),
+            pytest_file,
+            '-n={0}'.format(self.jobs),
             '-k={0}'.format(self.filter),
-            '--html={0}/chromite_{1}.html'.format(self.compile_output_path,datetime.datetime.now().strftime("%Y%m%d-%H%M%S")),
-            '--self-contained-html', '--asm_dir={0}'.format(asm_dir),
+            '--html={0}/chromite_{1}.html'.format(
+                self.compile_output_path,
+                datetime.datetime.now().strftime("%Y%m%d-%H%M%S")),
+            '--self-contained-html',
+            '--asm_dir={0}'.format(asm_dir),
             '--make_file={0}'.format(self.make_file),
             # TODO Debug parameters, remove later on
-            '--log-cli-level=DEBUG', '-o log_cli=true'
+            '--log-cli-level=DEBUG',
+            '-o log_cli=true'
         ])
         # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
 
     @dut_hookimpl
     def post_run(self):
         logger.debug('Post Run')
+        log_dir = self.output_dir + 'work/chromite/sim/'
+        log_files = glob.glob(log_dir + '*/rtl.dump')
+        logger.debug("Detected Files: {0}".format(log_files))
+        return log_files

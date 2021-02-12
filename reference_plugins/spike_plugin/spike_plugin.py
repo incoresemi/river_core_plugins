@@ -7,6 +7,7 @@ import shutil
 import yaml
 import random
 import re
+import glob
 import datetime
 import pytest
 
@@ -42,11 +43,12 @@ class SpikePlugin(object):
         self.compile_output_path = output_dir + 'spike_plugin'
         self.regress_list = '{0}/regresslist.yaml'.format(
             self.compile_output_path)
-        self.output_dir = output_dir + '/spike_plugin'
+        self.output_dir = output_dir
         # Save YAML to load again in gen_framework.yaml
         self.yaml_config = yaml_config
 
         # Help setup Spike, if not set in path
+        # FIXME Get this checked by Neel and Pavan, could be some uncessary installtion.
         if self.installation is False:
             logger.info(
                 "Attempting to install the spike into your home directory")
@@ -54,29 +56,38 @@ class SpikePlugin(object):
                 "Please ensure you have RISCV Toolchain installed in your path"
             )
             response = input(
-                "Please respond with N/n, if you don't want to install and exit or if you don't have the requirements installed"
+                "Please respond with N/n, if you don't want to install and exit or if you don't have the requirements installed.\n IMP: If you have no standard install, or want to customize the installation, please go for manual mode of installation."
             )
             if response == ('n', 'N'):
                 raise SystemExit
             else:
                 logger.info("Continuing with the installation")
+                logger.info('Setting the RISCV path to /opt/riscv')
             # TODO Get this from the user maybe?
-            os.chdir(os.path.expanduser('~') + '/cores')
+            os.chdir(os.path.expanduser('~') + '/references')
             # https://chromite.readthedocs.io/en/latest/getting_started.html#building-the-core
-            # TODO Shift to https://gitlab.com/shaktiproject/tools/mod-spike/-/tree/bump-to-latest
             try:
                 sys_command(
-                    'git clone https://gitlab.com/incoresemi/core-generators/chromite.git',
+                    'git clone https://gitlab.com/shaktiproject/tools/mod-spike.git',
                     1000)
-                sys_command('cd chromite')
-                sys_command('pip install -U -r chromite/requirements.txt', 600)
-                # TODO Change this to something that user specifies maybe?
+                sys_command('cd mod-spike')
+                sys_command('git checkout bump-to-latest')
                 sys_command(
-                    'python -m configure.main -ispec sample_config/default.yaml'
+                    'git clone https://github.com/riscv/riscv-isa-sim.git',
+                    1000)
+                sys_command('cd riscv-isa-sim')
+                sys_command(
+                    'git checkout 6d15c93fd75db322981fe58ea1db13035e0f7add')
+                sys_command('git apply ../shakti.patch')
+                logger.info('Setting the RISCV path to /opt/riscv')
+                sys_command('export RISCV=/opt/riscv')
+                sys_command('mkdir build')
+                sys_command('cd build')
+                sys_command('../configure --prefix=$RISCV')
+                sys_command('make')
+                logger.info(
+                    'One tiny step is left, open a shell instance and complete the setup by running, sudo make install.'
                 )
-                sys_command('make -j $(nproc) generate_verilog')
-                sys_command('make link_verilator')
-                logger.info('Setup is now complete')
             except:
                 raise SystemExit(
                     'Something went wrong while getting things ready')
@@ -131,8 +142,10 @@ class SpikePlugin(object):
                 makefile.write("\nBIN_DIR := bin")
                 makefile.write("\nOBJ_DIR := objdump")
                 makefile.write("\nSIM_DIR := sim")
+                # ROOT Dir for resutls
+                makefile.write("\nROOT_DIR := spike")
                 makefile.write(
-                    "\nBASE_SRC_FILES := $(wildcard $(ASM_SRC_DIR)/*.S) \nSRC_FILES := $(filter-out $(wildcard $(ASM_SRC_DIR)/*template.S),$(BASE_SRC_FILES))\nBIN_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(BIN_DIR)/%.riscv, $(SRC_FILES))\nOBJ_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(OBJ_DIR)/%.objdump, $(SRC_FILES))\nSIM_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(SIM_DIR)/%.log, $(SRC_FILES))"
+                    "\nBASE_SRC_FILES := $(wildcard $(ASM_SRC_DIR)/*.S) \nSRC_FILES := $(filter-out $(wildcard $(ASM_SRC_DIR)/*template.S),$(BASE_SRC_FILES))\nBIN_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(BIN_DIR)/%.riscv, $(SRC_FILES))\nOBJ_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(OBJ_DIR)/%.objdump, $(SRC_FILES))\nSIM_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(SIM_DIR)/%.log, $(SRC_FILES))"
                 )
                 # Add all section
                 makefile.write("\n\nall: build objdump sim")
@@ -141,10 +154,12 @@ class SpikePlugin(object):
                 # Main part for compliing
                 makefile.write("\n\nbuild: $(BIN_FILES)")
                 makefile.write("\n\t$(info ===== Build complete ====== )")
-                makefile.write("\n\n$(BIN_DIR)/%.riscv: $(ASM_SRC_DIR)/%.S")
+                makefile.write(
+                    "\n\n$(ROOT_DIR)/$(BIN_DIR)/%.riscv: $(ASM_SRC_DIR)/%.S")
                 makefile.write(
                     "\n\t$(info ================ Compiling asm to binary ============)"
                 )
+                makefile.write("\n\tmkdir -p $(ROOT_DIR)/$(BIN_DIR)")
                 makefile.write("\n\t" + gcc_compile_bin + " " +
                                gcc_compile_args + " -I " + asm_dir +
                                include_dir + " -o $@ $< $(CRT_FILE) " +
@@ -155,19 +170,28 @@ class SpikePlugin(object):
                     "\n\t$(info ========= Objdump Completed ============)")
                 makefile.write("\n\t$(info )")
 
-                makefile.write("\n$(OBJ_DIR)/%.objdump: $(BIN_DIR)/%.riscv")
+                makefile.write(
+                    "\n$(ROOT_DIR)/$(OBJ_DIR)/%.objdump: $(ROOT_DIR)/$(BIN_DIR)/%.riscv"
+                )
                 makefile.write(
                     "\n\t$(info ========== Disassembling binary ===============)"
                 )
+                makefile.write("\n\tmkdir -p $(ROOT_DIR)/$(OBJ_DIR)")
                 makefile.write("\n\t" + objdump_bin + " " + objdump_args +
                                " " + "$< > $@")
                 # Run on target
                 makefile.write("\n\n.ONESHELL:")
                 makefile.write("\nsim: $(SIM_FILES)")
-                makefile.write("\n$(SIM_DIR)/%.log: $(BIN_DIR)/%.riscv")
                 makefile.write(
-                    "\n\t$(info ===== Now Running on Spike =====)")
-                makefile.write("\n\t " + sim_bin + " " + sim_args + " --isa=" + arch + "$< 2> $@")
+                    "\n$(ROOT_DIR)/$(SIM_DIR)/%.log: $(ROOT_DIR)/$(BIN_DIR)/%.riscv"
+                )
+                makefile.write("\n\t$(info ===== Now Running on Spike =====)")
+                makefile.write("\n\tmkdir -p $(basename $@)")
+                makefile.write("\n\t$(info ===== Creating binary  ===== )")
+                # makefile.write("\n\tcp $< $(ROOT_DIR)/$(SIM_DIR)/$<")
+                makefile.write("\n\tcd $(basename $@)")
+                makefile.write("\n\t " + sim_bin + " " + sim_args + " --isa=" +
+                               arch + " ../../../$< 2> ../../../$@ ")
                 # makefile.write("\n\n.PHONY : build")
 
         if asm_gen == 'microtesk':
@@ -212,16 +236,25 @@ class SpikePlugin(object):
         # TODO The logger doesn't exactly work like in the pytest module
         # pytest.main([pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(self.filter), '-v', '--compileconfig={0}'.format(compile_config), '--html=compile.html', '--self-contained-html'])
         pytest.main([
-            pytest_file, '-n={0}'.format(self.jobs),
+            pytest_file,
+            '-n={0}'.format(self.jobs),
             '-k={0}'.format(self.filter),
-            '--html={0}/spike_{1}.html'.format(self.compile_output_path,datetime.datetime.now().strftime("%Y%m%d-%H%M%S")),
-            '--self-contained-html', '--asm_dir={0}'.format(asm_dir),
+            '--html={0}/spike_{1}.html'.format(
+                self.compile_output_path,
+                datetime.datetime.now().strftime("%Y%m%d-%H%M%S")),
+            '--self-contained-html',
+            '--asm_dir={0}'.format(asm_dir),
             '--make_file={0}'.format(self.make_file),
             # TODO Debug parameters, remove later on
-            '--log-cli-level=DEBUG', '-o log_cli=true'
+            '--log-cli-level=DEBUG',
+            '-o log_cli=true'
         ])
         # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
 
     @dut_hookimpl
     def post_run(self):
         logger.debug('Post Run')
+        log_dir = self.output_dir + 'work/spike/sim/'
+        log_files = glob.glob(log_dir + '*/spike.dump')
+        logger.debug("Detected Files:{0}".format(log_files))
+        return log_files

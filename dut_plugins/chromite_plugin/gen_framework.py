@@ -83,4 +83,6 @@ def test_input(request):
 
 
 def test_eval(test_input):
-    assert test_input[0] == 0, "Tests failed because of {0} at {1} stage".format(test_input[1], test_input[2])
+    assert test_input[
+        0] == 0, "Tests failed because of {0} at {1} stage".format(
+            test_input[1], test_input[2])

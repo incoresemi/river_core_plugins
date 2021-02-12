@@ -19,8 +19,8 @@ elf2hex:
   out_file: code.mem
 sim:
   command: spike
-  args: -c
   path: /home/silipwn/tools/chromite/bin/
+  args: -c -l
 # extras_1:
 #   command: 'ln -sf /home/rise/lavanya/gitlab/incore/chromite/bin/chromite_core .'
 # extras_2:

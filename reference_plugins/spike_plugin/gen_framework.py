@@ -19,17 +19,13 @@ from river_core.utils import *
 def compile_cmd_list(make_file, asm_dir):
 
     run_commands = []
-    stage = []
     os.chdir(asm_dir)
     logger.debug("Now starting to build ASM files")
     run_commands.append('make -f {0} build'.format(make_file))
-    stage.append('build')
     logger.debug("Now starting to take objdump")
     run_commands.append('make -f {0} objdump'.format(make_file))
-    stage.append('objdump')
-    logger.debug("Now starting to run on core")
+    logger.debug("Now starting to run on sim")
     run_commands.append('make -f {0} sim'.format(make_file))
-    stage.append('sim')
     return run_commands
 
 
@@ -72,7 +68,7 @@ def test_input(request):
     logger.debug('Generating commands from test_input fixture')
     program = request.param
     stage = program.split()[-1]
-    (ret, out, err) = sys_command(program)
+    (ret, out, err) = sys_command(program, 100)
     return ret, err, stage
     # if run_list(compile_cmd_list[program], program):
     #     # TODO Change
@@ -83,4 +79,6 @@ def test_input(request):
 
 
 def test_eval(test_input):
-    assert test_input[0] == 0, "Tests failed because of {0} at {1} stage".format(test_input[1], test_input[2])
+    assert test_input[
+        0] == 0, "Tests failed because of {0} at {1} stage".format(
+            test_input[1], test_input[2])
