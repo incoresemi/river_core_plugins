@@ -3,7 +3,7 @@ abi: lp64
 arch: rv64imafd
 gcc:
   command: riscv64-unknown-elf-gcc
-  args: -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -std=gnu99 -O2
+  args: -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -std=gnu99 -O2 -DPREALLOCATE=1
   include: common
   asm_dir: asm 
 linker:

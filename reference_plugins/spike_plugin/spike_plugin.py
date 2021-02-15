@@ -160,7 +160,8 @@ class SpikePlugin(object):
                     "\n\t$(info ================ Compiling asm to binary ============)"
                 )
                 makefile.write("\n\tmkdir -p $(ROOT_DIR)/$(BIN_DIR)")
-                makefile.write("\n\t" + gcc_compile_bin + " " +
+                makefile.write("\n\t" + gcc_compile_bin + " " + "-march=" +
+                               arch + " " + "-mabi=" + abi + " " +
                                gcc_compile_args + " -I " + asm_dir +
                                include_dir + " -o $@ $< $(CRT_FILE) " +
                                linker_args + " $(<D)/$*.ld")
@@ -190,7 +191,7 @@ class SpikePlugin(object):
                 makefile.write("\n\t$(info ===== Creating binary  ===== )")
                 # makefile.write("\n\tcp $< $(ROOT_DIR)/$(SIM_DIR)/$<")
                 makefile.write("\n\tcd $(basename $@)")
-                makefile.write("\n\t " + sim_bin + " " + sim_args + " --isa=" +
+                makefile.write("\n\t" + sim_bin + " " + sim_args + " --isa=" +
                                arch + " ../../../$< 2> ../../../$@ ")
                 # makefile.write("\n\n.PHONY : build")
 
@@ -256,5 +257,5 @@ class SpikePlugin(object):
         logger.debug('Post Run')
         log_dir = self.output_dir + 'work/spike/sim/'
         log_files = glob.glob(log_dir + '*/spike.dump')
-        logger.debug("Detected Files:{0}".format(log_files))
+        logger.debug("Detected Spike Log Files:{0}".format(log_files))
         return log_files

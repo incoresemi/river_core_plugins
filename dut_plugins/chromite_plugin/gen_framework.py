@@ -28,7 +28,7 @@ def compile_cmd_list(make_file, asm_dir):
     run_commands.append('make -f {0} objdump'.format(make_file))
     stage.append('objdump')
     logger.debug("Now starting to run on core")
-    # run_commands.append('make -f {0} sim'.format(make_file))
+    run_commands.append('make -f {0} sim'.format(make_file))
     stage.append('sim')
     return run_commands
 

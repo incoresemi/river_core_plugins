@@ -93,6 +93,7 @@ class ChromitePlugin(object):
             # TODO Check all necessary flags
             # Generic commands
             abi = chromite_yaml_config['abi']
+            arch = chromite_yaml_config['arch']
             # GCC Specific
             gcc_compile_bin = chromite_yaml_config['gcc']['command']
             gcc_compile_args = chromite_yaml_config['gcc']['args']
@@ -150,7 +151,8 @@ class ChromitePlugin(object):
                     "\n\t$(info ================ Compiling asm to binary ============)"
                 )
                 makefile.write("\n\tmkdir -p $(ROOT_DIR)/$(BIN_DIR)")
-                makefile.write("\n\t" + gcc_compile_bin + " " +
+                makefile.write("\n\t" + gcc_compile_bin + " " + "-march=" +
+                               arch + " " + "-mabi=" + abi + " " +
                                gcc_compile_args + " -I " + asm_dir +
                                include_dir + " -o $@ $< $(CRT_FILE) " +
                                linker_args + " $(<D)/$*.ld")
@@ -177,14 +179,14 @@ class ChromitePlugin(object):
                 )
                 makefile.write(
                     "\n\t$(info ===== Now Running on Chromite =====)")
-                makefile.write("\n\tmkdir -p $(basename $<)")
+                makefile.write("\n\tmkdir -p $(basename $@)")
                 makefile.write("\n\t$(info ===== Creating code.mem ===== )")
                 makefile.write("\n\t" + elf2hex_bin + " " +
                                str(elf2hex_args[0]) + " " +
                                str(elf2hex_args[1]) + " $< " +
                                str(elf2hex_args[2]) +
-                               " > $(basename $<)/code.mem ")
-                makefile.write("\n\tcd $(basename $<)")
+                               " > $(basename $@)/code.mem ")
+                makefile.write("\n\tcd $(basename $@)")
                 makefile.write(
                     "\n\t $(info ===== Copying chromite_core and files ===== )"
                 )
@@ -257,5 +259,5 @@ class ChromitePlugin(object):
         logger.debug('Post Run')
         log_dir = self.output_dir + 'work/chromite/sim/'
         log_files = glob.glob(log_dir + '*/rtl.dump')
-        logger.debug("Detected Files: {0}".format(log_files))
+        logger.debug("Detected Chromite Log Files: {0}".format(log_files))
         return log_files
