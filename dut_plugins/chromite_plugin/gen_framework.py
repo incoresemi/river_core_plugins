@@ -19,17 +19,13 @@ from river_core.utils import *
 def compile_cmd_list(make_file, asm_dir):
 
     run_commands = []
-    stage = []
     os.chdir(asm_dir)
     logger.debug("Now starting to build ASM files")
     run_commands.append('make -f {0} build'.format(make_file))
-    stage.append('build')
     logger.debug("Now starting to take objdump")
     run_commands.append('make -f {0} objdump'.format(make_file))
-    stage.append('objdump')
     logger.debug("Now starting to run on core")
-    run_commands.append('make -f {0} sim'.format(make_file))
-    stage.append('sim')
+    # run_commands.append('make -f {0} sim'.format(make_file))
     return run_commands
 
 

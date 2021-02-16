@@ -46,6 +46,14 @@ class ChromitePlugin(object):
         self.output_dir = output_dir
         # Save YAML to load again in gen_framework.yaml
         self.yaml_config = yaml_config
+        # Report output directory
+        self.report_dir = self.output_dir + 'reports'
+        # Check if dir exists
+        if (os.path.isdir(self.report_dir)):
+            logger.debug('Report Directory exists')
+            # shutil.rmtree(output_dir, ignore_errors=True)
+        else:
+            os.makedirs(self.report_dir)
 
         # Help setup Chromite, if not set in path
         if self.installation is False:
@@ -235,6 +243,10 @@ class ChromitePlugin(object):
         pytest_file = module_dir + '/chromite_plugin/gen_framework.py'
         logger.debug('Pytest file: {0}'.format(pytest_file))
 
+        report_file_name = '{0}/chromite_{1}'.format(
+                self.report_dir,
+                datetime.datetime.now().strftime("%Y%m%d-%H%M"))
+
         # TODO Regression list currently removed, check back later
         # TODO The logger doesn't exactly work like in the pytest module
         # pytest.main([pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(self.filter), '-v', '--compileconfig={0}'.format(compile_config), '--html=compile.html', '--self-contained-html'])
@@ -242,9 +254,9 @@ class ChromitePlugin(object):
             pytest_file,
             '-n={0}'.format(self.jobs),
             '-k={0}'.format(self.filter),
-            '--html={0}/chromite_{1}.html'.format(
-                self.compile_output_path,
-                datetime.datetime.now().strftime("%Y%m%d-%H%M%S")),
+            '--html={0}.html'.format(report_file_name),
+            '--self-contained-html',
+            '--report-log={0}.json'.format(report_file_name),
             '--self-contained-html',
             '--asm_dir={0}'.format(asm_dir),
             '--make_file={0}'.format(self.make_file),
@@ -253,6 +265,7 @@ class ChromitePlugin(object):
             '-o log_cli=true'
         ])
         # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
+        return report_file_name
 
     @dut_hookimpl
     def post_run(self):
