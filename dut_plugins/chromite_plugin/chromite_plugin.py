@@ -198,7 +198,7 @@ class ChromitePlugin(object):
                 makefile.write(
                     "\n\t $(info ===== Copying chromite_core and files ===== )"
                 )
-                makefile.write("\n\tcp " + sim_path + "boot.mem " + sim_path +
+                makefile.write("\n\tln -sf " + sim_path + "boot.mem " + sim_path +
                                "chromite_core .")
                 makefile.write(
                     "\n\t$(info ===== Now running chromite core ===== )")

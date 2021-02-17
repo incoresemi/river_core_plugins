@@ -68,7 +68,7 @@ def test_input(request):
     logger.debug('Generating commands from test_input fixture')
     program = request.param
     stage = program.split()[-1]
-    (ret, out, err) = sys_command(program, 100)
+    (ret, out, err) = sys_command(program)
     return ret, err, stage
     # if run_list(compile_cmd_list[program], program):
     #     # TODO Change
