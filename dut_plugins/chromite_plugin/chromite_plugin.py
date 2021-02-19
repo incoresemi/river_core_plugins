@@ -254,10 +254,9 @@ class ChromitePlugin(object):
             pytest_file,
             '-n={0}'.format(self.jobs),
             '-k={0}'.format(self.filter),
-            '--html={0}.html'.format(report_file_name),
-            '--self-contained-html',
+            # '--html={0}.html'.format(report_file_name),
             '--report-log={0}.json'.format(report_file_name),
-            '--self-contained-html',
+            # '--self-contained-html',
             '--asm_dir={0}'.format(asm_dir),
             '--make_file={0}'.format(self.make_file),
             # TODO Debug parameters, remove later on
