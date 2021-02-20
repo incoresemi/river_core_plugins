@@ -6,4 +6,4 @@ global_command: aapg gen
 # Preferred name scheme is given as an example
 templates:
     rv64imafdc:
-        path: templates/iclass
+        path: templates/chromite
