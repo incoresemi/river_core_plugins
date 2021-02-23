@@ -22,7 +22,7 @@ class SpikePlugin(object):
         Plugin to set Spike as ref
     '''
     @dut_hookimpl
-    def init(self, ini_config, yaml_config, output_dir):
+    def init(self, ini_config, yaml_config, asm_dir):
         logger.debug('Pre Compile Stage')
         # Get plugin specific configs from ini
         self.jobs = ini_config['jobs']
@@ -40,10 +40,10 @@ class SpikePlugin(object):
         #     shutil.rmtree(output_dir, ignore_errors=True)
         # os.makedirs(output_dir + '/chromite_plugin')
         # Generic commands
-        self.compile_output_path = output_dir + 'spike_plugin'
+        self.output_dir = asm_dir.replace('work/','')
+        self.compile_output_path = self.output_dir + 'spike_plugin'
         self.regress_list = '{0}/regresslist.yaml'.format(
             self.compile_output_path)
-        self.output_dir = output_dir
         # Save YAML to load again in gen_framework.yaml
         self.yaml_config = yaml_config
         # Report output directory
