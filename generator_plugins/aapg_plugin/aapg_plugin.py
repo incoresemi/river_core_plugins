@@ -87,7 +87,7 @@ class AapgPlugin(object):
         ])
         # Generate Test List
         # Get the aapg dir from output
-        asm_dir = output_dir + '/aapg/asm/'
+        asm_dir = output_dir + 'aapg/asm/'
         test_list = {}
         asm_test_list = glob.glob(asm_dir+'**/*[!_template].S')
         # asm_templates = glob.glob(asm_dir+'/**/*.S')
@@ -126,16 +126,21 @@ class AapgPlugin(object):
 
             # Create the base key for the test i.e. the main file under which everything is stored
             # NOTE: Here we expect the developers to probably have the proper GCC and the args, objdump as well
-            base_key = os.path.basename(test)
+            base_key = os.path.basename(test)[:-2]
             test_list[base_key]={}
-            test_list[base_key]['work_dir'] = output_dir+'/aapg/asm/'+str(base_key)[:-2]
+            test_list[base_key]['work_dir'] = output_dir+'aapg/asm/'+base_key
             test_list[base_key]['isa'] = self.isa
-            test_list[base_key]['path'] = test
             test_list[base_key]['march'] = march_str
             test_list[base_key]['mabi'] = mabi_str
             # test_list[base_key]['gcc_cmd'] = gcc_compile_bin + " " + "-march=" + arch + " " + "-mabi=" + abi + " " + gcc_compile_args + " -I " + asm_dir + include_dir + " -o $@ $< $(CRT_FILE) " + linker_args + " $(<D)/$*.ld"
-        testfile = open(output_dir+'/test_list.yaml','w')
-        yaml.safe_dump(test_list, testfile, default_flow_style=False)
+            test_list[base_key]['cc'] = 'riscv64-unknown-elf-gcc'
+            test_list[base_key]['cc_args'] = '-march='+march_str+' -mabi='+mabi_str+' -mcmodel=medany -static -std=gnu99 -O2 -fno-common -fno-builtin-printf'
+            test_list[base_key]['link-opts'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
+            test_list[base_key]['linker'] = base_key+'.ld'
+            test_list[base_key]['asm_file'] = base_key+'.S'
+        testfile = open(output_dir+'aapg/aapg_test_list.yaml','w')
+        # Sort keys allows to maintain the above order
+        yaml.safe_dump(test_list, testfile, default_flow_style=False, sort_keys=False)
         testfile.close()
 
         return test_list
