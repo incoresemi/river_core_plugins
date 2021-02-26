@@ -11,7 +11,7 @@ import random
 import re
 import datetime
 import pytest
-from glob import glob
+import glob
 from river_core.log import logger
 from river_core.utils import *
 from river_core.constants import *
@@ -84,7 +84,23 @@ class AapgPlugin(object):
             '--self-contained-html', '--output_dir={0}'.format(output_dir),
             '--module_dir={0}'.format(module_dir)
         ])
+        # Generate Test List
+        # Get the aapg dir from output
+        asm_dir = output_dir + '/aapg/asm/'
+        test_list = {}
+        asm_test_list = glob.glob(asm_dir+'**/*[!_template].S')
+        # asm_templates = glob.glob(asm_dir+'/**/*.S')
+        for test in asm_test_list:
+            # Create the base key for the test i.e. the main file under which everything is stored
+            # NOTE: Here we expect the developers to probably have the proper GCC and the args, objdump as well
+            base_key = os.path.basename(test)
+            test_list[base_key]={}
+            test_list[base_key]['work_dir'] = output_dir+'aapg/'
+            test_list[base_key]['isa'] = self.isa
+            test_list[base_key]['path'] = test
+            # test_list[base_key]['gcc_cmd'] = gcc_compile_bin + " " + "-march=" + arch + " " + "-mabi=" + abi + " " + gcc_compile_args + " -I " + asm_dir + include_dir + " -o $@ $< $(CRT_FILE) " + linker_args + " $(<D)/$*.ld"
 
+        return test_list
     # generates the regress list from the generation
     @gen_hookimpl
     def post_gen(self, output_dir, regressfile):

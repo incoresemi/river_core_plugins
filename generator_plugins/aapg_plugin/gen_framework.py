@@ -62,7 +62,7 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                             gen_seed, now.strftime('%d%m%Y%H%M%S%f'))
                         test_prefix = 'aapg_{0}_{1}_{2:05}'.format(
                             template_name.replace('.yaml', ''), gen_prefix, i)
-                        testdir = '{0}/{1}'.format(dirname, test_prefix)
+                        testdir = '{0}/asm/{1}'.format(dirname, test_prefix)
                         run_command.append('aapg gen \
                                             --config_file {0} \
                                             --setup_dir {1} \
