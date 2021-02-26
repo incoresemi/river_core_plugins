@@ -118,6 +118,11 @@ class AapgPlugin(object):
             canonical_order = {'i':0, 'm':1, 'a':2, 'f':3, 'd':4, 'c':5}
             canonical_isa = sorted(list(isa), key=lambda d: canonical_order[d])
             march_str = 'rv'+str(xlen)+"".join(canonical_order)
+            if xlen == 64:
+                mabi_str = 'lp64'
+            elif 'd' not in march_str:
+                mabi_str = 'ilp32d'
+
 
             # Create the base key for the test i.e. the main file under which everything is stored
             # NOTE: Here we expect the developers to probably have the proper GCC and the args, objdump as well
@@ -127,6 +132,7 @@ class AapgPlugin(object):
             test_list[base_key]['isa'] = self.isa
             test_list[base_key]['path'] = test
             test_list[base_key]['march'] = march_str
+            test_list[base_key]['mabi'] = mabi_str
             # test_list[base_key]['gcc_cmd'] = gcc_compile_bin + " " + "-march=" + arch + " " + "-mabi=" + abi + " " + gcc_compile_args + " -I " + asm_dir + include_dir + " -o $@ $< $(CRT_FILE) " + linker_args + " $(<D)/$*.ld"
         testfile = open(output_dir+'/test_list.yaml','w')
         yaml.safe_dump(test_list, testfile, default_flow_style=False)
