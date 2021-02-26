@@ -15,6 +15,7 @@ import glob
 from river_core.log import logger
 from river_core.utils import *
 from river_core.constants import *
+import re
 
 gen_hookimpl = pluggy.HookimplMarker("generator")
 
@@ -91,14 +92,45 @@ class AapgPlugin(object):
         asm_test_list = glob.glob(asm_dir+'**/*[!_template].S')
         # asm_templates = glob.glob(asm_dir+'/**/*.S')
         for test in asm_test_list:
+            with open(test,'r') as file:
+                test_asm = file.read()
+            isa = set()
+            isa.add('i')
+            xlen = 64
+            dist_list = re.findall(r'^#\s*(rel_.*?)$',test_asm,re.M|re.S)
+            for dist in dist_list:
+                ext = dist.split(':')[0][4:].split('.')[0]
+                ext_count = int(dist.split(':')[1])
+
+                if ext_count != 0:
+                    if 'rv64' in ext :
+                        xlen = 64
+                    if 'm' in ext:
+                        isa.add('m')
+                    if 'a' in ext:
+                        isa.add('a')
+                    if 'f' in ext:
+                        isa.add('f')
+                    if 'd' in ext:
+                        isa.add('d')
+                    if 'c' in ext:
+                        isa.add('c')
+            canonical_order = {'i':0, 'm':1, 'a':2, 'f':3, 'd':4, 'c':5}
+            canonical_isa = sorted(list(isa), key=lambda d: canonical_order[d])
+            march_str = 'rv'+str(xlen)+"".join(canonical_order)
+
             # Create the base key for the test i.e. the main file under which everything is stored
             # NOTE: Here we expect the developers to probably have the proper GCC and the args, objdump as well
             base_key = os.path.basename(test)
             test_list[base_key]={}
-            test_list[base_key]['work_dir'] = output_dir+'aapg/'
+            test_list[base_key]['work_dir'] = output_dir+'/aapg/asm/'+str(base_key)[:-2]
             test_list[base_key]['isa'] = self.isa
             test_list[base_key]['path'] = test
+            test_list[base_key]['march'] = march_str
             # test_list[base_key]['gcc_cmd'] = gcc_compile_bin + " " + "-march=" + arch + " " + "-mabi=" + abi + " " + gcc_compile_args + " -I " + asm_dir + include_dir + " -o $@ $< $(CRT_FILE) " + linker_args + " $(<D)/$*.ld"
+        testfile = open(output_dir+'/test_list.yaml','w')
+        yaml.safe_dump(test_list, testfile, default_flow_style=False)
+        testfile.close()
 
         return test_list
     # generates the regress list from the generation
@@ -136,5 +168,4 @@ class AapgPlugin(object):
 
         rgfile = open(regressfile, 'w')
 
-        print(test_dict)
         yaml.safe_dump(test_dict, rgfile, default_flow_style=False)
