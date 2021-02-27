@@ -138,7 +138,7 @@ class AapgPlugin(object):
             test_list[base_key]['link-opts'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
             test_list[base_key]['linker'] = base_key+'.ld'
             test_list[base_key]['asm_file'] = base_key+'.S'
-        testfile = open(output_dir+'aapg/aapg_test_list.yaml','w')
+        testfile = open(output_dir+'/aapg/aapg_test_list.yaml','w')
         # Sort keys allows to maintain the above order
         yaml.safe_dump(test_list, testfile, default_flow_style=False, sort_keys=False)
         testfile.close()
