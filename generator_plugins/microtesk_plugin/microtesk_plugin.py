@@ -76,8 +76,8 @@ class MicroTESKPlugin(object):
         #     pytest.main([pytest_file, '--collect-only', '-n={0}'.format(jobs), '-k={0}'.format(filter), '--configlist={0}'.format(gen_config), '-v', '--seed={0}'.format(seed), '--count={0}'.format(count),'--html=microtesk_gen.html', '--self-contained-html'])
         # else:
         pytest.main([
-            pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(self.filter),
-            '--configlist={0}'.format(gen_config), '-v',
+            pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(
+                self.filter), '--configlist={0}'.format(gen_config), '-v',
             '--seed={0}'.format(self.seed), '--count={0}'.format(self.count),
             '--html={0}/microtesk_gen.html'.format(output_dir),
             '--self-contained-html', '--output_dir={0}'.format(output_dir),

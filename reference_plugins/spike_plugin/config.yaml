@@ -1,15 +1,4 @@
 # isa: rv64imafdc
-abi: lp64
-arch: rv64imafd
-gcc:
-  command: riscv64-unknown-elf-gcc
-  args: -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -std=gnu99 -O2 -DPREALLOCATE=1
-  include: common
-  asm_dir: asm 
-linker:
-  ld: ld
-  args: -static -nostdlib -nostartfiles -lm -lgcc -T
-  crt: common/crt.S 
 objdump:
   command: riscv64-unknown-elf-objdump
   args: -D 
@@ -19,24 +8,4 @@ elf2hex:
   out_file: code.mem
 sim:
   command: spike
-  path: /home/silipwn/tools/chromite/bin/
-  args: -c -l
-# extras_1:
-#   command: 'ln -sf /home/rise/lavanya/gitlab/incore/chromite/bin/chromite_core .'
-# extras_2:
-#   command: 'ln -sf /home/rise/lavanya/gitlab/incore/chromite/bin/boot.mem .'
-# extras_3:
-#   command: head -n -4 rtl.dump
-#   out_file: temp.dump
-# extras_4:
-#   command: mv temp.dump rtl.dump
-# order:
-#   - 'gcc'
-#   - 'spike'
-#   - 'disass'
-#   - 'elf2hex'
-#   - 'extras_1'
-#   - 'extras_2'
-#   - 'sim'
-#   - 'extras_3'
-#   - 'extras_4'
+  args: -c -l -m256

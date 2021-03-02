@@ -22,7 +22,7 @@ class SpikePlugin(object):
         Plugin to set Spike as ref
     '''
     @dut_hookimpl
-    def init(self, ini_config, yaml_config, asm_dir):
+    def init(self, ini_config, test_list, asm_dir, config_yaml):
         logger.debug('Pre Compile Stage')
         # Get plugin specific configs from ini
         self.jobs = ini_config['jobs']
@@ -40,12 +40,13 @@ class SpikePlugin(object):
         #     shutil.rmtree(output_dir, ignore_errors=True)
         # os.makedirs(output_dir + '/chromite_plugin')
         # Generic commands
-        self.output_dir = asm_dir.replace('work/','')
+        self.output_dir = asm_dir.replace('work/', '')
         self.compile_output_path = self.output_dir + 'spike_plugin'
-        self.regress_list = '{0}/regresslist.yaml'.format(
+        self.regress_list = '{0}/spike-regresslist.yaml'.format(
             self.compile_output_path)
         # Save YAML to load again in gen_framework.yaml
-        self.yaml_config = yaml_config
+        self.config_yaml = config_yaml
+        self.test_list_yaml = test_list
         # Report output directory
         self.report_dir = self.output_dir + 'reports'
         # Check if dir exists
@@ -104,133 +105,114 @@ class SpikePlugin(object):
     def build(self, asm_dir, asm_gen):
         logger.debug('Build Hook')
         make_file = os.path.join(asm_dir, 'Makefile.spike')
-        # Load YAML file
-        logger.debug('Load Original YAML file i.e {0}'.format(
-            self.yaml_config))
-        with open(self.yaml_config, 'r') as cfile:
-            spike_yaml_config = yaml.safe_load(cfile)
+        # Load YAML files
+        logger.debug('Loading the plugin specific YAML from {0}'.format(
+            self.config_yaml))
+        config_file = open(self.config_yaml, 'r')
+        config_yaml_data = yaml.safe_load(config_file)
+        config_file.close()
+        logger.debug('Load Test-List YAML file i.e {0}'.format(
+            self.test_list_yaml))
+        with open(self.test_list_yaml, 'r') as cfile:
+            test_list_yaml_data = yaml.safe_load(cfile)
             # TODO Check all necessary flags
             # Generic commands
-            abi = spike_yaml_config['abi']
-            arch = spike_yaml_config['arch']
-            # GCC Specific
-            gcc_compile_bin = spike_yaml_config['gcc']['command']
-            gcc_compile_args = spike_yaml_config['gcc']['args']
-            include_dir = spike_yaml_config['gcc']['include']
-            asm = spike_yaml_config['gcc']['asm_dir']
-            # Linker
-            linker_bin = spike_yaml_config['linker']['ld']
-            linker_args = spike_yaml_config['linker']['args']
-            crt_file = spike_yaml_config['linker']['crt']
+            key_list = list(test_list_yaml_data.keys())
+            self.key_list = key_list
+            # Load common things from config.yaml
             # Disass
-            objdump_bin = spike_yaml_config['objdump']['command']
-            objdump_args = spike_yaml_config['objdump']['args']
+            objdump_bin = config_yaml_data['objdump']['command']
+            objdump_args = config_yaml_data['objdump']['args']
             # Elf2hex
-            elf2hex_bin = spike_yaml_config['elf2hex']['command']
-            elf2hex_args = spike_yaml_config['elf2hex']['args']
+            elf2hex_bin = config_yaml_data['elf2hex']['command']
+            elf2hex_args = config_yaml_data['elf2hex']['args']
             # Sim
-            sim_bin = spike_yaml_config['sim']['command']
-            sim_args = spike_yaml_config['sim']['args']
-            sim_path = spike_yaml_config['sim']['path']
+            sim_bin = config_yaml_data['sim']['command']
+            sim_args = config_yaml_data['sim']['args']
 
-            # # Get files from the directory
-            # asm_files = glob.glob(asm_dir+'*.S')
-        os.chdir(asm_dir)
-        if asm_gen == 'aapg':
+            # Load teh Makefile
+            os.chdir(asm_dir)
             make_file = make_file + '.aapg'
             with open(make_file, "w") as makefile:
                 makefile.write(
-                    "# auto generated makefile created by river_core compile for aapg based asm files"
+                    "# Auto generated makefile created by river_core compile based on test list yaml"
                 )
                 makefile.write("\n# generated on: {0}\n".format(
                     datetime.datetime.now()))
                 # get the variables into the file
-                makefile.write("\nASM_SRC_DIR := " + asm_dir + asm)
-                makefile.write("\nCRT_FILE := " + asm_dir + crt_file)
+                # makefile.write("\nASM_SRC_DIR := " + asm_dir + asm)
+                # makefile.write("\nCRT_FILE := " + asm_dir + crt_file)
                 makefile.write("\nBIN_DIR := bin")
                 makefile.write("\nOBJ_DIR := objdump")
                 makefile.write("\nSIM_DIR := sim")
                 # ROOT Dir for resutls
                 makefile.write("\nROOT_DIR := spike")
-                makefile.write(
-                    "\nBASE_SRC_FILES := $(wildcard $(ASM_SRC_DIR)/*.S) \nSRC_FILES := $(filter-out $(wildcard $(ASM_SRC_DIR)/*template.S),$(BASE_SRC_FILES))\nBIN_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(BIN_DIR)/%.riscv, $(SRC_FILES))\nOBJ_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(OBJ_DIR)/%.objdump, $(SRC_FILES))\nSIM_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(SIM_DIR)/%.log, $(SRC_FILES))"
-                )
-                # Add all section
-                makefile.write("\n\nall: build objdump sim")
-                makefile.write(
-                    "\n\t$(info ===== All steps are now finished ====== )")
-                # Main part for compliing
-                makefile.write("\n\nbuild: $(BIN_FILES)")
-                makefile.write("\n\t$(info ===== Build complete ====== )")
-                makefile.write(
-                    "\n\n$(ROOT_DIR)/$(BIN_DIR)/%.riscv: $(ASM_SRC_DIR)/%.S")
-                makefile.write(
-                    "\n\t$(info ================ Compiling asm to binary ============)"
-                )
-                makefile.write("\n\tmkdir -p $(ROOT_DIR)/$(BIN_DIR)")
-                makefile.write("\n\t" + gcc_compile_bin + " " + "-march=" +
-                               arch + " " + "-mabi=" + abi + " " +
-                               gcc_compile_args + " -I " + asm_dir +
-                               include_dir + " -o $@ $< $(CRT_FILE) " +
-                               linker_args + " $(<D)/$*.ld")
-                # Create an objdump file
-                makefile.write("\n\nobjdump: $(OBJ_FILES)")
-                makefile.write(
-                    "\n\t$(info ========= Objdump Completed ============)")
-                makefile.write("\n\t$(info )")
+                for key in key_list:
+                    abi = test_list_yaml_data[key]['mabi']
+                    arch = test_list_yaml_data[key]['march']
+                    isa = test_list_yaml_data[key]['isa']
+                    work_dir = test_list_yaml_data[key]['work_dir']
+                    file_name = key
+                    # GCC Specific
+                    gcc_compile_bin = test_list_yaml_data[key]['cc']
+                    gcc_compile_args = test_list_yaml_data[key]['cc_args']
+                    asm_file = test_list_yaml_data[key]['asm_file']
+                    # Linker
+                    linker_args = test_list_yaml_data[key]['linker_args']
+                    linker_file = test_list_yaml_data[key]['linker_file']
+                    crt_file = test_list_yaml_data[key]['crt_file']
 
-                makefile.write(
-                    "\n$(ROOT_DIR)/$(OBJ_DIR)/%.objdump: $(ROOT_DIR)/$(BIN_DIR)/%.riscv"
-                )
-                makefile.write(
-                    "\n\t$(info ========== Disassembling binary ===============)"
-                )
-                makefile.write("\n\tmkdir -p $(ROOT_DIR)/$(OBJ_DIR)")
-                makefile.write("\n\t" + objdump_bin + " " + objdump_args +
-                               " " + "$< > $@")
+                    # # Get files from the directory
+                    # asm_files = glob.glob(asm_dir+'*.S')
+                    # makefile.write(
+                    #     "\nBASE_SRC_FILES := $(wildcard $(ASM_SRC_DIR)/*.S) \nSRC_FILES := $(filter-out $(wildcard $(ASM_SRC_DIR)/*template.S),$(BASE_SRC_FILES))\nBIN_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(BIN_DIR)/%.riscv, $(SRC_FILES))\nOBJ_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(OBJ_DIR)/%.objdump, $(SRC_FILES))\nSIM_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(SIM_DIR)/%.log, $(SRC_FILES))"
+                    # )
+                    # Add all section
+                    # makefile.write("\n\nall: build objdump sim")
+                    # makefile.write(
+                    #     "\n\t$(info ===== All steps are now finished ====== )")
+                    # Build for part one
+                    makefile.write("\n\n{0}-build:".format(file_name))
+                    makefile.write(
+                        "\n\t$(info ================ Compiling asm to binary ============)"
+                    )
+                    makefile.write(
+                        "\n\tmkdir -p $(ROOT_DIR)/$(BIN_DIR)/{0}".format(
+                            file_name))
+                    makefile.write("\n\t" + gcc_compile_bin + " " +
+                                   gcc_compile_args +
+                                   " -o $(ROOT_DIR)/$(BIN_DIR)/{0}/{0}.bin ".
+                                   format(file_name) +
+                                   "asm/{0}/{0}.S ".format(file_name) +
+                                   crt_file + " " + linker_args + " " +
+                                   "asm/{0}/".format(file_name) + linker_file)
+                    # Create an objdump file
+                    makefile.write("\n\n{0}-objdump:".format(file_name))
+                    makefile.write(
+                        "\n\t$(info ========== Disassembling binary ===============)"
+                    )
+                    makefile.write(
+                        "\n\tmkdir -p $(ROOT_DIR)/$(OBJ_DIR)/{0}".format(
+                            file_name))
+                    makefile.write(
+                        "\n\t" + objdump_bin + " " + objdump_args + " " +
+                        "$(ROOT_DIR)/$(BIN_DIR)/{0}/{0}.bin > $(ROOT_DIR)/$(OBJ_DIR)/{0}/{0}.objdump"
+                        .format(file_name))
+                    # Run on target
+                    makefile.write("\n\n.ONESHELL:")
+                    makefile.write("\n{0}-sim:".format(file_name))
+                    makefile.write(
+                        "\n\tmkdir -p $(ROOT_DIR)/$(SIM_DIR)/{0}".format(
+                            file_name))
+                    makefile.write(
+                        "\n\tcd $(ROOT_DIR)/$(SIM_DIR)/{0}".format(file_name))
+                    makefile.write("\n\t $(info ===== Run on spike ===== )")
+                    makefile.write("\n\t" + sim_bin + " " + sim_args +
+                                   " --isa=" + arch +
+                                   " ../../$(BIN_DIR)/{0}/{0}.bin 2> {0}.log".
+                                   format(file_name))
+                    # makefile.write("\n\n.PHONY : build")
                 # Run on target
-                makefile.write("\n\n.ONESHELL:")
-                makefile.write("\nsim: $(SIM_FILES)")
-                makefile.write(
-                    "\n$(ROOT_DIR)/$(SIM_DIR)/%.log: $(ROOT_DIR)/$(BIN_DIR)/%.riscv"
-                )
-                makefile.write("\n\t$(info ===== Now Running on Spike =====)")
-                makefile.write("\n\tmkdir -p $(basename $@)")
-                makefile.write("\n\t$(info ===== Creating binary  ===== )")
-                # makefile.write("\n\tcp $< $(ROOT_DIR)/$(SIM_DIR)/$<")
-                makefile.write("\n\tcd $(basename $@)")
-                makefile.write("\n\t" + sim_bin + " " + sim_args + " --isa=" +
-                               arch + " ../../../$< 2> ../../../$@ ")
-                # makefile.write("\n\n.PHONY : build")
-
-        if asm_gen == 'microtesk':
-            make_file = make_file + '.microtesk'
-            # TODO This implementation is still broken, because of file naming
-            # difference in microtesk generation :
-            with open(make_file, "w") as makefile:
-                makefile.write(
-                    "# Auto generated makefile created by river_core compile for microtesk based ASM files"
-                )
-                makefile.write("\n# Generated on: {0}\n".format(
-                    datetime.datetime.now()))
-                # Get simple data
-                makefile.write("\nASM_SRC_DIR := asm")
-                makefile.write("\nBIN_DIR := bin")
-                makefile.write("\nSRC_FILES := $(wildcard $(ASM_SRC_DIR)/*.S)")
-                makefile.write(
-                    "\nBIN_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(BIN_DIR)/%.riscv, $(SRC_FILES))"
-                )
-                # Main part for compliing
-                makefile.write("\n\nbuild: $(BIN_FILES)")
-                makefile.write("\n\t$(info ===== Build complete ====== )")
-                makefile.write("\n\n$(BIN_DIR)/%.riscv: $(ASM_SRC_DIR)/%.S")
-                makefile.write(
-                    "\n\t$(info ================ Compiling asm to binary ============)"
-                )
-                makefile.write("\n\t" + gcc_compile_bin + " " +
-                               gcc_compile_args + " -o $@ " + linker_args +
-                               " $(<D)/$*.ld")
-                makefile.write("\n\n.PHONY : build")
 
         self.make_file = make_file
 
@@ -242,8 +224,8 @@ class SpikePlugin(object):
         logger.debug('Pytest file: {0}'.format(pytest_file))
 
         report_file_name = '{0}/spike_{1}'.format(
-                self.report_dir,
-                datetime.datetime.now().strftime("%Y%m%d-%H%M"))
+            self.report_dir,
+            datetime.datetime.now().strftime("%Y%m%d-%H%M"))
 
         # TODO Regression list currently removed, check back later
         # TODO The logger doesn't exactly work like in the pytest module
@@ -257,6 +239,7 @@ class SpikePlugin(object):
             '--report-log={0}.json'.format(report_file_name),
             '--asm_dir={0}'.format(asm_dir),
             '--make_file={0}'.format(self.make_file),
+            '--key_list={0}'.format(self.key_list),
             # TODO Debug parameters, remove later on
             '--log-cli-level=DEBUG',
             '-o log_cli=true'
@@ -267,7 +250,7 @@ class SpikePlugin(object):
     @dut_hookimpl
     def post_run(self):
         logger.debug('Post Run')
-        log_dir = self.output_dir + 'work/spike/sim/'
+        log_dir = self.output_dir + 'spike/sim/'
         log_files = glob.glob(log_dir + '*/spike.dump')
         logger.debug("Detected Spike Log Files:{0}".format(log_files))
         return log_files

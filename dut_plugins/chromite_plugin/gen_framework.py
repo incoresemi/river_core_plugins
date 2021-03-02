@@ -16,16 +16,33 @@ from river_core.log import logger
 from river_core.utils import *
 
 
-def compile_cmd_list(make_file, asm_dir):
+def compile_cmd_list(make_file, asm_dir, key_list):
 
     run_commands = []
     os.chdir(asm_dir)
-    logger.debug("Now starting to build ASM files")
-    run_commands.append('make -f {0} build'.format(make_file))
-    logger.debug("Now starting to take objdump")
-    run_commands.append('make -f {0} objdump'.format(make_file))
-    logger.debug("Now starting to run on core")
-    run_commands.append('make -f {0} sim'.format(make_file))
+    # Hmm here the key_list becomes a string need to do some magic to get into proper list
+    # RE Magic here
+    replacements = {"[": "", "]": "", "'": "", " ": ""}
+    replacements = dict((re.escape(k), v) for k, v in replacements.items())
+    pattern = re.compile("|".join(replacements.keys()))
+    str_key_list = pattern.sub(lambda m: replacements[re.escape(m.group(0))],
+                               key_list)
+    key_list = str_key_list.split(",")
+
+    for file_name in key_list:
+        logger.debug(
+            "Creating Makefile command for {0} to build ASM files".format(
+                file_name))
+        run_commands.append('make -f {0} {1}-build'.format(
+            make_file, file_name))
+        logger.debug(
+            "Creating Makefile command for {0} to take objdump".format(
+                file_name))
+        run_commands.append('make -f {0} {1}-objdump'.format(
+            make_file, file_name))
+        logger.debug("Creating Makefile command for {0} to run on core".format(
+            file_name))
+        run_commands.append('make -f {0} {1}-sim'.format(make_file, file_name))
     return run_commands
 
 
@@ -40,7 +57,8 @@ def pytest_generate_tests(metafunc):
         test_list = compile_cmd_list(
             # metafunc.config.getoption("output_dir"),
             metafunc.config.getoption("make_file"),
-            metafunc.config.getoption("asm_dir"))
+            metafunc.config.getoption("asm_dir"),
+            metafunc.config.getoption("key_list"))
         metafunc.parametrize('test_input', test_list, ids=idfnc, indirect=True)
 
 
@@ -67,7 +85,7 @@ def test_input(request):
     # compile tests
     logger.debug('Generating commands from test_input fixture')
     program = request.param
-    stage = program.split()[-1]
+    stage = program.split()[-1].split('-')[1]
     (ret, out, err) = sys_command(program)
     return ret, err, stage
     # if run_list(compile_cmd_list[program], program):
