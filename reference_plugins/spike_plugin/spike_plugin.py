@@ -132,7 +132,7 @@ class SpikePlugin(object):
 
             # Load teh Makefile
             os.chdir(asm_dir)
-            make_file = make_file + '.aapg'
+            make_file = make_file
             with open(make_file, "w") as makefile:
                 makefile.write(
                     "# Auto generated makefile created by river_core compile based on test list yaml"
