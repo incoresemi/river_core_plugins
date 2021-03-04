@@ -213,6 +213,7 @@ class ChromitePlugin(object):
                     makefile.write(
                         "\n\t$(info ===== Now running chromite core ===== )")
                     makefile.write("\n\t ./" + sim_bin + " " + sim_args)
+                    makefile.write("\n\t cp rtl.dump {0}-dut_rc.dump".format(file_name))
                     # makefile.write("\n\n.PHONY : build")
 
         self.make_file = make_file
@@ -253,6 +254,6 @@ class ChromitePlugin(object):
     def post_run(self):
         logger.debug('Post Run')
         log_dir = self.output_dir + 'chromite/sim/'
-        log_files = glob.glob(log_dir + '*/rtl.dump')
+        log_files = glob.glob(log_dir + '*/*dut_rc.dump')
         logger.debug("Detected Chromite Log Files: {0}".format(log_files))
         return log_files

@@ -211,6 +211,8 @@ class SpikePlugin(object):
                                    " --isa=" + arch +
                                    " ../../$(BIN_DIR)/{0}/{0}.bin 2> {0}.log".
                                    format(file_name))
+                    makefile.write(
+                        "\n\t cp spike.dump {0}-ref_rc.dump".format(file_name))
                     # makefile.write("\n\n.PHONY : build")
                 # Run on target
 
@@ -251,6 +253,6 @@ class SpikePlugin(object):
     def post_run(self):
         logger.debug('Post Run')
         log_dir = self.output_dir + 'spike/sim/'
-        log_files = glob.glob(log_dir + '*/spike.dump')
+        log_files = glob.glob(log_dir + '*/*-ref_rc.dump')
         logger.debug("Detected Spike Log Files:{0}".format(log_files))
         return log_files
