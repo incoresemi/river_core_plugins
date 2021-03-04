@@ -194,6 +194,14 @@ class ChromitePlugin(object):
                     makefile.write(
                         "\n\tmkdir -p $(ROOT_DIR)/$(SIM_DIR)/{0}".format(
                             file_name))
+                    # Add this extra portion to avoid waiting the simulation if already run,
+                    # Remove later cause bad idea :)
+                    makefile.write(
+                        "\n\tif [ -f $(ROOT_DIR)/$(SIM_DIR)/{0}/rtl.dump ]".
+                        format(file_name))
+                    makefile.write("\n\tthen")
+                    makefile.write("\n\t\texit")
+                    makefile.write("\n\tfi")
                     makefile.write(
                         "\n\t$(info ===== Creating code.mem ===== )")
                     makefile.write("\n\t" + elf2hex_bin + " " +
@@ -210,10 +218,12 @@ class ChromitePlugin(object):
                     )
                     makefile.write("\n\tln -sf " + sim_path + "boot.mem " +
                                    sim_path + "chromite_core .")
+
                     makefile.write(
                         "\n\t$(info ===== Now running chromite core ===== )")
                     makefile.write("\n\t ./" + sim_bin + " " + sim_args)
-                    makefile.write("\n\t cp rtl.dump {0}-dut_rc.dump".format(file_name))
+                    makefile.write(
+                        "\n\t cp rtl.dump {0}-dut_rc.dump".format(file_name))
                     # makefile.write("\n\n.PHONY : build")
 
         self.make_file = make_file
@@ -222,7 +232,7 @@ class ChromitePlugin(object):
     def run(self, module_dir, asm_dir):
         logger.debug('Run Hook')
         logger.debug('Module dir: {0}'.format(module_dir))
-        pytest_file = module_dir + '/chromite_plugin/gen_framework.py'
+        pytest_file = module_dir + '/chromite_verilator_plugin/gen_framework.py'
         logger.debug('Pytest file: {0}'.format(pytest_file))
 
         report_file_name = '{0}/chromite_{1}'.format(
