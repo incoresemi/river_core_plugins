@@ -14,6 +14,7 @@ def pytest_addoption(parser):
     # )
     parser.addoption("--make_file", action="store")
     parser.addoption("--asm_dir", action="store")
+    parser.addoption("--key_list", action="store")
     # parser.addoption(
     #     "--output_dir",
     #     action="store"
@@ -27,6 +28,7 @@ def pytest_addoption(parser):
 # i.e. a new column for getting the stage,
 # Need to figure out a way to get the 2nd argument passed to item.function
 
+
 # The internal error for timeout caused of these hooks :|
 @pytest.mark.optionalhook
 def pytest_html_results_table_header(cells):
@@ -36,6 +38,7 @@ def pytest_html_results_table_header(cells):
 @pytest.mark.optionalhook
 def pytest_html_results_table_row(report, cells):
     cells.insert(1, html.td(report.ticket))
+
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):

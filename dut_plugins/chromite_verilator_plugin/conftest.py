@@ -15,6 +15,7 @@ def pytest_addoption(parser):
     # )
     parser.addoption("--make_file", action="store")
     parser.addoption("--asm_dir", action="store")
+    parser.addoption("--key_list", action="store")
     # parser.addoption(
     #     "--output_dir",
     #     action="store"

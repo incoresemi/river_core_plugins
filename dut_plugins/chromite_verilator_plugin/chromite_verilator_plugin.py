@@ -7,9 +7,9 @@ import shutil
 import yaml
 import random
 import re
-import glob
 import datetime
 import pytest
+import glob
 
 from river_core.log import logger
 from river_core.utils import *
@@ -17,9 +17,9 @@ from river_core.utils import *
 dut_hookimpl = pluggy.HookimplMarker('dut')
 
 
-class SpikePlugin(object):
+class ChromitePlugin(object):
     '''
-        Plugin to set Spike as ref
+        Plugin to set chromite as the target
     '''
     @dut_hookimpl
     def init(self, ini_config, test_list, asm_dir, config_yaml):
@@ -32,7 +32,7 @@ class SpikePlugin(object):
         # Eventually add support for riscv_config
         self.isa = ini_config['isa']
 
-        # Check if Spike is installed?
+        # Check if chromite is installed?
         self.installation = ini_config['installed']
         # Check if dir exists
         # if (os.path.isdir(output_dir)):
@@ -41,8 +41,8 @@ class SpikePlugin(object):
         # os.makedirs(output_dir + '/chromite_plugin')
         # Generic commands
         self.output_dir = asm_dir.replace('work/', '')
-        self.compile_output_path = self.output_dir + 'spike_plugin'
-        self.regress_list = '{0}/spike-regresslist.yaml'.format(
+        self.compile_output_path = self.output_dir + 'chromite_plugin'
+        self.regress_list = '{0}/chromite-regresslist.yaml'.format(
             self.compile_output_path)
         # Save YAML to load again in gen_framework.yaml
         self.config_yaml = config_yaml
@@ -56,47 +56,36 @@ class SpikePlugin(object):
         else:
             os.makedirs(self.report_dir)
 
-        # Help setup Spike, if not set in path
-        # FIXME Get this checked by Neel and Pavan, could be some uncessary installtion.
+        # Help setup Chromite, if not set in path
         if self.installation is False:
             logger.info(
-                "Attempting to install the spike into your home directory")
+                "Attempting to install the core into your home directory")
             logger.info(
-                "Please ensure you have RISCV Toolchain installed in your path"
+                "Please ensure you have installed the requirements from https://chromite.readthedocs.io/en/latest/getting_started.html"
             )
             response = input(
-                "Please respond with N/n, if you don't want to install and exit or if you don't have the requirements installed.\n IMP: If you have no standard install, or want to customize the installation, please go for manual mode of installation."
+                "Please respond with N/n, if you don't want to install and exit or if you don't have the requirements installed"
             )
             if response == ('n', 'N'):
                 raise SystemExit
             else:
                 logger.info("Continuing with the installation")
-                logger.info('Setting the RISCV path to /opt/riscv')
             # TODO Get this from the user maybe?
-            os.chdir(os.path.expanduser('~') + '/references')
+            os.chdir(os.path.expanduser('~') + '/cores')
             # https://chromite.readthedocs.io/en/latest/getting_started.html#building-the-core
             try:
                 sys_command(
-                    'git clone https://gitlab.com/shaktiproject/tools/mod-spike.git',
+                    'git clone https://gitlab.com/incoresemi/core-generators/chromite.git',
                     1000)
-                sys_command('cd mod-spike')
-                sys_command('git checkout bump-to-latest')
+                sys_command('cd chromite')
+                sys_command('pip install -U -r chromite/requirements.txt', 600)
+                # TODO Change this to something that user specifies maybe?
                 sys_command(
-                    'git clone https://github.com/riscv/riscv-isa-sim.git',
-                    1000)
-                sys_command('cd riscv-isa-sim')
-                sys_command(
-                    'git checkout 6d15c93fd75db322981fe58ea1db13035e0f7add')
-                sys_command('git apply ../shakti.patch')
-                logger.info('Setting the RISCV path to /opt/riscv')
-                sys_command('export RISCV=/opt/riscv')
-                sys_command('mkdir build')
-                sys_command('cd build')
-                sys_command('../configure --prefix=$RISCV')
-                sys_command('make')
-                logger.info(
-                    'One tiny step is left, open a shell instance and complete the setup by running, sudo make install.'
+                    'python -m configure.main -ispec sample_config/default.yaml'
                 )
+                sys_command('make -j $(nproc) generate_verilog')
+                sys_command('make link_verilator')
+                logger.info('Setup is now complete')
             except:
                 raise SystemExit(
                     'Something went wrong while getting things ready')
@@ -104,7 +93,7 @@ class SpikePlugin(object):
     @dut_hookimpl
     def build(self, asm_dir, asm_gen):
         logger.debug('Build Hook')
-        make_file = os.path.join(asm_dir, 'Makefile.spike')
+        make_file = os.path.join(asm_dir, 'Makefile.chromite')
         # Load YAML files
         logger.debug('Loading the plugin specific YAML from {0}'.format(
             self.config_yaml))
@@ -129,6 +118,7 @@ class SpikePlugin(object):
             # Sim
             sim_bin = config_yaml_data['sim']['command']
             sim_args = config_yaml_data['sim']['args']
+            sim_path = config_yaml_data['sim']['path']
 
             # Load teh Makefile
             os.chdir(asm_dir)
@@ -146,7 +136,7 @@ class SpikePlugin(object):
                 makefile.write("\nOBJ_DIR := objdump")
                 makefile.write("\nSIM_DIR := sim")
                 # ROOT Dir for resutls
-                makefile.write("\nROOT_DIR := spike")
+                makefile.write("\nROOT_DIR := chromite")
                 for key in key_list:
                     abi = test_list_yaml_data[key]['mabi']
                     arch = test_list_yaml_data[key]['march']
@@ -204,17 +194,37 @@ class SpikePlugin(object):
                     makefile.write(
                         "\n\tmkdir -p $(ROOT_DIR)/$(SIM_DIR)/{0}".format(
                             file_name))
+                    # Add this extra portion to avoid waiting the simulation if already run,
+                    # Remove later cause bad idea :)
                     makefile.write(
-                        "\n\tcd $(ROOT_DIR)/$(SIM_DIR)/{0}".format(file_name))
-                    makefile.write("\n\t $(info ===== Run on spike ===== )")
-                    makefile.write("\n\t" + sim_bin + " " + sim_args +
-                                   " --isa=" + arch +
-                                   " ../../$(BIN_DIR)/{0}/{0}.bin 2> {0}.log".
+                        "\n\tif [ -f $(ROOT_DIR)/$(SIM_DIR)/{0}/rtl.dump ]".
+                        format(file_name))
+                    makefile.write("\n\tthen")
+                    makefile.write("\n\t\texit")
+                    makefile.write("\n\tfi")
+                    makefile.write(
+                        "\n\t$(info ===== Creating code.mem ===== )")
+                    makefile.write("\n\t" + elf2hex_bin + " " +
+                                   str(elf2hex_args[0]) + " " +
+                                   str(elf2hex_args[1]) +
+                                   " $(ROOT_DIR)/$(BIN_DIR)/{0}/{0}.bin ".
+                                   format(file_name) + str(elf2hex_args[2]) +
+                                   " > $(ROOT_DIR)/$(SIM_DIR)/{0}/code.mem ".
                                    format(file_name))
                     makefile.write(
-                        "\n\t cp spike.dump {0}-ref_rc.dump".format(file_name))
+                        "\n\tcd $(ROOT_DIR)/$(SIM_DIR)/{0}".format(file_name))
+                    makefile.write(
+                        "\n\t $(info ===== Copying chromite_core and files ===== )"
+                    )
+                    makefile.write("\n\tln -sf " + sim_path + "boot.mem " +
+                                   sim_path + "chromite_core .")
+
+                    makefile.write(
+                        "\n\t$(info ===== Now running chromite core ===== )")
+                    makefile.write("\n\t ./" + sim_bin + " " + sim_args)
+                    makefile.write(
+                        "\n\t cp rtl.dump {0}-dut_rc.dump".format(file_name))
                     # makefile.write("\n\n.PHONY : build")
-                # Run on target
 
         self.make_file = make_file
 
@@ -222,29 +232,30 @@ class SpikePlugin(object):
     def run(self, module_dir, asm_dir):
         logger.debug('Run Hook')
         logger.debug('Module dir: {0}'.format(module_dir))
-        pytest_file = module_dir + '/spike_plugin/gen_framework.py'
+        pytest_file = module_dir + '/chromite_verilator_plugin/gen_framework.py'
         logger.debug('Pytest file: {0}'.format(pytest_file))
 
-        report_file_name = '{0}/spike_{1}'.format(
+        report_file_name = '{0}/chromite_{1}'.format(
             self.report_dir,
             datetime.datetime.now().strftime("%Y%m%d-%H%M"))
 
         # TODO Regression list currently removed, check back later
         # TODO The logger doesn't exactly work like in the pytest module
         # pytest.main([pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(self.filter), '-v', '--compileconfig={0}'.format(compile_config), '--html=compile.html', '--self-contained-html'])
+        # breakpoint()
         pytest.main([
             pytest_file,
-            '-n={0}'.format(self.jobs),
+            '-n=0'.format(self.jobs),
             '-k={0}'.format(self.filter),
             # '--html={0}.html'.format(report_file_name),
-            # '--self-contained-html',
             '--report-log={0}.json'.format(report_file_name),
+            # '--self-contained-html',
             '--asm_dir={0}'.format(asm_dir),
             '--make_file={0}'.format(self.make_file),
             '--key_list={0}'.format(self.key_list),
             # TODO Debug parameters, remove later on
             '--log-cli-level=DEBUG',
-            '-o log_cli=true'
+            '-o log_cli=true',
         ])
         # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
         return report_file_name
@@ -252,7 +263,7 @@ class SpikePlugin(object):
     @dut_hookimpl
     def post_run(self):
         logger.debug('Post Run')
-        log_dir = self.output_dir + 'spike/sim/'
-        log_files = glob.glob(log_dir + '*/*-ref_rc.dump')
-        logger.debug("Detected Spike Log Files:{0}".format(log_files))
+        log_dir = self.output_dir + 'chromite/sim/'
+        log_files = glob.glob(log_dir + '*/*dut_rc.dump')
+        logger.debug("Detected Chromite Log Files: {0}".format(log_files))
         return log_files
