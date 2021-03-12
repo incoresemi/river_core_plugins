@@ -119,10 +119,10 @@ class ChromitePlugin(object):
             sim_bin = config_yaml_data['sim']['command']
             sim_args = config_yaml_data['sim']['args']
             sim_path = config_yaml_data['sim']['path']
-            questa_bsv_lib_path = config_yaml_data['questa']['BS_VERILOG_LIB']
-            questa_verilog_dir_path = config_yaml_data['questa']['VERILOGDIR']
-            questa_bsv_wrapper_lib_path = config_yaml_data['questa']['BSV_WRAPPER_PATH']
-            
+            questa_bsv_lib_path = config_yaml_data['questa']['bs_verilog_lib']
+            questa_verilog_dir_path = config_yaml_data['questa']['verilogdir']
+            questa_bsv_wrapper_lib_path = config_yaml_data['questa'][
+                'bsv_wrapper_path']
 
             # Load teh Makefile
             os.chdir(asm_dir)
@@ -139,9 +139,10 @@ class ChromitePlugin(object):
                 makefile.write("\nBIN_DIR := bin")
                 makefile.write("\nOBJ_DIR := objdump")
                 makefile.write("\nSIM_DIR := sim")
-                makefile.write("\nBS_VERILOG_LIB :="+questa_bsv_lib_path)
-                makefile.write("\nVERILOGDIR := "+questa_verilog_dir_path)
-                makefile.write("\nBSV_WRAPPER_PATH := "+questa_bsv_wrapper_lib_path)
+                makefile.write("\nBS_VERILOG_LIB :=" + questa_bsv_lib_path)
+                makefile.write("\nVERILOGDIR := " + questa_verilog_dir_path)
+                makefile.write("\nBSV_WRAPPER_PATH := " +
+                               questa_bsv_wrapper_lib_path)
                 # ROOT Dir for resutls
                 makefile.write("\nROOT_DIR := chromite")
                 for key in key_list:
@@ -227,13 +228,21 @@ class ChromitePlugin(object):
                                    sim_path + "chromite_core .")
 
                     makefile.write("\n\t vlib work")
-                    makefile.write("\n\tvlog -cover bcs -work work +libext+.v+.vqm -y $(VERILOGDIR) -y $(BS_VERILOG_LIB) -y $(BSV_WRAPPER_PATH)/ +define+TOP=mkTbSoc  $(BS_VERILOG_LIB)/main.v \$(VERILOGDIR)mkTbSoc.v  > compile_log")
-                    makefile.write("\n\t echo \'vsim +rtldump -quiet -novopt -coverage  -lib work -do \"coverage save -onexit -codeAll tt_cov.ucdb;run -all; quit\" -voptargs=\"+cover=bcfst\" -c main\' > chromite_core")
-                    makefile.write("\n\t echo \'vcover report -html tt_cov.ucdb\' >>chromite_core")
+                    makefile.write(
+                        "\n\tvlog -cover bcs -work work +libext+.v+.vqm -y $(VERILOGDIR) -y $(BS_VERILOG_LIB) -y $(BSV_WRAPPER_PATH)/ +define+TOP=mkTbSoc  $(BS_VERILOG_LIB)/main.v \$(VERILOGDIR)mkTbSoc.v  > compile_log"
+                    )
+                    makefile.write(
+                        "\n\t echo \'vsim +rtldump -quiet -novopt -coverage  -lib work -do \"coverage save -onexit -codeAll tt_cov.ucdb;run -all; quit\" -voptargs=\"+cover=bcfst\" -c main\' > chromite_core"
+                    )
+                    makefile.write(
+                        "\n\t echo \'vcover report -html tt_cov.ucdb\' >>chromite_core"
+                    )
                     makefile.write(
                         "\n\t$(info ===== Now running chromite core ===== )")
-                    makefile.write("\n\t ./" + sim_bin + " " + sim_args+ " > output_log")
-                    makefile.write("\n\t cp rtl.dump {0}-dut_rc.dump".format(file_name))
+                    makefile.write("\n\t ./" + sim_bin + " " + sim_args +
+                                   " > output_log")
+                    makefile.write(
+                        "\n\t cp rtl.dump {0}-dut_rc.dump".format(file_name))
                     # makefile.write("\n\n.PHONY : build")
 
         self.make_file = make_file
@@ -245,7 +254,7 @@ class ChromitePlugin(object):
         pytest_file = module_dir + '/chromite_questa_plugin/gen_framework.py'
         logger.debug('Pytest file: {0}'.format(pytest_file))
 
-        report_file_name = '{0}/chromite_{1}'.format(
+        report_file_name = '{0}/chromite_questa_{1}'.format(
             self.report_dir,
             datetime.datetime.now().strftime("%Y%m%d-%H%M"))
 
