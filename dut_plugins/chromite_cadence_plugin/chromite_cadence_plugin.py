@@ -125,6 +125,8 @@ class ChromitePlugin(object):
                 'verilog_dir']
             cadence_bsv_wrapper_lib_path = config_yaml_data['cadence'][
                 'bsv_wrapper_path']
+            sv_tb_top_path = config_yaml_data['sv_tb_top']['path']
+
 
             # Load teh Makefile
             os.chdir(asm_dir)
@@ -143,8 +145,8 @@ class ChromitePlugin(object):
                 makefile.write("\nSIM_DIR := sim")
                 makefile.write("\nBS_VERILOG_LIB :=" + cadence_bsv_lib_path)
                 makefile.write("\nVERILOGDIR := " + cadence_verilog_dir_path)
-                makefile.write("\nBSV_WRAPPER_PATH := " +
-                               cadence_bsv_wrapper_lib_path)
+                makefile.write("\nBSV_WRAPPER_PATH := " +cadence_bsv_wrapper_lib_path)
+                makefile.write("\nSV_TB_TOP_PATH := " + sv_tb_top_path )
 
                 # ROOT Dir for resutls
                 makefile.write("\nROOT_DIR := chromite")
@@ -236,14 +238,21 @@ class ChromitePlugin(object):
                     makefile.write("\n\techo \"define work ./work\" > cds.lib")
                     makefile.write("\n\techo \"define WORK work\" > hdl.var")
                     makefile.write(
-                        "\n\tncvlog -64BIT -sv -cdslib ./cds.lib -hdlvar ./hdl.var +define+TOP=mkTbSoc $(BS_VERILOG_LIB)/main.v -y $(VERILOGDIR) -f $(BSV_WRAPPER_PATH)/bsvfilelist.txt -y $(BS_VERILOG_LIB)"
+                        "\n\tncvlog -64BIT -sv -cdslib ./cds.lib -hdlvar ./hdl.var +define+TOP=tb_top $(SV_TB_TOP_PATH)/tb_top.sv  $(BS_VERILOG_LIB)/main.v -v $(VERILOGDIR)/*.v -f $(BSV_WRAPPER_PATH)/bsvfilelist.txt -y $(BS_VERILOG_LIB)"
                     )
                     makefile.write(
-                        "\n\t ncelab  -coverage ALL -covdut mkccore_axi4 -cdslib ./cds.lib -hdlvar ./hdl.var work.main -timescale 1ns/1ps"
+                        "\n\t ncelab  -coverage ALL -cdslib ./cds.lib -hdlvar ./hdl.var work.main -timescale 1ns/1ps"
                     )
                     makefile.write(
                         "\n\t echo \'ncsim +rtldump -cdslib ./cds.lib -hdlvar ./hdl.var work.main #> /dev/null\' > chromite_core"
                     )
+                    makefile.write("\n\t echo \'load "+ self.output_dir+ "$(ROOT_DIR)/$(SIM_DIR)/{0}/cov_work/scope/test/\' > imc_report.cmd".format(file_name))
+                    makefile.write("\n\t echo \'exec mkdir -p coverage/reports\' >> imc_report.cmd")
+                    makefile.write("\n\t echo \'exec mkdir -p coverage/report_html\' >> imc_report.cmd")
+                    makefile.write("\n\t echo \'report -overwrite -out coverage/report_html -html -detail -metrics overall -all -aspect both -assertionStatus -allAssertionCounters -type *\' >>imc_report.cmd")
+                    makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.fun_rpt -detail -metrics functional -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd")
+                    makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.code_rpt -detail -metrics code -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd") 
+                    makefile.write("\n\t echo \'imc -exec imc_report.cmd' >>chromite_core")
                     makefile.write(
                         "\n\t$(info ===== Now running chromite core ===== )")
                     #makefile.write("\n\t chmod +x chromite_core")
@@ -252,7 +261,7 @@ class ChromitePlugin(object):
                     makefile.write(
                         "\n\t cp rtl.dump {0}-dut_rc.dump".format(file_name))
                     # makefile.write("\n\n.PHONY : build")
-
+                    makefile.write("\n\t cp -rf coverage"+" "+ self.output_dir+ "reports")
         self.make_file = make_file
 
     @dut_hookimpl

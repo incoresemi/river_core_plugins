@@ -10,7 +10,10 @@ sim:
   path: /Projects/incorecpu/vinay.kariyanna/chromite/bin/
   args: +rtldump
 cadence:
-  bs_verilog_lib: /projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/verilog/
-  bsv_wrapper_path: /projects/incorecpu/vinay.kariyanna/chromite/bsvwrappers/common_lib/
-  verilog_dir: /projects/incorecpu/vinay.kariyanna/chromite/build/hw/verilog/
+  bs_verilog_lib: /Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog/
+  bsv_wrapper_path: /Projects/incorecpu/vinay.kariyanna/chromite/bsvwrappers/common_lib/
+  verilog_dir: /Projects/incorecpu/vinay.kariyanna/chromite/build/hw/verilog/
+
+sv_tb_top:
+  path: /Projects/incorecpu/vinay.kariyanna/rc_new/river_core_plugins/dut_plugins/sv_top
 

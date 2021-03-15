@@ -87,7 +87,7 @@ def test_input(request):
     program = request.param
     stage = program.split()[-1].split('-')[1]
     #(ret, out, err) = sys_command(program)
-    (ret, out, err) = sys_command(program, timeout=2000)
+    (ret, out, err) = sys_command(program, timeout=4500)
     return ret, err, stage
     # if run_list(compile_cmd_list[program], program):
     #     # TODO Change

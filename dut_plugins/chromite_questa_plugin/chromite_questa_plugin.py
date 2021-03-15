@@ -123,6 +123,7 @@ class ChromitePlugin(object):
             questa_verilog_dir_path = config_yaml_data['questa']['verilogdir']
             questa_bsv_wrapper_lib_path = config_yaml_data['questa'][
                 'bsv_wrapper_path']
+            sv_tb_top_path = config_yaml_data['sv_tb_top']['path']
 
             # Load teh Makefile
             os.chdir(asm_dir)
@@ -143,6 +144,7 @@ class ChromitePlugin(object):
                 makefile.write("\nVERILOGDIR := " + questa_verilog_dir_path)
                 makefile.write("\nBSV_WRAPPER_PATH := " +
                                questa_bsv_wrapper_lib_path)
+                makefile.write("\nSV_TB_TOP_PATH := " + sv_tb_top_path )
                 # ROOT Dir for resutls
                 makefile.write("\nROOT_DIR := chromite")
                 for key in key_list:
@@ -226,17 +228,20 @@ class ChromitePlugin(object):
                     )
                     makefile.write("\n\tln -sf " + sim_path + "boot.mem " +
                                    sim_path + "chromite_core .")
+                    makefile.write("\n\t mkdir -p coverage")
+                    makefile.write("\n\t mkdir -p coverage/report_html/")
+                    makefile.write("\n\t mkdir -p coverage/reports/")
 
                     makefile.write("\n\t vlib work")
                     makefile.write(
-                        "\n\tvlog -cover bcs -work work +libext+.v+.vqm -y $(VERILOGDIR) -y $(BS_VERILOG_LIB) -y $(BSV_WRAPPER_PATH)/ +define+TOP=mkTbSoc  $(BS_VERILOG_LIB)/main.v \$(VERILOGDIR)mkTbSoc.v  > compile_log"
+                        "\n\tvlog -sv -cover bcs -work work +libext+.v+.vqm -y $(VERILOGDIR) -y $(BS_VERILOG_LIB) -y $(BSV_WRAPPER_PATH)/ +define+TOP=tb_top  $(BS_VERILOG_LIB)/main.v \$(SV_TB_TOP_PATH)/tb_top.sv  > compile_log"
                     )
-                    makefile.write(
-                        "\n\t echo \'vsim +rtldump -quiet -novopt -coverage  -lib work -do \"coverage save -onexit -codeAll tt_cov.ucdb;run -all; quit\" -voptargs=\"+cover=bcfst\" -c main\' > chromite_core"
-                    )
-                    makefile.write(
-                        "\n\t echo \'vcover report -html tt_cov.ucdb\' >>chromite_core"
-                    )
+                    makefile.write("\n\t echo \'vsim -quiet -cvgperinstance -novopt -coverage +rtldump  -voptargs=\"+cover=bcfst\" -cvg63 \-lib work -do \"coverage save -cvg -onexit -codeAll coverage.ucdb;run -all; quit\" -voptargs=\"+cover=bcfst\" -c main\' > chromite_core")
+
+                    #makefile.write("\n\t echo \'vsim +rtldump -quiet -novopt -coverage  -lib work -do \"coverage save -onexit -codeAll coverage.ucdb;run -all; quit\" -voptargs=\"+cover=bcfst\" -c main\' > chromite_core")
+                    makefile.write("\n\t echo \'vcover report -details ./coverage/reports/coverage.ucdb > coverage.rpt_det\' >>chromite_core")
+                    makefile.write("\n\t echo \'vcover report -cvg -details ./coverage/reports/coverage.ucdb >coverage.fun_det\' >>chromite_core")
+                    makefile.write("\n\t echo \'vcover report -html -htmldir ./coverage/report_html/ coverage.ucdb\' >>chromite_core")	
                     makefile.write(
                         "\n\t$(info ===== Now running chromite core ===== )")
                     makefile.write("\n\t ./" + sim_bin + " " + sim_args +
@@ -244,7 +249,7 @@ class ChromitePlugin(object):
                     makefile.write(
                         "\n\t cp rtl.dump {0}-dut_rc.dump".format(file_name))
                     # makefile.write("\n\n.PHONY : build")
-
+                    makefile.write("\n\t cp -rf coverage"+" "+ self.output_dir+ "reports")
         self.make_file = make_file
 
     @dut_hookimpl
