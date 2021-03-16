@@ -66,6 +66,10 @@ class ChromitePlugin(object):
             if self.functional_coverage:
                 logger.info("Functional Coverage is enabled for this plugin")
 
+        else:
+            self.code_coverage =  ''
+            self.functional_coverage = ''
+
         # Help setup Chromite, if not set in path
         if self.installation is False:
             logger.info(
@@ -245,6 +249,24 @@ class ChromitePlugin(object):
 
                 # TODO change this to make with and without coverage - MOD
                     if self.code_coverage:
+                        # Coverage case
+                        makefile.write("\n\t mkdir -p coverage")
+                        makefile.write("\n\t mkdir -p coverage/report_html/")
+                        makefile.write("\n\t mkdir -p coverage/reports/")
+
+                        makefile.write("\n\t vlib work")
+                        makefile.write(
+                            "\n\tvlog -sv -cover bcs -work work +libext+.v+.vqm -y $(VERILOGDIR) -y $(BS_VERILOG_LIB) -y $(BSV_WRAPPER_PATH)/ +define+TOP=tb_top  $(BS_VERILOG_LIB)/main.v \$(SV_TB_TOP_PATH)/tb_top.sv  > compile_log"
+                        )
+                        makefile.write("\n\t echo \'vsim -quiet -cvgperinstance -novopt -coverage +rtldump  -voptargs=\"+cover=bcfst\" -cvg63 \-lib work -do \"coverage save -cvg -onexit -codeAll coverage.ucdb;run -all; quit\" -voptargs=\"+cover=bcfst\" -c main\' > chromite_core")
+
+                    #makefile.write("\n\t echo \'vsim +rtldump -quiet -novopt -coverage  -lib work -do \"coverage save -onexit -codeAll coverage.ucdb;run -all; quit\" -voptargs=\"+cover=bcfst\" -c main\' > chromite_core")
+                        makefile.write("\n\t echo \'vcover report -details ./coverage/reports/coverage.ucdb > coverage.rpt_det\' >>chromite_core")
+                        makefile.write("\n\t echo \'vcover report -cvg -details ./coverage/reports/coverage.ucdb >coverage.fun_det\' >>chromite_core")
+                        makefile.write("\n\t echo \'vcover report -html -htmldir ./coverage/report_html/ coverage.ucdb\' >>chromite_core")	
+
+                    else:
+                    # Non coverage case
                         makefile.write("\n\t mkdir -p coverage")
                         makefile.write("\n\t mkdir -p coverage/report_html/")
                         makefile.write("\n\t mkdir -p coverage/reports/")

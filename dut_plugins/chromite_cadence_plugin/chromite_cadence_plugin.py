@@ -66,6 +66,10 @@ class ChromitePlugin(object):
             if self.functional_coverage:
                 logger.info("Functional Coverage is enabled for this plugin")
 
+        else:
+            self.code_coverage =  ''
+            self.functional_coverage = ''
+
         # Help setup Chromite, if not set in path
         if self.installation is False:
             logger.info(
@@ -268,6 +272,7 @@ class ChromitePlugin(object):
                     )
                 # TODO change this to make with and without coverage - MOD
                     if self.code_coverage:
+                        # Coverage case
                         makefile.write("\n\t echo \'load "+ self.output_dir+ "$(ROOT_DIR)/$(SIM_DIR)/{0}/cov_work/scope/test/\' > imc_report.cmd".format(file_name))
                         makefile.write("\n\t echo \'exec mkdir -p coverage/reports\' >> imc_report.cmd")
                         makefile.write("\n\t echo \'exec mkdir -p coverage/report_html\' >> imc_report.cmd")
@@ -275,6 +280,16 @@ class ChromitePlugin(object):
                         makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.fun_rpt -detail -metrics functional -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd")
                         makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.code_rpt -detail -metrics code -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd") 
                         makefile.write("\n\t echo \'imc -exec imc_report.cmd' >>chromite_core")
+                    else:
+                        # Non-coverage case
+                        makefile.write("\n\t echo \'load "+ self.output_dir+ "$(ROOT_DIR)/$(SIM_DIR)/{0}/cov_work/scope/test/\' > imc_report.cmd".format(file_name))
+                        makefile.write("\n\t echo \'exec mkdir -p coverage/reports\' >> imc_report.cmd")
+                        makefile.write("\n\t echo \'exec mkdir -p coverage/report_html\' >> imc_report.cmd")
+                        makefile.write("\n\t echo \'report -overwrite -out coverage/report_html -html -detail -metrics overall -all -aspect both -assertionStatus -allAssertionCounters -type *\' >>imc_report.cmd")
+                        makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.fun_rpt -detail -metrics functional -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd")
+                        makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.code_rpt -detail -metrics code -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd") 
+                        makefile.write("\n\t echo \'imc -exec imc_report.cmd' >>chromite_core")
+
                     makefile.write(
                         "\n\t$(info ===== Now running chromite core ===== )")
                     #makefile.write("\n\t chmod +x chromite_core")
