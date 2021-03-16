@@ -22,7 +22,7 @@ class ChromitePlugin(object):
         Plugin to set chromite as the target
     '''
     @dut_hookimpl
-    def init(self, ini_config, test_list, asm_dir, config_yaml):
+    def init(self, ini_config, test_list, asm_dir, config_yaml, coverage_config):
         logger.debug('Pre Compile Stage')
         # Get plugin specific configs from ini
         self.jobs = ini_config['jobs']
@@ -56,6 +56,16 @@ class ChromitePlugin(object):
         else:
             os.makedirs(self.report_dir)
 
+        self.coverage_config = coverage_config
+        # Loading Coverage info if passed 
+        if coverage_config:
+            self.code_coverage = coverage_config['code']
+            self.functional_coverage = coverage_config['functional']
+            if self.code_coverage:
+                logger.info("Code Coverage is enabled for this plugin")
+            if self.functional_coverage:
+                logger.info("Functional Coverage is enabled for this plugin")
+
         # Help setup Chromite, if not set in path
         if self.installation is False:
             logger.info(
@@ -84,7 +94,11 @@ class ChromitePlugin(object):
                     'python -m configure.main -ispec sample_config/default.yaml'
                 )
                 sys_command('make -j $(nproc) generate_verilog')
-                sys_command('make link_ncvlog')
+                # TODO change this to make with and without coverage - MOD
+                if self.code_coverage:
+                    sys_command('make link_ncvlog')
+                else:
+                    sys_command('Do abracadra')
                 logger.info('Setup is now complete')
             except:
                 raise SystemExit(
@@ -240,19 +254,27 @@ class ChromitePlugin(object):
                     makefile.write(
                         "\n\tncvlog -64BIT -sv -cdslib ./cds.lib -hdlvar ./hdl.var +define+TOP=tb_top $(SV_TB_TOP_PATH)/tb_top.sv  $(BS_VERILOG_LIB)/main.v -v $(VERILOGDIR)/*.v -f $(BSV_WRAPPER_PATH)/bsvfilelist.txt -y $(BS_VERILOG_LIB)"
                     )
-                    makefile.write(
-                        "\n\t ncelab  -coverage ALL -cdslib ./cds.lib -hdlvar ./hdl.var work.main -timescale 1ns/1ps"
-                    )
+                # TODO change this to make with and without coverage - MOD
+                    if self.code_coverage:
+                        makefile.write(
+                            "\n\t ncelab  -coverage ALL -cdslib ./cds.lib -hdlvar ./hdl.var work.main -timescale 1ns/1ps"
+                        )
+                    else:
+                        makefile.write(
+                            "\n\t ncelab -cdslib ./cds.lib -hdlvar ./hdl.var work.main -timescale 1ns/1ps"
+                        )
                     makefile.write(
                         "\n\t echo \'ncsim +rtldump -cdslib ./cds.lib -hdlvar ./hdl.var work.main #> /dev/null\' > chromite_core"
                     )
-                    makefile.write("\n\t echo \'load "+ self.output_dir+ "$(ROOT_DIR)/$(SIM_DIR)/{0}/cov_work/scope/test/\' > imc_report.cmd".format(file_name))
-                    makefile.write("\n\t echo \'exec mkdir -p coverage/reports\' >> imc_report.cmd")
-                    makefile.write("\n\t echo \'exec mkdir -p coverage/report_html\' >> imc_report.cmd")
-                    makefile.write("\n\t echo \'report -overwrite -out coverage/report_html -html -detail -metrics overall -all -aspect both -assertionStatus -allAssertionCounters -type *\' >>imc_report.cmd")
-                    makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.fun_rpt -detail -metrics functional -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd")
-                    makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.code_rpt -detail -metrics code -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd") 
-                    makefile.write("\n\t echo \'imc -exec imc_report.cmd' >>chromite_core")
+                # TODO change this to make with and without coverage - MOD
+                    if self.code_coverage:
+                        makefile.write("\n\t echo \'load "+ self.output_dir+ "$(ROOT_DIR)/$(SIM_DIR)/{0}/cov_work/scope/test/\' > imc_report.cmd".format(file_name))
+                        makefile.write("\n\t echo \'exec mkdir -p coverage/reports\' >> imc_report.cmd")
+                        makefile.write("\n\t echo \'exec mkdir -p coverage/report_html\' >> imc_report.cmd")
+                        makefile.write("\n\t echo \'report -overwrite -out coverage/report_html -html -detail -metrics overall -all -aspect both -assertionStatus -allAssertionCounters -type *\' >>imc_report.cmd")
+                        makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.fun_rpt -detail -metrics functional -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd")
+                        makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.code_rpt -detail -metrics code -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd") 
+                        makefile.write("\n\t echo \'imc -exec imc_report.cmd' >>chromite_core")
                     makefile.write(
                         "\n\t$(info ===== Now running chromite core ===== )")
                     #makefile.write("\n\t chmod +x chromite_core")
@@ -281,7 +303,7 @@ class ChromitePlugin(object):
         # breakpoint()
         pytest.main([
             pytest_file,
-            '-n=0'.format(self.jobs),
+            '-n={0}'.format(self.jobs),
             '-k={0}'.format(self.filter),
             # '--html={0}.html'.format(report_file_name),
             '--report-log={0}.json'.format(report_file_name),
