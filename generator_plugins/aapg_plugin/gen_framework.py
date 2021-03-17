@@ -4,9 +4,8 @@ import os
 import sys
 import pluggy
 import shutil
-import yaml
 from river_core.log import logger
-from river_core.utils import *
+import river_core.utils as utils
 from river_core.constants import *
 import random
 import re
@@ -25,8 +24,7 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
         logger.error("Is your plugin YAML file properly configured?")
         raise SystemExit
 
-    with open(gen_config) as fh:
-        gen_list = yaml.safe_load(fh)
+    gen_list = utils.load_yaml(gen_config)
     # gen_list['global_home'] = env_gen_list['global_home']
     setup_dir = ''
     run_command = []
@@ -38,7 +36,7 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
         if key == 'global_args':
             args = gen_list[key]
         dirname = output_dir + '/aapg'
-        sys_command('aapg setup --setup_dir {0}'.format(dirname))
+        utils.sys_command('aapg setup --setup_dir {0}'.format(dirname))
         setup_dir = dirname
 
         if re.search('^templates', key):
@@ -76,10 +74,6 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
     return run_command
 
 
-#tlist = gen_cmd_list('/scratch/river_development/microtesk_templates/microtesk_gen_config.yaml')
-#print(tlist)
-
-
 def idfnc(val):
     template_match = re.search('--config_file (.*).yaml', '{0}'.format(val))
     logger.debug('{0}'.format(val))
@@ -104,7 +98,7 @@ def test_input(request, autouse=True):
     #sys_command(program)
     #return 0
     if os.path.isfile('{0}.yaml'.format(template_match.group(1))):
-        (ret, out, err) = sys_command(program)
+        (ret, out, err) = utils.sys_command(program)
         return ret
     else:
         logger.error('File not found {0}'.format(template_match.group(1)))

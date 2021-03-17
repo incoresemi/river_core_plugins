@@ -8,21 +8,9 @@ def pytest_html_report_title(report):
 
 
 def pytest_addoption(parser):
-    # parser.addoption(
-    #     "--regress_list",
-    #     action="store"
-    # )
     parser.addoption("--make_file", action="store")
-    parser.addoption("--asm_dir", action="store")
+    parser.addoption("--work_dir", action="store")
     parser.addoption("--key_list", action="store")
-    # parser.addoption(
-    #     "--output_dir",
-    #     action="store"
-    # )
-    # parser.addoption(
-    #     "--gen_suite",
-    #     action="store"
-    # )
 
 
 # i.e. a new column for getting the stage,
