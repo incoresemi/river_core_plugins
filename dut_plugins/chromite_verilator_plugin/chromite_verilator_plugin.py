@@ -21,9 +21,14 @@ class ChromitePlugin(object):
         Plugin to set chromite as the target
     '''
     @dut_hookimpl
-    def init(self, ini_config, test_list, work_dir):
+    def init(self, ini_config, test_list, work_dir, coverage_config):
         self.name = 'chromite'
-        logger.debug('Pre Compile Stage')
+        logger.info('Pre Compile Stage')
+
+        if coverage_config:
+            self.coverage = True
+        else:
+            self.coverage = False
 
         # Get plugin specific configs from ini
         self.jobs = ini_config['jobs']
@@ -37,16 +42,27 @@ class ChromitePlugin(object):
             self.xlen = 32
         self.elf = 'dut.elf'
 
+        if coverage_config:
+            logger.warn('Hope RTL binary has coverage enabled')
+        
+        # TODO: The follow 2 variables need to be set by user
+        self.sim_path = '/scratch/git-repo/incoresemi/core-generators/chromite/bin/'
+        self.src_dir = [
+                '/scratch/git-repo/incoresemi/core-generators/chromite/build/hw/verilog',
+                '/software/experimental/open-bsc/lib/Verilog/',
+                '/scratch/git-repo/incoresemi/core-generators/chromite/bsvwrappers/common_lib/'
+                ]
+
         self.elf2hex_cmd = 'elf2hex {0} 4194304 dut.elf 2147483648 > code.mem;'.format(str(int(self.xlen/8)))
         self.objdump_cmd = 'riscv{0}-unknown-elf-objdump -D dut.elf > dut.disass;'.format(self.xlen)
         self.sim_cmd = './chromite_core'
         self.sim_args = '+rtldump > /dev/null'
-        self.sim_path = '/scratch/git-repo/incoresemi/core-generators/chromite/bin/'
 
         self.work_dir = os.path.abspath(work_dir) + '/'
         self.test_list = load_yaml(test_list)
 
         self.report_dir = self.work_dir + '/' + self.name + '/'
+
         # Check if dir exists
         if (os.path.isdir(self.report_dir)):
             logger.debug(self.report_dir + ' Directory exists')
@@ -67,7 +83,7 @@ class ChromitePlugin(object):
 
     @dut_hookimpl
     def build(self):
-        logger.debug('Build Hook')
+        logger.info('Build Hook')
         make = makeUtil(makefilePath=os.path.join(self.work_dir,"Makefile." +\
             self.name))
         make.makeCommand = 'make -j1'
@@ -103,7 +119,7 @@ class ChromitePlugin(object):
 
     @dut_hookimpl
     def run(self, module_dir):
-        logger.debug('Run Hook')
+        logger.info('Run Hook')
         logger.debug('Module dir: {0}'.format(module_dir))
         pytest_file = module_dir + '/chromite_verilator_plugin/gen_framework.py'
         logger.debug('Pytest file: {0}'.format(pytest_file))
@@ -130,6 +146,29 @@ class ChromitePlugin(object):
             '-o log_cli=true',
         ])
         # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
+
+        if self.coverage:
+            final_cov_file = self.work_dir + '/final_coverage.dat'
+            coverage_cmd = 'verilator_coverage -write {0}'.format(final_cov_file)
+            logger.info('Initiating Merging of coverage files')
+            if shutil.which('verilator_coverage') is None:
+                logger.error('verilator_coverage missing from $PATH')
+                raise SystemExit
+            for test, attr in self.test_list.items():
+                test_wd = attr['work_dir']
+                if not os.path.exists(test_wd+'/coverage.dat'):
+                    logger.error(\
+                            'Coverage enabled but coverage file for test: '+\
+                            test + ' is missing')
+                else:
+                    coverage_cmd += ' ' +test_wd+'/coverage.dat'
+            (ret, out, error) = sys_command(coverage_cmd)
+            logger.info('Final coverage file is at: {0}'.format(final_cov_file))
+            logger.info('Annotating source files with final_coverage.dat')
+            (ret, out, error) = sys_command(\
+                'verilator_coverage {0} --annotate {1}'.format(final_cov_file,
+                    self.work_dir+'/annotated_src/'))
+            logger.info('Annotated source available at: {0}/annotated_src'.format(self.work_dir))
         return report_file_name
 
     @dut_hookimpl
