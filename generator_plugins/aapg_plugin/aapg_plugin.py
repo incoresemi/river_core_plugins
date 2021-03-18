@@ -19,9 +19,8 @@ import re
 gen_hookimpl = pluggy.HookimplMarker("generator")
 
 
-class AapgPlugin(object):
+class aapg_plugin(object):
     """ Generator hook implementation """
-
 
     # creates gendir and any setup related things
     @gen_hookimpl
@@ -39,6 +38,7 @@ class AapgPlugin(object):
         # Check if the path exists or not
         logger.debug('AAPG Pre Gen Stage')
         output_dir = os.path.abspath(output_dir)
+        self.name = 'aapg'
         if (os.path.isdir(output_dir)):
             logger.debug('exists')
             shutil.rmtree(output_dir, ignore_errors=True)
@@ -53,6 +53,14 @@ class AapgPlugin(object):
         # Eventually add support for riscv_config
         self.isa = spec_config['isa']
 
+        self.json_dir = output_dir + '/../.json/'
+        logger.debug(self.json_dir)
+        # Check if dir exists
+        if (os.path.isdir(self.json_dir)):
+            logger.debug(self.json_dir + ' Directory exists')
+        else:
+            os.makedirs(self.json_dir)
+
     # gets the yaml file with list of configs; test count; parallel
     @gen_hookimpl
     def gen(self, gen_config, module_dir, output_dir):
@@ -63,11 +71,16 @@ class AapgPlugin(object):
         logger.debug(pytest_file)
 
         output_dir = os.path.abspath(output_dir)
+
+        report_file_name = '{0}/{1}_{2}'.format(
+            self.json_dir, self.name,
+            datetime.datetime.now().strftime("%Y%m%d-%H%M"))
         pytest.main([
             pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(
                 self.filter), '--configlist={0}'.format(gen_config), '-v',
             '--seed={0}'.format(self.seed), '--count={0}'.format(self.count),
-            '--html={0}/aapg_gen.html'.format(output_dir),
+            '--html={0}/reports/aapg.html'.format(output_dir),
+            '--report-log={0}.json'.format(report_file_name),
             '--self-contained-html', '--output_dir={0}'.format(output_dir),
             '--module_dir={0}'.format(module_dir)
         ])
@@ -103,6 +116,7 @@ class AapgPlugin(object):
                         isa.add('c')
             canonical_order = {'i': 0, 'm': 1, 'a': 2, 'f': 3, 'd': 4, 'c': 5}
             canonical_isa = sorted(list(isa), key=lambda d: canonical_order[d])
+
             march_str = 'rv' + str(xlen) + "".join(canonical_order)
             if xlen == 64:
                 mabi_str = 'lp64'
@@ -124,9 +138,13 @@ class AapgPlugin(object):
                 'cc_args'] = ' -mcmodel=medany -static -std=gnu99 -O2 -fno-common -fno-builtin-printf -fvisibility=hidden '
             test_list[base_key][
                 'linker_args'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
-            test_list[base_key]['linker_file'] = output_dir + '/aapg/asm/'+ base_key + '/' + base_key + '.ld'
-            test_list[base_key]['asm_file'] = output_dir + '/aapg/asm/'+ base_key + '/' + base_key + '.S'
-            test_list[base_key]['extra_compile'] = [output_dir+ '/aapg/common/crt.S']
+            test_list[base_key][
+                'linker_file'] = output_dir + '/aapg/asm/' + base_key + '/' + base_key + '.ld'
+            test_list[base_key][
+                'asm_file'] = output_dir + '/aapg/asm/' + base_key + '/' + base_key + '.S'
+            test_list[base_key]['extra_compile'] = [
+                output_dir + '/aapg/common/crt.S'
+            ]
 
         return test_list
 
@@ -168,3 +186,4 @@ class AapgPlugin(object):
         rgfile = open(regressfile, 'w')
 
         utils.yaml.dump(test_dict, rgfile)
+

@@ -16,13 +16,13 @@ from river_core.utils import *
 dut_hookimpl = pluggy.HookimplMarker('dut')
 
 
-class ChromitePlugin(object):
+class chromite_verilator_plugin(object):
     '''
         Plugin to set chromite as the target
     '''
     @dut_hookimpl
     def init(self, ini_config, test_list, work_dir, coverage_config):
-        self.name = 'chromite'
+        self.name = 'chromite_verilator'
         logger.info('Pre Compile Stage')
 
         if coverage_config:
@@ -61,21 +61,22 @@ class ChromitePlugin(object):
         self.work_dir = os.path.abspath(work_dir) + '/'
         self.test_list = load_yaml(test_list)
 
-        self.report_dir = self.work_dir + '/' + self.name + '/'
+        self.json_dir = self.work_dir + '/.json/'
 
         # Check if dir exists
-        if (os.path.isdir(self.report_dir)):
-            logger.debug(self.report_dir + ' Directory exists')
+        if (os.path.isdir(self.json_dir)):
+            logger.debug(self.json_dir + ' Directory exists')
         else:
-            os.makedirs(self.report_dir)
+            os.makedirs(self.json_dir)
 
         if not os.path.exists(self.sim_path):
-            logger.error('Sim binary Path ' + self.sim_path + ' does not exist')
+            logger.error('Sim binary Path ' + self.sim_path +
+                         ' does not exist')
             raise SystemExit
 
         if not os.path.isfile(self.sim_path + '/' + self.sim_cmd):
             logger.error(self.sim_cmd + ' binary does not exist in ' +
-                    self.sim_path)
+                         self.sim_path)
             raise SystemExit
 
         if shutil.which('elf2hex') is None:
@@ -87,20 +88,20 @@ class ChromitePlugin(object):
         make = makeUtil(makefilePath=os.path.join(self.work_dir,"Makefile." +\
             self.name))
         make.makeCommand = 'make -j1'
-        self.make_file = os.path.join(self.work_dir, 'Makefile.'+self.name)
+        self.make_file = os.path.join(self.work_dir, 'Makefile.' + self.name)
         self.test_names = []
 
-        for test,attr in self.test_list.items():
+        for test, attr in self.test_list.items():
             logger.debug('Creating Make Target for ' + str(test))
-            abi         = attr['mabi']
-            arch        = attr['march']
-            isa         = attr['isa']
-            work_dir    = attr['work_dir']
-            link_args   = attr['linker_args']
-            link_file   = attr['linker_file']
-            cc          = attr['cc']
-            cc_args     = attr['cc_args']
-            asm_file    = attr['asm_file']
+            abi = attr['mabi']
+            arch = attr['march']
+            isa = attr['isa']
+            work_dir = attr['work_dir']
+            link_args = attr['linker_args']
+            link_file = attr['linker_file']
+            cc = attr['cc']
+            cc_args = attr['cc_args']
+            asm_file = attr['asm_file']
 
             ch_cmd = 'cd {0};'.format(work_dir)
             compile_cmd = '{0} {1} -march={2} -mabi={3} {4} {5} {6}'.format(\
@@ -108,14 +109,13 @@ class ChromitePlugin(object):
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
             compile_cmd += ' -o dut.elf;'
-            sim_setup = 'ln -f -s ' + self.sim_path+'/* .;'
+            sim_setup = 'ln -f -s ' + self.sim_path + '/* .;'
             post_process_cmd = 'mv rtl.dump dut.dump;'
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
                     self.elf2hex_cmd + sim_setup + self.sim_cmd + ' ' + \
                     self.sim_args +';'+ post_process_cmd
-            make.add_target(target_cmd,test)
+            make.add_target(target_cmd, test)
             self.test_names.append(test)
-
 
     @dut_hookimpl
     def run(self, module_dir):
@@ -125,8 +125,7 @@ class ChromitePlugin(object):
         logger.debug('Pytest file: {0}'.format(pytest_file))
 
         report_file_name = '{0}/{1}_{2}'.format(
-            self.report_dir,
-            self.name,
+            self.json_dir, self.name,
             datetime.datetime.now().strftime("%Y%m%d-%H%M"))
 
         # TODO Regression list currently removed, check back later
@@ -137,7 +136,7 @@ class ChromitePlugin(object):
             pytest_file,
             '-n={0}'.format(self.jobs),
             '-k={0}'.format(self.filter),
-            '--html={0}.html'.format(self.work_dir+'/'+self.name),
+            '--html={0}.html'.format(self.work_dir + '/reports/' + self.name),
             '--report-log={0}.json'.format(report_file_name),
             '--work_dir={0}'.format(self.work_dir),
             '--make_file={0}'.format(self.make_file),
@@ -149,34 +148,38 @@ class ChromitePlugin(object):
 
         if self.coverage:
             final_cov_file = self.work_dir + '/final_coverage.dat'
-            coverage_cmd = 'verilator_coverage -write {0}'.format(final_cov_file)
+            coverage_cmd = 'verilator_coverage -write {0}'.format(
+                final_cov_file)
             logger.info('Initiating Merging of coverage files')
             if shutil.which('verilator_coverage') is None:
                 logger.error('verilator_coverage missing from $PATH')
                 raise SystemExit
             for test, attr in self.test_list.items():
                 test_wd = attr['work_dir']
-                if not os.path.exists(test_wd+'/coverage.dat'):
+                if not os.path.exists(test_wd + '/coverage.dat'):
                     logger.error(\
                             'Coverage enabled but coverage file for test: '+\
                             test + ' is missing')
                 else:
-                    coverage_cmd += ' ' +test_wd+'/coverage.dat'
+                    coverage_cmd += ' ' + test_wd + '/coverage.dat'
             (ret, out, error) = sys_command(coverage_cmd)
-            logger.info('Final coverage file is at: {0}'.format(final_cov_file))
+            logger.info(
+                'Final coverage file is at: {0}'.format(final_cov_file))
             logger.info('Annotating source files with final_coverage.dat')
             (ret, out, error) = sys_command(\
                 'verilator_coverage {0} --annotate {1}'.format(final_cov_file,
                     self.work_dir+'/annotated_src/'))
-            logger.info('Annotated source available at: {0}/annotated_src'.format(self.work_dir))
+            logger.info(
+                'Annotated source available at: {0}/annotated_src'.format(
+                    self.work_dir))
         return report_file_name
 
     @dut_hookimpl
     def post_run(self):
         # TODO:NEEL: The following is no longer required.
 
-#        logger.debug('Post Run')
-#        log_dir = self.work_dir
-#        log_files = glob.glob(log_dir + '*/*dut_rc.dump')
-#        logger.debug("Detected Chromite Log Files: {0}".format(log_files))
+        #        logger.debug('Post Run')
+        #        log_dir = self.work_dir
+        #        log_files = glob.glob(log_dir + '*/*dut_rc.dump')
+        #        logger.debug("Detected Chromite Log Files: {0}".format(log_files))
         return

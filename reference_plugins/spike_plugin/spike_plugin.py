@@ -16,7 +16,7 @@ from river_core.utils import *
 dut_hookimpl = pluggy.HookimplMarker('dut')
 
 
-class SpikePlugin(object):
+class spike_plugin(object):
     '''
         Plugin to set Spike as ref
     '''
@@ -37,24 +37,24 @@ class SpikePlugin(object):
             self.xlen = 32
         self.elf = 'ref.elf'
 
-        self.objdump_cmd = 'riscv{0}-unknown-elf-objdump -D ref.elf > ref.disass;'.format(self.xlen)
+        self.objdump_cmd = 'riscv{0}-unknown-elf-objdump -D ref.elf > ref.disass;'.format(
+            self.xlen)
         self.sim_cmd = 'spike'
         self.sim_args = '-c --isa={0} {1}'
 
         self.work_dir = os.path.abspath(work_dir) + '/'
         self.test_list = load_yaml(test_list)
 
-        self.report_dir = self.work_dir + '/' + self.name + '/'
+        self.json_dir = self.work_dir + '/.json/'
         # Check if dir exists
-        if (os.path.isdir(self.report_dir)):
-            logger.debug(self.report_dir + ' Directory exists')
+        if (os.path.isdir(self.json_dir)):
+            logger.debug(self.json_dir + ' Directory exists')
         else:
-            os.makedirs(self.report_dir)
-    
-        if shutil.which('spike') is None:
-            logger.error('Spike not availabel in $PATH')
-            raise SystemExit
+            os.makedirs(self.json_dir)
 
+        if shutil.which('spike') is None:
+            logger.error('Spike not available in $PATH')
+            raise SystemExit
 
     @dut_hookimpl
     def build(self):
@@ -62,22 +62,22 @@ class SpikePlugin(object):
         make = makeUtil(makefilePath=os.path.join(self.work_dir,"Makefile." +\
             self.name))
         make.makeCommand = 'make -j1'
-        self.make_file = os.path.join(self.work_dir, 'Makefile.'+self.name)
+        self.make_file = os.path.join(self.work_dir, 'Makefile.' + self.name)
         self.test_names = []
 
-        for test,attr in self.test_list.items():
+        for test, attr in self.test_list.items():
             logger.debug('Creating Make Target for ' + str(test))
-            abi         = attr['mabi']
-            arch        = attr['march']
-            isa         = attr['isa']
-            work_dir    = attr['work_dir']
-            link_args   = attr['linker_args']
-            link_file   = attr['linker_file']
-            cc          = attr['cc']
-            cc_args     = attr['cc_args']
-            asm_file    = attr['asm_file']
+            abi = attr['mabi']
+            arch = attr['march']
+            isa = attr['isa']
+            work_dir = attr['work_dir']
+            link_args = attr['linker_args']
+            link_file = attr['linker_file']
+            cc = attr['cc']
+            cc_args = attr['cc_args']
+            asm_file = attr['asm_file']
 
-            spike_isa = 'rv'+str(self.xlen)+'i'
+            spike_isa = 'rv' + str(self.xlen) + 'i'
             spike_isa += 'm' if 'm' in arch else ''
             spike_isa += 'a' if 'a' in arch else ''
             spike_isa += 'f' if 'f' in arch else ''
@@ -95,7 +95,7 @@ class SpikePlugin(object):
                     self.sim_cmd + ' ' + \
                     self.sim_args.format(spike_isa, self.elf) + \
                     ';'+ post_process_cmd
-            make.add_target(target_cmd,test)
+            make.add_target(target_cmd, test)
             self.test_names.append(test)
 
     @dut_hookimpl
@@ -106,8 +106,7 @@ class SpikePlugin(object):
         logger.debug('Pytest file: {0}'.format(pytest_file))
 
         report_file_name = '{0}/{1}_{2}'.format(
-            self.report_dir,
-            self.name,
+            self.json_dir, self.name,
             datetime.datetime.now().strftime("%Y%m%d-%H%M"))
 
         # TODO Regression list currently removed, check back later
@@ -116,7 +115,7 @@ class SpikePlugin(object):
             pytest_file,
             '-n={0}'.format(self.jobs),
             '-k={0}'.format(self.filter),
-            '--html={0}.html'.format(self.work_dir+'/'+self.name),
+            '--html={0}.html'.format(self.work_dir + '/reports/' + self.name),
             '--report-log={0}.json'.format(report_file_name),
             '--work_dir={0}'.format(self.work_dir),
             '--make_file={0}'.format(self.make_file),
