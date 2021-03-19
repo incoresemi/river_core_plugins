@@ -37,7 +37,7 @@ class spike_plugin(object):
             self.xlen = 32
         self.elf = 'ref.elf'
 
-        self.objdump_cmd = 'riscv{0}-unknown-elf-objdump -D ref.elf > ref.disass;'.format(
+        self.objdump_cmd = 'riscv{0}-unknown-elf-objdump -D ref.elf > ref.disass && '.format(
             self.xlen)
         self.sim_cmd = 'spike'
         self.sim_args = '-c --isa={0} {1}'
@@ -84,17 +84,17 @@ class spike_plugin(object):
             spike_isa += 'd' if 'd' in arch else ''
             spike_isa += 'c' if 'c' in arch else ''
 
-            ch_cmd = 'cd {0};'.format(work_dir)
+            ch_cmd = 'cd {0} && '.format(work_dir)
             compile_cmd = '{0} {1} -march={2} -mabi={3} {4} {5} {6}'.format(\
                     cc, cc_args, arch, abi, link_args, link_file, asm_file)
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
-            compile_cmd += ' -o ref.elf;'
-            post_process_cmd = 'mv spike.dump ref.dump;'
+            compile_cmd += ' -o ref.elf && '
+            post_process_cmd = 'mv spike.dump ref.dump'
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
                     self.sim_cmd + ' ' + \
                     self.sim_args.format(spike_isa, self.elf) + \
-                    ';'+ post_process_cmd
+                    ' && '+ post_process_cmd
             make.add_target(target_cmd, test)
             self.test_names.append(test)
 

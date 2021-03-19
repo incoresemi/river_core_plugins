@@ -44,17 +44,21 @@ class chromite_verilator_plugin(object):
 
         if coverage_config:
             logger.warn('Hope RTL binary has coverage enabled')
-        
+
         # TODO: The follow 2 variables need to be set by user
         self.sim_path = '/scratch/git-repo/incoresemi/core-generators/chromite/bin/'
         self.src_dir = [
-                '/scratch/git-repo/incoresemi/core-generators/chromite/build/hw/verilog',
-                '/software/experimental/open-bsc/lib/Verilog/',
-                '/scratch/git-repo/incoresemi/core-generators/chromite/bsvwrappers/common_lib/'
-                ]
+            '/scratch/git-repo/incoresemi/core-generators/chromite/build/hw/verilog',
+            '/software/experimental/open-bsc/lib/Verilog/',
+            '/scratch/git-repo/incoresemi/core-generators/chromite/bsvwrappers/common_lib/'
+        ]
 
-        self.elf2hex_cmd = 'elf2hex {0} 4194304 dut.elf 2147483648 > code.mem;'.format(str(int(self.xlen/8)))
-        self.objdump_cmd = 'riscv{0}-unknown-elf-objdump -D dut.elf > dut.disass;'.format(self.xlen)
+        self.elf2hex_cmd = 'elf2hex {0} 4194304 dut.elf 2147483648 > code.mem && '.format(
+            str(int(self.xlen / 8)))
+        self.objdump_cmd = 'riscv{0}-unknown-elf-objdump -D dut.elf > dut.disass && '.format(
+            self.xlen)
+        self.sim_cmd = './chromite_core'
+        self.sim_args = '+rtldump > /dev/null'
         self.sim_cmd = './chromite_core'
         self.sim_args = '+rtldump > /dev/null'
 
@@ -103,17 +107,17 @@ class chromite_verilator_plugin(object):
             cc_args = attr['cc_args']
             asm_file = attr['asm_file']
 
-            ch_cmd = 'cd {0};'.format(work_dir)
+            ch_cmd = 'cd {0} && '.format(work_dir)
             compile_cmd = '{0} {1} -march={2} -mabi={3} {4} {5} {6}'.format(\
                     cc, cc_args, arch, abi, link_args, link_file, asm_file)
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
-            compile_cmd += ' -o dut.elf;'
-            sim_setup = 'ln -f -s ' + self.sim_path + '/* .;'
-            post_process_cmd = 'mv rtl.dump dut.dump;'
+            compile_cmd += ' -o dut.elf && '
+            sim_setup = 'ln -f -s ' + self.sim_path + '/* . && '
+            post_process_cmd = 'mv rtl.dump dut.dump'
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
                     self.elf2hex_cmd + sim_setup + self.sim_cmd + ' ' + \
-                    self.sim_args +';'+ post_process_cmd
+                    self.sim_args +' && '+ post_process_cmd
             make.add_target(target_cmd, test)
             self.test_names.append(test)
 
@@ -176,10 +180,5 @@ class chromite_verilator_plugin(object):
 
     @dut_hookimpl
     def post_run(self):
-        # TODO:NEEL: The following is no longer required.
 
-        #        logger.debug('Post Run')
-        #        log_dir = self.work_dir
-        #        log_files = glob.glob(log_dir + '*/*dut_rc.dump')
-        #        logger.debug("Detected Chromite Log Files: {0}".format(log_files))
         return

@@ -5,7 +5,7 @@ from py.xml import html
 
 
 def pytest_html_report_title(report):
-    report.title = "Compilation Report"
+    report.title = "DuT Report - Chromite [Verilator Edition]"
 
 
 def pytest_addoption(parser):
