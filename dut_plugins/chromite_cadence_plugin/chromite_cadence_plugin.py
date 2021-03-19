@@ -10,7 +10,7 @@ import re
 import datetime
 import pytest
 import glob
-
+import distutils.util
 from river_core.log import logger
 from river_core.utils import *
 
@@ -59,8 +59,10 @@ class ChromitePlugin(object):
         self.coverage_config = coverage_config
         # Loading Coverage info if passed 
         if coverage_config:
-            self.code_coverage = coverage_config['code']
-            self.functional_coverage = coverage_config['functional']
+            self.code_coverage = bool(distutils.util.strtobool((coverage_config['code'])))
+            self.functional_coverage = bool(distutils.util.strtobool((coverage_config['functional'])))
+            #self.code_coverage = coverage_config['code']
+            #self.functional_coverage = coverage_config['functional']
             if self.code_coverage:
                 logger.info("Code Coverage is enabled for this plugin")
             if self.functional_coverage:
@@ -271,17 +273,8 @@ class ChromitePlugin(object):
                         "\n\t echo \'ncsim +rtldump -cdslib ./cds.lib -hdlvar ./hdl.var work.main #> /dev/null\' > chromite_core"
                     )
                 # TODO change this to make with and without coverage - MOD
-                    if self.code_coverage:
-                        # Coverage case
-                        makefile.write("\n\t echo \'load "+ self.output_dir+ "$(ROOT_DIR)/$(SIM_DIR)/{0}/cov_work/scope/test/\' > imc_report.cmd".format(file_name))
-                        makefile.write("\n\t echo \'exec mkdir -p coverage/reports\' >> imc_report.cmd")
-                        makefile.write("\n\t echo \'exec mkdir -p coverage/report_html\' >> imc_report.cmd")
-                        makefile.write("\n\t echo \'report -overwrite -out coverage/report_html -html -detail -metrics overall -all -aspect both -assertionStatus -allAssertionCounters -type *\' >>imc_report.cmd")
-                        makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.fun_rpt -detail -metrics functional -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd")
-                        makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.code_rpt -detail -metrics code -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd") 
-                        makefile.write("\n\t echo \'imc -exec imc_report.cmd' >>chromite_core")
-                    else:
-                        # Non-coverage case
+                    if self.code_coverage and self.functional_coverage :
+                        # both code and functional Coverage case
                         makefile.write("\n\t echo \'load "+ self.output_dir+ "$(ROOT_DIR)/$(SIM_DIR)/{0}/cov_work/scope/test/\' > imc_report.cmd".format(file_name))
                         makefile.write("\n\t echo \'exec mkdir -p coverage/reports\' >> imc_report.cmd")
                         makefile.write("\n\t echo \'exec mkdir -p coverage/report_html\' >> imc_report.cmd")
@@ -290,6 +283,23 @@ class ChromitePlugin(object):
                         makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.code_rpt -detail -metrics code -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd") 
                         makefile.write("\n\t echo \'imc -exec imc_report.cmd' >>chromite_core")
 
+		        #Code coverage case only
+                    if self.code_coverage  and not self.functional_coverage :
+                        makefile.write("\n\t echo \'load "+ self.output_dir+ "$(ROOT_DIR)/$(SIM_DIR)/{0}/cov_work/scope/test/\' > imc_report.cmd".format(file_name))
+                        makefile.write("\n\t echo \'exec mkdir -p coverage/reports\' >> imc_report.cmd")
+                        makefile.write("\n\t echo \'exec mkdir -p coverage/report_html\' >> imc_report.cmd")
+                        makefile.write("\n\t echo \'report -overwrite -out coverage/report_html -html -detail -metrics code -all -aspect both -assertionStatus -allAssertionCounters -type *\' >>imc_report.cmd")
+                        makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.code_rpt -detail -metrics code -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd") 
+                        makefile.write("\n\t echo \'imc -exec imc_report.cmd' >>chromite_core")
+
+                    #Functional_coverage case only
+                    if self.functional_coverage and not self.code_coverage :
+                        makefile.write("\n\t echo \'load "+ self.output_dir+ "$(ROOT_DIR)/$(SIM_DIR)/{0}/cov_work/scope/test/\' > imc_report.cmd".format(file_name))
+                        makefile.write("\n\t echo \'exec mkdir -p coverage/reports\' >> imc_report.cmd")
+                        makefile.write("\n\t echo \'exec mkdir -p coverage/report_html\' >> imc_report.cmd")
+                        makefile.write("\n\t echo \'report -overwrite -out coverage/report_html -html -detail -metrics functional -all -aspect both -assertionStatus -allAssertionCounters -type *\' >>imc_report.cmd")
+                        makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.fun_rpt -detail -metrics functional -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd") 
+                        makefile.write("\n\t echo \'imc -exec imc_report.cmd' >>chromite_core")
                     makefile.write(
                         "\n\t$(info ===== Now running chromite core ===== )")
                     #makefile.write("\n\t chmod +x chromite_core")
@@ -298,7 +308,8 @@ class ChromitePlugin(object):
                     makefile.write(
                         "\n\t cp rtl.dump {0}-dut_rc.dump".format(file_name))
                     # makefile.write("\n\n.PHONY : build")
-                    makefile.write("\n\t cp -rf coverage"+" "+ self.output_dir+ "reports")
+                    if self.code_coverage or self.functional_coverage :
+                         makefile.write("\n\t cp -rf coverage"+" "+ self.output_dir+ "reports")
         self.make_file = make_file
 
     @dut_hookimpl

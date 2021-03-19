@@ -10,7 +10,7 @@ import re
 import datetime
 import pytest
 import glob
-
+import distutils.util
 from river_core.log import logger
 from river_core.utils import *
 
@@ -59,8 +59,10 @@ class ChromitePlugin(object):
         self.coverage_config = coverage_config
         # Loading Coverage info if passed 
         if coverage_config:
-            self.code_coverage = coverage_config['code']
-            self.functional_coverage = coverage_config['functional']
+            self.code_coverage = bool(distutils.util.strtobool((coverage_config['code'])))
+            self.functional_coverage = bool(distutils.util.strtobool((coverage_config['functional'])))
+            #self.code_coverage = coverage_config['code']
+            #self.functional_coverage = coverage_config['functional']
             if self.code_coverage:
                 logger.info("Code Coverage is enabled for this plugin")
             if self.functional_coverage:
@@ -248,7 +250,7 @@ class ChromitePlugin(object):
                                    sim_path + "chromite_core .")
 
                 # TODO change this to make with and without coverage - MOD
-                    if self.code_coverage:
+                    if self.code_coverage and self.functional_coverage:
                         # Coverage case
                         makefile.write("\n\t mkdir -p coverage")
                         makefile.write("\n\t mkdir -p coverage/report_html/")
@@ -265,8 +267,8 @@ class ChromitePlugin(object):
                         makefile.write("\n\t echo \'vcover report -cvg -details ./coverage/reports/coverage.ucdb >coverage.fun_det\' >>chromite_core")
                         makefile.write("\n\t echo \'vcover report -html -htmldir ./coverage/report_html/ coverage.ucdb\' >>chromite_core")	
 
-                    else:
-                    # Non coverage case
+                    elif self.code_coverage and not self.functional_coverage:
+                        # Coverage case
                         makefile.write("\n\t mkdir -p coverage")
                         makefile.write("\n\t mkdir -p coverage/report_html/")
                         makefile.write("\n\t mkdir -p coverage/reports/")
@@ -275,12 +277,34 @@ class ChromitePlugin(object):
                         makefile.write(
                             "\n\tvlog -sv -cover bcs -work work +libext+.v+.vqm -y $(VERILOGDIR) -y $(BS_VERILOG_LIB) -y $(BSV_WRAPPER_PATH)/ +define+TOP=tb_top  $(BS_VERILOG_LIB)/main.v \$(SV_TB_TOP_PATH)/tb_top.sv  > compile_log"
                         )
-                        makefile.write("\n\t echo \'vsim -quiet -cvgperinstance -novopt -coverage +rtldump  -voptargs=\"+cover=bcfst\" -cvg63 \-lib work -do \"coverage save -cvg -onexit -codeAll coverage.ucdb;run -all; quit\" -voptargs=\"+cover=bcfst\" -c main\' > chromite_core")
+                        makefile.write("\n\t echo \'vsim -quiet -cvgperinstance -novopt -coverage +rtldump  -voptargs=\"+cover=bcfst\" -cvg63 \-lib work -do \"coverage save  -onexit -codeAll coverage.ucdb;run -all; quit\" -voptargs=\"+cover=bcfst\" -c main\' > chromite_core")
 
                     #makefile.write("\n\t echo \'vsim +rtldump -quiet -novopt -coverage  -lib work -do \"coverage save -onexit -codeAll coverage.ucdb;run -all; quit\" -voptargs=\"+cover=bcfst\" -c main\' > chromite_core")
                         makefile.write("\n\t echo \'vcover report -details ./coverage/reports/coverage.ucdb > coverage.rpt_det\' >>chromite_core")
+                        makefile.write("\n\t echo \'vcover report -html -htmldir ./coverage/report_html/ coverage.ucdb\' >>chromite_core")	
+
+                    elif self.functional_coverage and not self.code_coverage:
+                        # Coverage case
+                        makefile.write("\n\t mkdir -p coverage")
+                        makefile.write("\n\t mkdir -p coverage/report_html/")
+                        makefile.write("\n\t mkdir -p coverage/reports/")
+                        makefile.write("\n\t vlib work")
+                        makefile.write(
+                            "\n\tvlog -sv -work work +libext+.v+.vqm -y $(VERILOGDIR) -y $(BS_VERILOG_LIB) -y $(BSV_WRAPPER_PATH)/ +define+TOP=tb_top  $(BS_VERILOG_LIB)/main.v \$(SV_TB_TOP_PATH)/tb_top.sv  > compile_log"
+                        )
+                        makefile.write("\n\t echo \'vsim -quiet -novopt  +rtldump -cvg63 \-lib work -do \"coverage save -cvg -onexit -codeAll coverage.ucdb;run -all; quit\" -c main\' > chromite_core")
+
+                    #makefile.write("\n\t echo \'vsim +rtldump -quiet -novopt -coverage  -lib work -do \"coverage save -onexit -codeAll coverage.ucdb;run -all; quit\" -voptargs=\"+cover=bcfst\" -c main\' > chromite_core")
                         makefile.write("\n\t echo \'vcover report -cvg -details ./coverage/reports/coverage.ucdb >coverage.fun_det\' >>chromite_core")
                         makefile.write("\n\t echo \'vcover report -html -htmldir ./coverage/report_html/ coverage.ucdb\' >>chromite_core")	
+                    else:
+                    # Non coverage case
+                        makefile.write("\n\t vlib work")
+                        makefile.write(
+                            "\n\tvlog -sv -work work +libext+.v+.vqm -y $(VERILOGDIR) -y $(BS_VERILOG_LIB) -y $(BSV_WRAPPER_PATH)/ +define+TOP=tb_top  $(BS_VERILOG_LIB)/main.v \$(SV_TB_TOP_PATH)/tb_top.sv  > compile_log"
+                        )
+                        makefile.write("\n\t echo \'vsim -quiet -novopt +rtldump \-lib work -do \"run -all; quit\" -voptargs=\"+cover=bcfst\" -c main\' > chromite_core")
+
                     makefile.write(
                         "\n\t$(info ===== Now running chromite core ===== )")
                     makefile.write("\n\t ./" + sim_bin + " " + sim_args +
@@ -288,7 +312,8 @@ class ChromitePlugin(object):
                     makefile.write(
                         "\n\t cp rtl.dump {0}-dut_rc.dump".format(file_name))
                     # makefile.write("\n\n.PHONY : build")
-                    makefile.write("\n\t cp -rf coverage"+" "+ self.output_dir+ "reports")
+                    if self.code_coverage:
+                          makefile.write("\n\t cp -rf coverage"+" "+ self.output_dir+ "reports")
         self.make_file = make_file
 
     @dut_hookimpl
