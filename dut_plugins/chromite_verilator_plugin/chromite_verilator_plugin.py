@@ -179,6 +179,15 @@ class chromite_verilator_plugin(object):
         return report_file_name
 
     @dut_hookimpl
-    def post_run(self):
-
+    def post_run(self, test_dict):
+        logger.debug("Going to remove stuff now")
+        for test in test_dict:
+            if test_dict[test]['result']:
+                logger.info("Removing extra files")
+                work_dir = test_dict[test]['work_dir']
+                os.remove(work_dir + '/app.log')
+                os.remove(work_dir + '/code.mem')
+                os.remove(work_dir + '/dut.disass')
+                os.remove(work_dir + '/dut.dump')
+                os.remove(work_dir + '/signature')
         return
