@@ -145,6 +145,8 @@ class aapg_plugin(object):
             test_list[base_key]['extra_compile'] = [
                 output_dir + '/aapg/common/crt.S'
             ]
+            # TODO:DOC Add info possible results for the below variable
+            test_list[base_key]['result'] = 'Unavailable'
 
         return test_list
 
