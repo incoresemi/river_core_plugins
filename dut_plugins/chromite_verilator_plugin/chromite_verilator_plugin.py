@@ -46,12 +46,18 @@ class chromite_verilator_plugin(object):
             logger.warn('Hope RTL binary has coverage enabled')
 
         # TODO: The follow 2 variables need to be set by user
-        self.sim_path = '/scratch/git-repo/incoresemi/core-generators/chromite/bin/'
+        self.sim_path = '/home/vagrant/core/chromite/bin/'
         self.src_dir = [
-            '/scratch/git-repo/incoresemi/core-generators/chromite/build/hw/verilog',
-            '/software/experimental/open-bsc/lib/Verilog/',
-            '/scratch/git-repo/incoresemi/core-generators/chromite/bsvwrappers/common_lib/'
+            # Verilog Dir
+            '/home/vagrant/core/chromite/build/hw/verilog/',
+            # BSC Path
+            '/home/vagrant/tools/bsc/inst/lib/Verilog',
+            # Wrapper path
+            '/home/vagrant/core/chromite/bsvwrappers/common_lib'
         ]
+        self.top_module = 'mkTbSoc'
+
+        self.sim_src_path = self.sim_path.replace('bin/', '')
 
         self.elf2hex_cmd = 'elf2hex {0} 4194304 dut.elf 2147483648 > code.mem && '.format(
             str(int(self.xlen / 8)))
@@ -85,6 +91,46 @@ class chromite_verilator_plugin(object):
 
         if shutil.which('elf2hex') is None:
             logger.error('elf2hex utility not found in $PATH')
+            raise SystemExit
+
+        if shutil.which('verilator') is None:
+            logger.error('verilator utility not found in $PATH')
+            raise SystemExit
+
+        if shutil.which('bsc') is None:
+            logger.error('bsc toolchain not found in $PATH')
+            raise SystemExit
+        # Build verilator again
+
+        orig_path = os.getcwd()
+        logger.info("Build verilator")
+        os.chdir(self.sim_src_path)
+        # header_generate = 'mkdir -p bin obj_dir + echo "#define TOPMODULE V{0}" > sim_main.h + echo "#include "V{0}.h"" >> sim_main.h'.format(
+        #     self.top_module)
+        # sys_command(header_generate)
+        if coverage_config:
+            logger.info(
+                "Coverage is enabled, compiling the chromite with coverage")
+            verilator_command = 'verilator --coverage-line -O3 -LDFLAGS "-static" --x-assign fast  --x-initial fast --noassert sim_main.cpp --bbox-sys -Wno-STMTDLY  -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY -Wno-INITIALDLY  --autoflush   --threads 1 -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY --output-split 20000  --output-split-ctrace 10000 --cc ' + self.top_module + '.v  -y ' + self.src_dir[
+                0] + ' -y ' + self.src_dir[1] + ' -y ' + self.src_dir[
+                    2] + ' --exe'
+            sys_command(verilator_command)
+        else:
+            logger.info(
+                "Coverage is disabled, compiling the chromite with usual options"
+            )
+            verilator_command = 'verilator -O3 -LDFLAGS "-static" --x-assign fast  --x-initial fast --noassert sim_main.cpp --bbox-sys -Wno-STMTDLY  -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY -Wno-INITIALDLY  --autoflush   --threads 1 -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY --output-split 20000  --output-split-ctrace 10000 --cc ' + self.top_module + '.v  -y ' + self.src_dir[
+                0] + ' -y ' + self.src_dir[1] + ' -y ' + self.src_dir[
+                    2] + ' --exe'
+            sys_command(verilator_command)
+        symbolic = "ln -f -s ../test_soc/sim_main.cpp obj_dir/sim_main.cpp && ln -f -s ../sim_main.h obj_dir/sim_main.h"
+        logger.info("Linking things")
+        sys_command(symbolic)
+        make_command = 'make VM_PARALLEL_BUILDS=1 -j' + self.jobs + ' -C obj_dir -f V' + self.top_module + '.mk && cp obj_dir/V' + self.top_module + 'bin/chromite_core'
+        logger.info("Making and copying things into directory")
+        sys_command(make_command)
+
+        os.chdir(orig_path)
 
     @dut_hookimpl
     def build(self):
@@ -183,7 +229,8 @@ class chromite_verilator_plugin(object):
         if str_2_bool(config['river_core']['space_saver']):
             logger.debug("Going to remove stuff now")
             for test in test_dict:
-                if test_dict[test]['result'] and not test_dict[test]['result'] == 'Unavailable':
+                if test_dict[test]['result'] and not test_dict[test][
+                        'result'] == 'Unavailable':
                     logger.info("Removing extra files")
                     work_dir = test_dict[test]['work_dir']
                     try:
