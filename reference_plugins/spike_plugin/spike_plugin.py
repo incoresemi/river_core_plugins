@@ -21,7 +21,7 @@ class spike_plugin(object):
         Plugin to set Spike as ref
     '''
     @dut_hookimpl
-    def init(self, ini_config, test_list, work_dir):
+    def init(self, ini_config, test_list, work_dir, plugin_path):
         self.name = 'spike'
         logger.debug('Pre Compile Stage')
 
