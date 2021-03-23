@@ -21,9 +21,11 @@ class chromite_verilator_plugin(object):
         Plugin to set chromite as the target
     '''
     @dut_hookimpl
-    def init(self, ini_config, test_list, work_dir, coverage_config):
+    def init(self, ini_config, test_list, work_dir, coverage_config, plugin_path):
         self.name = 'chromite_verilator'
         logger.info('Pre Compile Stage')
+
+        self.plugin_path = plugin_path+'/'
 
         if coverage_config:
             self.coverage = True
@@ -46,18 +48,15 @@ class chromite_verilator_plugin(object):
             logger.warn('Hope RTL binary has coverage enabled')
 
         # TODO: The follow 2 variables need to be set by user
-        self.sim_path = '/home/vagrant/core/chromite/bin/'
         self.src_dir = [
             # Verilog Dir
-            '/home/vagrant/core/chromite/build/hw/verilog/',
+            '/scratch/git-repo/incoresemi/core-generators/chromite/build/hw/verilog/',
             # BSC Path
-            '/home/vagrant/tools/bsc/inst/lib/Verilog',
+            '/software/open-bsc/lib/Verilog',
             # Wrapper path
-            '/home/vagrant/core/chromite/bsvwrappers/common_lib'
+            '/scratch/git-repo/incoresemi/core-generators/chromite/bsvwrappers/common_lib'
         ]
         self.top_module = 'mkTbSoc'
-
-        self.sim_src_path = self.sim_path.replace('bin/', '')
 
         self.elf2hex_cmd = 'elf2hex {0} 4194304 dut.elf 2147483648 > code.mem && '.format(
             str(int(self.xlen / 8)))
@@ -65,10 +64,12 @@ class chromite_verilator_plugin(object):
             self.xlen)
         self.sim_cmd = './chromite_core'
         self.sim_args = '+rtldump > /dev/null'
-        self.sim_cmd = './chromite_core'
-        self.sim_args = '+rtldump > /dev/null'
 
         self.work_dir = os.path.abspath(work_dir) + '/'
+
+        self.sim_path = self.work_dir+self.name
+        os.makedirs(self.sim_path, exist_ok=True)
+
         self.test_list = load_yaml(test_list)
 
         self.json_dir = self.work_dir + '/.json/'
@@ -84,11 +85,6 @@ class chromite_verilator_plugin(object):
                          ' does not exist')
             raise SystemExit
 
-        if not os.path.isfile(self.sim_path + '/' + self.sim_cmd):
-            logger.error(self.sim_cmd + ' binary does not exist in ' +
-                         self.sim_path)
-            raise SystemExit
-
         if shutil.which('elf2hex') is None:
             logger.error('elf2hex utility not found in $PATH')
             raise SystemExit
@@ -102,35 +98,65 @@ class chromite_verilator_plugin(object):
             raise SystemExit
         # Build verilator again
 
+        self.verilator_speed = 'OPT_SLOW="-O3" OPT_FAST="-O3"'
+
         orig_path = os.getcwd()
         logger.info("Build verilator")
-        os.chdir(self.sim_src_path)
+        os.chdir(self.sim_path)
         # header_generate = 'mkdir -p bin obj_dir + echo "#define TOPMODULE V{0}" > sim_main.h + echo "#include "V{0}.h"" >> sim_main.h'.format(
         #     self.top_module)
         # sys_command(header_generate)
+        verilator_command = 'verilator {0} --coverage-line -O3 -LDFLAGS \
+                "-static" --x-assign fast  --x-initial fast \
+                --noassert sim_main.cpp --bbox-sys -Wno-STMTDLY  \
+                -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY \
+                -Wno-INITIALDLY  --autoflush   --threads 1 \
+                -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY \
+                --output-split 20000  --output-split-ctrace 10000 \
+                --cc ' + self.top_module + '.v  -y ' + self.src_dir[0] + \
+                ' -y ' + self.src_dir[1] + ' -y ' + self.src_dir[2] + \
+                ' --exe'
         if coverage_config:
             logger.info(
                 "Coverage is enabled, compiling the chromite with coverage")
-            verilator_command = 'verilator --coverage-line -O3 -LDFLAGS "-static" --x-assign fast  --x-initial fast --noassert sim_main.cpp --bbox-sys -Wno-STMTDLY  -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY -Wno-INITIALDLY  --autoflush   --threads 1 -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY --output-split 20000  --output-split-ctrace 10000 --cc ' + self.top_module + '.v  -y ' + self.src_dir[
-                0] + ' -y ' + self.src_dir[1] + ' -y ' + self.src_dir[
-                    2] + ' --exe'
-            sys_command(verilator_command)
+            verilator_command = verilator_command.format('--coverage-line')
         else:
             logger.info(
                 "Coverage is disabled, compiling the chromite with usual options"
             )
-            verilator_command = 'verilator -O3 -LDFLAGS "-static" --x-assign fast  --x-initial fast --noassert sim_main.cpp --bbox-sys -Wno-STMTDLY  -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY -Wno-INITIALDLY  --autoflush   --threads 1 -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY --output-split 20000  --output-split-ctrace 10000 --cc ' + self.top_module + '.v  -y ' + self.src_dir[
-                0] + ' -y ' + self.src_dir[1] + ' -y ' + self.src_dir[
-                    2] + ' --exe'
-            sys_command(verilator_command)
-        symbolic = "ln -f -s ../test_soc/sim_main.cpp obj_dir/sim_main.cpp && ln -f -s ../sim_main.h obj_dir/sim_main.h"
-        logger.info("Linking things")
-        sys_command(symbolic)
-        make_command = 'make VM_PARALLEL_BUILDS=1 -j' + self.jobs + ' -C obj_dir -f V' + self.top_module + '.mk && cp obj_dir/V' + self.top_module + 'bin/chromite_core'
-        logger.info("Making and copying things into directory")
+            verilator_command = verilator_command.format('')
+
+        # create simulation header files
+        sim_header = open(self.sim_path+'/sim_main.h','w')
+        sim_header.write('#define TOPMODULE V{0}\n'.format(self.top_module))
+        sim_header.write('#include "V{0}.h"\n'.format(self.top_module))
+        sim_header.close()
+
+        # copy the sim_main.cpp testbench from the plugin folder
+        shutil.copy(self.plugin_path+self.name+'_plugin/sim_main.cpp', self.sim_path)
+
+        sys_command(verilator_command)
+        logger.info("Linking verilator simulation sources")
+        sys_command("ln -f -s ../sim_main.cpp obj_dir/sim_main.cpp")
+        sys_command("ln -f -s ../sim_main.h obj_dir/sim_main.h")
+        make_command = 'make '+self.verilator_speed+' VM_PARALLEL_BUILDS=1 -j' + self.jobs + ' -C obj_dir -f V' + self.top_module + '.mk'
+        logger.info("Making verilator binary")
         sys_command(make_command)
+        logger.info('Renaming verilator Binary')
+        shutil.copy(self.sim_path+'/obj_dir/V{0}'.format(self.top_module), 
+                    self.sim_path+'/chromite_core')
+
+        logger.info('Creating boot-files')
+        sys_command('make -C {0} XLEN={1}'.format(self.plugin_path+self.name+'_plugin/boot/',str(self.xlen)))
+        shutil.copy(self.plugin_path+self.name+'_plugin/boot/boot.hex' , \
+                self.sim_path+'/boot.mem')
 
         os.chdir(orig_path)
+        if not os.path.isfile(self.sim_path + '/' + self.sim_cmd):
+            logger.error(self.sim_cmd + ' binary does not exist in ' +
+                         self.sim_path)
+            raise SystemExit
+
 
     @dut_hookimpl
     def build(self):
@@ -159,7 +185,8 @@ class chromite_verilator_plugin(object):
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
             compile_cmd += ' -o dut.elf && '
-            sim_setup = 'ln -f -s ' + self.sim_path + '/* . && '
+            sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core . && '
+            sim_setup += 'ln -f -s ' + self.sim_path + '/boot.mem . && '
             post_process_cmd = 'mv rtl.dump dut.dump'
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
                     self.elf2hex_cmd + sim_setup + self.sim_cmd + ' ' + \
