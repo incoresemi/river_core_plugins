@@ -85,6 +85,11 @@ class chromite_verilator_plugin(object):
                          ' does not exist')
             raise SystemExit
 
+        for path in self.src_dir:
+            if not os.path.exists(path):
+                logger.error('Source code ' + path + ' does not exist')
+                raise SystemExit
+
         if shutil.which('elf2hex') is None:
             logger.error('elf2hex utility not found in $PATH')
             raise SystemExit
