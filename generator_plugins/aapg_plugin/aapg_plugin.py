@@ -39,9 +39,16 @@ class aapg_plugin(object):
         logger.debug('AAPG Pre Gen Stage')
         output_dir = os.path.abspath(output_dir)
         self.name = 'aapg'
+
+        # Check if aapg is there on path
+        if shutil.which('aapg') is None:
+            logger.error('Plugin requires aapg to be installed')
+            raise SystemExit
+
         if shutil.which('spike') is None:
             logger.error('AAPG requires spike to be installed')
             raise SystemExit
+
         if (os.path.isdir(output_dir)):
             logger.debug('exists')
             shutil.rmtree(output_dir, ignore_errors=True)
