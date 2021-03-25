@@ -266,10 +266,10 @@ class chromite_verilator_plugin(object):
             for test in test_dict:
                 if test_dict[test]['result'] and not test_dict[test][
                         'result'] == 'Unavailable':
-                    logger.info("Removing extra files")
+                    logger.debug("Removing extra files for Test: "+str(test))
                     work_dir = test_dict[test]['work_dir']
                     try:
-                        os.remove(work_dir + '/app.log')
+                        os.remove(work_dir + '/app_log')
                         os.remove(work_dir + '/code.mem')
                         os.remove(work_dir + '/dut.disass')
                         os.remove(work_dir + '/dut.dump')
