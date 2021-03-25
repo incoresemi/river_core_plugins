@@ -29,11 +29,11 @@ class chromite_verilator_plugin(object):
         # TODO: These 2 variables need to be set by user
         self.src_dir = [
             # Verilog Dir
-            '/home/vagrant/core/chromite/build/hw/verilog/',
+            '/scratch/git-repo/incoresemi/core-generators/chromite/build/hw/verilog/',
             # BSC Path
-            '/home/vagrant/tools/bsc/inst/lib/Verilog',
+            '/software/open-bsc/lib/Verilog',
             # Wrapper path
-            '/home/vagrant/core/chromite/bsvwrappers/common_lib'
+            '/scratch/git-repo/incoresemi/core-generators/chromite/bsvwrappers/common_lib'
         ]
         self.top_module = 'mkTbSoc'
 
@@ -113,7 +113,7 @@ class chromite_verilator_plugin(object):
         # header_generate = 'mkdir -p bin obj_dir + echo "#define TOPMODULE V{0}" > sim_main.h + echo "#include "V{0}.h"" >> sim_main.h'.format(
         #     self.top_module)
         # sys_command(header_generate)
-        verilator_command = 'verilator {0} --coverage-line -O3 -LDFLAGS \
+        verilator_command = 'verilator {0} -O3 -LDFLAGS \
                 "-static" --x-assign fast  --x-initial fast \
                 --noassert sim_main.cpp --bbox-sys -Wno-STMTDLY  \
                 -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY \
@@ -195,7 +195,7 @@ class chromite_verilator_plugin(object):
             compile_cmd += ' -o dut.elf && '
             sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/boot.mem . && '
-            post_process_cmd = 'mv rtl.dump dut.dump'
+            post_process_cmd = 'head -n -4 rtl.dump > dut.dump && rm -f rtl.dump'
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
                     self.elf2hex_cmd + sim_setup + self.sim_cmd + ' ' + \
                     self.sim_args +' && '+ post_process_cmd

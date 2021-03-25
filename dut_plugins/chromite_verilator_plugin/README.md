@@ -1,5 +1,9 @@
 # river_core plugin for Chromite [based on Verilator]
 
+To use this plugin you will need clone the chromite_core generator repo and generate the verilog
+required for simulation. Once the verilof has been generated, please do the following changes in the
+plugin:
+
 ### Things to configure
 
 - In `chromite_verilator_plugin.py`
