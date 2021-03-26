@@ -4,323 +4,202 @@ import os
 import sys
 import pluggy
 import shutil
-import yaml
 import random
 import re
 import datetime
 import pytest
 import glob
-import distutils.util
+
 from river_core.log import logger
 from river_core.utils import *
 
 dut_hookimpl = pluggy.HookimplMarker('dut')
 
 
-class ChromitePlugin(object):
+class chromite_cadence_plugin(object):
     '''
         Plugin to set chromite as the target
     '''
     @dut_hookimpl
-    def init(self, ini_config, test_list, asm_dir, config_yaml, coverage_config):
-        logger.debug('Pre Compile Stage')
+    def init(self, ini_config, test_list, work_dir, coverage_config,
+             plugin_path):
+        self.name = 'chromite_cadence'
+        logger.info('Pre Compile Stage')
+
+        # TODO: These 2 variables need to be set by user
+        self.src_dir = [
+            # Verilog Dir
+            '/scratch/git-repo/incoresemi/chromite/build/hw/verilog/',
+            # BSC Path
+            '/hw_tools/bluespec/open_bsc/lib/Verilog',
+            # Wrapper path
+            '/scratch/git-repo/incoresemi//chromite/bsvwrappers/common_lib'
+        ]
+        self.top_module = 'mkTbSoc'
+
+        self.plugin_path = plugin_path + '/'
+
+        if coverage_config:
+            self.coverage = True
+        else:
+            self.coverage = False
+
         # Get plugin specific configs from ini
         self.jobs = ini_config['jobs']
-        # self.seed = ini_config['seed']
+
         self.filter = ini_config['filter']
-        # TODO Might  be useful later on
-        # Eventually add support for riscv_config
-        self.isa = ini_config['isa']
 
-        # Check if chromite is installed?
-        self.installation = ini_config['installed']
-        # Check if dir exists
-        # if (os.path.isdir(output_dir)):
-        #     logger.debug('Directory exists')
-        #     shutil.rmtree(output_dir, ignore_errors=True)
-        # os.makedirs(output_dir + '/chromite_plugin')
-        # Generic commands
-        self.output_dir = asm_dir.replace('work/', '')
-        self.compile_output_path = self.output_dir + 'chromite_plugin'
-        self.regress_list = '{0}/chromite-regresslist.yaml'.format(
-            self.compile_output_path)
-        # Save YAML to load again in gen_framework.yaml
-        self.config_yaml = config_yaml
-        self.test_list_yaml = test_list
-        # Report output directory
-        self.report_dir = self.output_dir + 'reports'
-        # Check if dir exists
-        if (os.path.isdir(self.report_dir)):
-            logger.debug('Report Directory exists')
-            # shutil.rmtree(output_dir, ignore_errors=True)
+        self.riscv_isa = ini_config['isa']
+        if '64' in self.riscv_isa:
+            self.xlen = 64
         else:
-            os.makedirs(self.report_dir)
+            self.xlen = 32
+        self.elf = 'dut.elf'
 
-        self.coverage_config = coverage_config
-        # Loading Coverage info if passed 
-        if coverage_config:
-            self.code_coverage = bool(distutils.util.strtobool((coverage_config['code'])))
-            self.functional_coverage = bool(distutils.util.strtobool((coverage_config['functional'])))
-            #self.code_coverage = coverage_config['code']
-            #self.functional_coverage = coverage_config['functional']
-            if self.code_coverage:
-                logger.info("Code Coverage is enabled for this plugin")
-            if self.functional_coverage:
-                logger.info("Functional Coverage is enabled for this plugin")
+        self.elf2hex_cmd = 'elf2hex {0} 4194304 dut.elf 2147483648 > code.mem && '.format(
+            str(int(self.xlen / 8)))
+        self.objdump_cmd = 'riscv{0}-unknown-elf-objdump -D dut.elf > dut.disass && '.format(
+            self.xlen)
+        self.sim_cmd = './chromite_core'
+        self.sim_args = '+rtldump > /dev/null'
 
+        self.work_dir = os.path.abspath(work_dir) + '/'
+
+        self.sim_path = self.work_dir + self.name
+        os.makedirs(self.sim_path, exist_ok=True)
+
+        self.test_list = load_yaml(test_list)
+
+        self.json_dir = self.work_dir + '/.json/'
+
+        # Check if dir exists
+        if (os.path.isdir(self.json_dir)):
+            logger.debug(self.json_dir + ' Directory exists')
         else:
-            self.code_coverage =  ''
-            self.functional_coverage = ''
+            os.makedirs(self.json_dir)
 
-        # Help setup Chromite, if not set in path
-        if self.installation is False:
-            logger.info(
-                "Attempting to install the core into your home directory")
-            logger.info(
-                "Please ensure you have installed the requirements from https://chromite.readthedocs.io/en/latest/getting_started.html"
-            )
-            response = input(
-                "Please respond with N/n, if you don't want to install and exit or if you don't have the requirements installed"
-            )
-            if response == ('n', 'N'):
+        if not os.path.exists(self.sim_path):
+            logger.error('Sim binary Path ' + self.sim_path +
+                         ' does not exist')
+            raise SystemExit
+
+        check_utils = ['elf2hex','ncvlog','ncelab','ncvlog','imc']
+
+        for exe in check_utils:
+            if shutil.which(exe) is None:
+                logger.error(exe + ' utility not found in $PATH')
                 raise SystemExit
-            else:
-                logger.info("Continuing with the installation")
-            # TODO Get this from the user maybe?
-            os.chdir(os.path.expanduser('~') + '/cores')
-            # https://chromite.readthedocs.io/en/latest/getting_started.html#building-the-core
-            try:
-                sys_command(
-                    'git clone https://gitlab.com/incoresemi/core-generators/chromite.git',
-                    1000)
-                sys_command('cd chromite')
-                sys_command('pip install -U -r chromite/requirements.txt', 600)
-                # TODO Change this to something that user specifies maybe?
-                sys_command(
-                    'python -m configure.main -ispec sample_config/default.yaml'
-                )
-                sys_command('make -j $(nproc) generate_verilog')
-                # TODO change this to make with and without coverage - MOD
-                if self.code_coverage:
-                    sys_command('make link_ncvlog')
-                else:
-                    sys_command('Do abracadra')
-                logger.info('Setup is now complete')
-            except:
-                raise SystemExit(
-                    'Something went wrong while getting things ready')
+
+        for path in self.src_dir:
+            if not os.path.exists(path):
+                logger.error('Source code ' + path + ' does not exist')
+                raise SystemExit
+
+        orig_path = os.getcwd()
+        logger.info("Build using NCVLOG")
+        os.chdir(self.sim_path)
+        shutil.copy(self.plugin_path+self.name+'_plugin/hdl.var', \
+                self.sim_path)
+        shutil.copy(self.plugin_path+self.name+'_plugin/cds.lib', \
+                self.sim_path)
+        os.makedirs(self.sim_path+'/work', exist_ok=True)
+        # header_generate = 'mkdir -p bin obj_dir + echo "#define TOPMODULE V{0}" > sim_main.h + echo "#include "V{0}.h"" >> sim_main.h'.format(
+        #     self.top_module)
+        # sys_command(header_generate)
+        ncvlog_cmd = 'ncvlog -64BIT -cdslib ./cds.lib -hdlvar ./hdl.var \
+                +define+TOP={0} +define+BSV_RESET_FIFO_HEAD  \
+                +define+BSV_RESET_FIFO_ARRAY \
+                /hw_tools/bluespec/open_bsc/lib/Verilog/main.v \
+                -y {1} -y {2} -y {3}'.format( \
+                self.top_module, self.src_dir[0], self.src_dir[1], \
+                self.src_dir[2] )
+        ncelab_cmd = 'ncelab -64BIT -cdslib ./cds.lib -hdlvar ./hdl.var work.main \
+                -timescale 1ns/1ps '
+        if coverage_config:
+            logger.info(
+                "Coverage is enabled, compiling the chromite with coverage")
+            ncelab_cmd = ncelab_cmd + ' -coverage ALL -covdut mkccore_axi4'
+
+
+        sys_command(ncvlog_cmd,500)
+        sys_command(ncelab_cmd,500)
+        logger.info("Making ncsim binary")
+        with open('chromite_core','w') as f:
+            f.write('ncsim -64BIT +rtldump -cdslib ./cds.lib -hdlvar ./hdl.var work.main\n')
+            if self.coverage:
+                f.write('imc -exec imc.cmd\n')
+
+        logger.info('Renaming Binary')
+        sys_command('chmod +x chromite_core')
+
+        logger.info('Creating boot-files')
+        sys_command('make -C {0} XLEN={1}'.format(
+            self.plugin_path + self.name + '_plugin/boot/', str(self.xlen)))
+        shutil.copy(self.plugin_path+self.name+'_plugin/boot/boot.hex' , \
+                self.sim_path+'/boot.mem')
+
+        os.chdir(orig_path)
+        if not os.path.isfile(self.sim_path + '/' + self.sim_cmd):
+            logger.error(self.sim_cmd + ' binary does not exist in ' +
+                         self.sim_path)
+            raise SystemExit
 
     @dut_hookimpl
-    def build(self, asm_dir, asm_gen):
-        logger.debug('Build Hook')
-        make_file = os.path.join(asm_dir, 'Makefile.chromite')
-        # Load YAML files
-        logger.debug('Loading the plugin specific YAML from {0}'.format(
-            self.config_yaml))
-        config_file = open(self.config_yaml, 'r')
-        config_yaml_data = yaml.safe_load(config_file)
-        config_file.close()
-        logger.debug('Load Test-List YAML file i.e {0}'.format(
-            self.test_list_yaml))
-        with open(self.test_list_yaml, 'r') as cfile:
-            test_list_yaml_data = yaml.safe_load(cfile)
-            # TODO Check all necessary flags
-            # Generic commands
-            key_list = list(test_list_yaml_data.keys())
-            self.key_list = key_list
-            # Load common things from config.yaml
-            # Disass
-            objdump_bin = config_yaml_data['objdump']['command']
-            objdump_args = config_yaml_data['objdump']['args']
-            # Elf2hex
-            elf2hex_bin = config_yaml_data['elf2hex']['command']
-            elf2hex_args = config_yaml_data['elf2hex']['args']
-            # Sim
-            sim_bin = config_yaml_data['sim']['command']
-            sim_args = config_yaml_data['sim']['args']
-            sim_path = config_yaml_data['sim']['path']
-            cadence_bsv_lib_path = config_yaml_data['cadence'][
-                'bs_verilog_lib']
-            cadence_verilog_dir_path = config_yaml_data['cadence'][
-                'verilog_dir']
-            cadence_bsv_wrapper_lib_path = config_yaml_data['cadence'][
-                'bsv_wrapper_path']
-            sv_tb_top_path = config_yaml_data['sv_tb_top']['path']
+    def build(self):
+        logger.info('Build Hook')
+        make = makeUtil(makefilePath=os.path.join(self.work_dir,"Makefile." +\
+            self.name))
+        make.makeCommand = 'make -j1'
+        self.make_file = os.path.join(self.work_dir, 'Makefile.' + self.name)
+        self.test_names = []
 
+        for test, attr in self.test_list.items():
+            logger.debug('Creating Make Target for ' + str(test))
+            abi = attr['mabi']
+            arch = attr['march']
+            isa = attr['isa']
+            work_dir = attr['work_dir']
+            link_args = attr['linker_args']
+            link_file = attr['linker_file']
+            cc = attr['cc']
+            cc_args = attr['cc_args']
+            asm_file = attr['asm_file']
 
-            # Load teh Makefile
-            os.chdir(asm_dir)
-            make_file = make_file
-            with open(make_file, "w") as makefile:
-                makefile.write(
-                    "# Auto generated makefile created by river_core compile based on test list yaml"
-                )
-                makefile.write("\n# generated on: {0}\n".format(
-                    datetime.datetime.now()))
-                # get the variables into the file
-                # makefile.write("\nASM_SRC_DIR := " + asm_dir + asm)
-                # makefile.write("\nCRT_FILE := " + asm_dir + crt_file)
-                makefile.write("\nBIN_DIR := bin")
-                makefile.write("\nOBJ_DIR := objdump")
-                makefile.write("\nSIM_DIR := sim")
-                makefile.write("\nBS_VERILOG_LIB :=" + cadence_bsv_lib_path)
-                makefile.write("\nVERILOGDIR := " + cadence_verilog_dir_path)
-                makefile.write("\nBSV_WRAPPER_PATH := " +cadence_bsv_wrapper_lib_path)
-                makefile.write("\nSV_TB_TOP_PATH := " + sv_tb_top_path )
-
-                # ROOT Dir for resutls
-                makefile.write("\nROOT_DIR := chromite")
-                for key in key_list:
-                    abi = test_list_yaml_data[key]['mabi']
-                    arch = test_list_yaml_data[key]['march']
-                    isa = test_list_yaml_data[key]['isa']
-                    work_dir = test_list_yaml_data[key]['work_dir']
-                    file_name = key
-                    # GCC Specific
-                    gcc_compile_bin = test_list_yaml_data[key]['cc']
-                    gcc_compile_args = test_list_yaml_data[key]['cc_args']
-                    asm_file = test_list_yaml_data[key]['asm_file']
-                    # Linker
-                    linker_args = test_list_yaml_data[key]['linker_args']
-                    linker_file = test_list_yaml_data[key]['linker_file']
-                    crt_file = test_list_yaml_data[key]['crt_file']
-
-                    # # Get files from the directory
-                    # asm_files = glob.glob(asm_dir+'*.S')
-                    # makefile.write(
-                    #     "\nBASE_SRC_FILES := $(wildcard $(ASM_SRC_DIR)/*.S) \nSRC_FILES := $(filter-out $(wildcard $(ASM_SRC_DIR)/*template.S),$(BASE_SRC_FILES))\nBIN_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(BIN_DIR)/%.riscv, $(SRC_FILES))\nOBJ_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(OBJ_DIR)/%.objdump, $(SRC_FILES))\nSIM_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(SIM_DIR)/%.log, $(SRC_FILES))"
-                    # )
-                    # Add all section
-                    # makefile.write("\n\nall: build objdump sim")
-                    # makefile.write(
-                    #     "\n\t$(info ===== All steps are now finished ====== )")
-                    # Build for part one
-                    makefile.write("\n\n{0}-build:".format(file_name))
-                    makefile.write(
-                        "\n\t$(info ================ Compiling asm to binary ============)"
-                    )
-                    makefile.write(
-                        "\n\tmkdir -p $(ROOT_DIR)/$(BIN_DIR)/{0}".format(
-                            file_name))
-                    makefile.write("\n\t" + gcc_compile_bin + " " +
-                                   gcc_compile_args +
-                                   " -o $(ROOT_DIR)/$(BIN_DIR)/{0}/{0}.bin ".
-                                   format(file_name) +
-                                   "asm/{0}/{0}.S ".format(file_name) +
-                                   crt_file + " " + linker_args + " " +
-                                   "asm/{0}/".format(file_name) + linker_file)
-                    # Create an objdump file
-                    makefile.write("\n\n{0}-objdump:".format(file_name))
-                    makefile.write(
-                        "\n\t$(info ========== Disassembling binary ===============)"
-                    )
-                    makefile.write(
-                        "\n\tmkdir -p $(ROOT_DIR)/$(OBJ_DIR)/{0}".format(
-                            file_name))
-                    makefile.write(
-                        "\n\t" + objdump_bin + " " + objdump_args + " " +
-                        "$(ROOT_DIR)/$(BIN_DIR)/{0}/{0}.bin > $(ROOT_DIR)/$(OBJ_DIR)/{0}/{0}.objdump"
-                        .format(file_name))
-                    # Run on target
-                    makefile.write("\n\n.ONESHELL:")
-                    makefile.write("\n{0}-sim:".format(file_name))
-                    makefile.write(
-                        "\n\tmkdir -p $(ROOT_DIR)/$(SIM_DIR)/{0}".format(
-                            file_name))
-                    # Add this extra portion to avoid waiting the simulation if already run,
-                    # Remove later cause bad idea :)
-                    makefile.write(
-                        "\n\tif [ -f $(ROOT_DIR)/$(SIM_DIR)/{0}/rtl.dump ]".
-                        format(file_name))
-                    makefile.write("\n\tthen")
-                    makefile.write("\n\t\texit")
-                    makefile.write("\n\tfi")
-                    makefile.write(
-                        "\n\t$(info ===== Creating code.mem ===== )")
-                    makefile.write("\n\t" + elf2hex_bin + " " +
-                                   str(elf2hex_args[0]) + " " +
-                                   str(elf2hex_args[1]) +
-                                   " $(ROOT_DIR)/$(BIN_DIR)/{0}/{0}.bin ".
-                                   format(file_name) + str(elf2hex_args[2]) +
-                                   " > $(ROOT_DIR)/$(SIM_DIR)/{0}/code.mem ".
-                                   format(file_name))
-                    makefile.write(
-                        "\n\tcd $(ROOT_DIR)/$(SIM_DIR)/{0}".format(file_name))
-                    makefile.write(
-                        "\n\t $(info ===== Copying chromite_core and files ===== )"
-                    )
-                    makefile.write(
-                        "\n\t ls $(BSV_WRAPPER_PATH)*nc.v $(BSV_WRAPPER_PATH)*mul.v >$(BSV_WRAPPER_PATH)/bsvfilelist.txt"
-                    )
-                    makefile.write("\n\tln -sf " + sim_path + "boot.mem " +
-                                   sim_path + "chromite_core .")
-                    makefile.write("\n\t mkdir -p  work")
-                    makefile.write("\n\techo \"define work ./work\" > cds.lib")
-                    makefile.write("\n\techo \"define WORK work\" > hdl.var")
-                    makefile.write(
-                        "\n\tncvlog -64BIT -sv -cdslib ./cds.lib -hdlvar ./hdl.var +define+TOP=tb_top $(SV_TB_TOP_PATH)/tb_top.sv  $(BS_VERILOG_LIB)/main.v -v $(VERILOGDIR)/*.v -f $(BSV_WRAPPER_PATH)/bsvfilelist.txt -y $(BS_VERILOG_LIB)"
-                    )
-                # TODO change this to make with and without coverage - MOD
-                    if self.code_coverage:
-                        makefile.write(
-                            "\n\t ncelab  -coverage ALL -cdslib ./cds.lib -hdlvar ./hdl.var work.main -timescale 1ns/1ps"
-                        )
-                    else:
-                        makefile.write(
-                            "\n\t ncelab -cdslib ./cds.lib -hdlvar ./hdl.var work.main -timescale 1ns/1ps"
-                        )
-                    makefile.write(
-                        "\n\t echo \'ncsim +rtldump -cdslib ./cds.lib -hdlvar ./hdl.var work.main #> /dev/null\' > chromite_core"
-                    )
-                # TODO change this to make with and without coverage - MOD
-                    if self.code_coverage and self.functional_coverage :
-                        # both code and functional Coverage case
-                        makefile.write("\n\t echo \'load "+ self.output_dir+ "$(ROOT_DIR)/$(SIM_DIR)/{0}/cov_work/scope/test/\' > imc_report.cmd".format(file_name))
-                        makefile.write("\n\t echo \'exec mkdir -p coverage/reports\' >> imc_report.cmd")
-                        makefile.write("\n\t echo \'exec mkdir -p coverage/report_html\' >> imc_report.cmd")
-                        makefile.write("\n\t echo \'report -overwrite -out coverage/report_html -html -detail -metrics overall -all -aspect both -assertionStatus -allAssertionCounters -type *\' >>imc_report.cmd")
-                        makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.fun_rpt -detail -metrics functional -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd")
-                        makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.code_rpt -detail -metrics code -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd") 
-                        makefile.write("\n\t echo \'imc -exec imc_report.cmd' >>chromite_core")
-
-		        #Code coverage case only
-                    if self.code_coverage  and not self.functional_coverage :
-                        makefile.write("\n\t echo \'load "+ self.output_dir+ "$(ROOT_DIR)/$(SIM_DIR)/{0}/cov_work/scope/test/\' > imc_report.cmd".format(file_name))
-                        makefile.write("\n\t echo \'exec mkdir -p coverage/reports\' >> imc_report.cmd")
-                        makefile.write("\n\t echo \'exec mkdir -p coverage/report_html\' >> imc_report.cmd")
-                        makefile.write("\n\t echo \'report -overwrite -out coverage/report_html -html -detail -metrics code -all -aspect both -assertionStatus -allAssertionCounters -type *\' >>imc_report.cmd")
-                        makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.code_rpt -detail -metrics code -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd") 
-                        makefile.write("\n\t echo \'imc -exec imc_report.cmd' >>chromite_core")
-
-                    #Functional_coverage case only
-                    if self.functional_coverage and not self.code_coverage :
-                        makefile.write("\n\t echo \'load "+ self.output_dir+ "$(ROOT_DIR)/$(SIM_DIR)/{0}/cov_work/scope/test/\' > imc_report.cmd".format(file_name))
-                        makefile.write("\n\t echo \'exec mkdir -p coverage/reports\' >> imc_report.cmd")
-                        makefile.write("\n\t echo \'exec mkdir -p coverage/report_html\' >> imc_report.cmd")
-                        makefile.write("\n\t echo \'report -overwrite -out coverage/report_html -html -detail -metrics functional -all -aspect both -assertionStatus -allAssertionCounters -type *\' >>imc_report.cmd")
-                        makefile.write("\n\t echo \'report -overwrite -out coverage/reports/coverage.fun_rpt -detail -metrics functional -all -aspect both -assertionStatus -allAssertionCounters -type *\' >> imc_report.cmd") 
-                        makefile.write("\n\t echo \'imc -exec imc_report.cmd' >>chromite_core")
-                    makefile.write(
-                        "\n\t$(info ===== Now running chromite core ===== )")
-                    #makefile.write("\n\t chmod +x chromite_core")
-                    makefile.write("\n\t ./" + sim_bin + " " + sim_args +
-                                   " > output_log")
-                    makefile.write(
-                        "\n\t cp rtl.dump {0}-dut_rc.dump".format(file_name))
-                    # makefile.write("\n\n.PHONY : build")
-                    if self.code_coverage or self.functional_coverage :
-                         makefile.write("\n\t cp -rf coverage"+" "+ self.output_dir+ "reports")
-        self.make_file = make_file
+            ch_cmd = 'cd {0} && '.format(work_dir)
+            compile_cmd = '{0} {1} -march={2} -mabi={3} {4} {5} {6}'.format(\
+                    cc, cc_args, arch, abi, link_args, link_file, asm_file)
+            for x in attr['extra_compile']:
+                compile_cmd += ' ' + x
+            compile_cmd += ' -o dut.elf && '
+            with open(work_dir+'/imc.cmd','w') as f:
+                f.write('load '+work_dir+'/cov_work/scope/test \n')
+                f.write('report -overwrite -out coverage_code.html -html -detail \
+                -metrics overall -all -aspect both -assertionStatus \
+                -allAssertionCounters -type *\n')
+                f.write('report -overwrite -out coverage_code.rpt -detail -metrics \
+                code -all -aspect both -assertionStatus -allAssertionCounters \
+                -type *\n')
+            sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core . && '
+            sim_setup += 'ln -f -s ' + self.sim_path + '/boot.mem . && '
+            sim_setup += 'ln -f -s ' + self.sim_path + '/cds.lib . && '
+            sim_setup += 'ln -f -s ' + self.sim_path + '/hdl.var . && '
+            sim_setup += 'ln -f -s ' + self.sim_path + '/work . && '
+            post_process_cmd = 'head -n -4 rtl.dump > dut.dump && rm -f rtl.dump'
+            target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
+                    self.elf2hex_cmd + sim_setup + self.sim_cmd + ' ' + \
+                    self.sim_args +' && '+ post_process_cmd
+            make.add_target(target_cmd, test)
+            self.test_names.append(test)
 
     @dut_hookimpl
-    def run(self, module_dir, asm_dir):
-        logger.debug('Run Hook')
+    def run(self, module_dir):
+        logger.info('Run Hook')
         logger.debug('Module dir: {0}'.format(module_dir))
         pytest_file = module_dir + '/chromite_cadence_plugin/gen_framework.py'
         logger.debug('Pytest file: {0}'.format(pytest_file))
 
-        report_file_name = '{0}/chromite_cadence_{1}'.format(
-            self.report_dir,
+        report_file_name = '{0}/{1}_{2}'.format(
+            self.json_dir, self.name,
             datetime.datetime.now().strftime("%Y%m%d-%H%M"))
 
         # TODO Regression list currently removed, check back later
@@ -331,23 +210,58 @@ class ChromitePlugin(object):
             pytest_file,
             '-n={0}'.format(self.jobs),
             '-k={0}'.format(self.filter),
-            # '--html={0}.html'.format(report_file_name),
+            '--html={0}.html'.format(self.work_dir + '/reports/' + self.name),
             '--report-log={0}.json'.format(report_file_name),
-            # '--self-contained-html',
-            '--asm_dir={0}'.format(asm_dir),
+            '--work_dir={0}'.format(self.work_dir),
             '--make_file={0}'.format(self.make_file),
-            '--key_list={0}'.format(self.key_list),
-            # TODO Debug parameters, remove later on
+            '--key_list={0}'.format(self.test_names),
             '--log-cli-level=DEBUG',
             '-o log_cli=true',
         ])
         # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
+
+        if self.coverage:
+            merge_cmd = 'merge -out '+self.work_dir+'/final_coverage '
+            rank_cmd = 'rank -out '+self.work_dir+'final_rank -html'
+            logger.info('Initiating Merging of coverage files')
+            for test, attr in self.test_list.items():
+                test_wd = attr['work_dir']
+                merge_cmd += ' ' + test_wd + '/cov_work/scope/test/'
+                rank_cmd += ' ' + test_wd + '/cov_work/scope/test/'
+            with open(self.work_dir+'/merge_imc.cmd','w') as f:
+                f.write(merge_cmd + ' \n')
+                f.write('load -run ./final_coverage\n')
+                f.write('report -overwrite -out final_coverage_html -html -detail \
+                -metrics overall -all -aspect both -assertionStatus \
+                -allAssertionCounters -type *\n')
+                f.write(rank_cmd +'\n')
+
+            orig_path = os.getcwd()
+            os.chdir(self.work_dir)
+            (ret, out, error) = sys_command('imc -exec merge_imc.cmd')
+            os.chdir(orig_path)
+
+            logger.info(
+                'Final coverage file is at: {0}'.format(self.work_dir+'/final_coverage_html'))
+            logger.info(
+                'Final rank file is at: {0}'.format(self.work_dir+'/final_rank'))
         return report_file_name
 
     @dut_hookimpl
-    def post_run(self):
-        logger.debug('Post Run')
-        log_dir = self.output_dir + 'chromite/sim/'
-        log_files = glob.glob(log_dir + '*/*dut_rc.dump')
-        logger.debug("Detected Chromite Log Files: {0}".format(log_files))
-        return log_files
+    def post_run(self, test_dict, config):
+        if str_2_bool(config['river_core']['space_saver']):
+            logger.debug("Going to remove stuff now")
+            for test in test_dict:
+                if test_dict[test]['result'] and not test_dict[test][
+                        'result'] == 'Unavailable':
+                    logger.debug("Removing extra files for Test: "+str(test))
+                    work_dir = test_dict[test]['work_dir']
+                    try:
+                        os.remove(work_dir + '/app_log')
+                        os.remove(work_dir + '/code.mem')
+                        os.remove(work_dir + '/dut.disass')
+                        os.remove(work_dir + '/dut.dump')
+                        os.remove(work_dir + '/signature')
+                    except:
+                        logger.info(
+                            "Something went wrong trying to remove the files")
