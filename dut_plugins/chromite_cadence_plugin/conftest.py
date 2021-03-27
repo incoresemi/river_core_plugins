@@ -1,10 +1,11 @@
 # conftest.py
 import pytest
+import inspect
 from py.xml import html
 
 
 def pytest_html_report_title(report):
-    report.title = "Reference Report - Spike"
+    report.title = "DuT Report - Chromite [Cadence Edition]"
 
 
 def pytest_addoption(parser):
@@ -13,11 +14,6 @@ def pytest_addoption(parser):
     parser.addoption("--key_list", action="store")
 
 
-# i.e. a new column for getting the stage,
-# Need to figure out a way to get the 2nd argument passed to item.function
-
-
-# The internal error for timeout caused of these hooks :|
 @pytest.mark.optionalhook
 def pytest_html_results_table_header(cells):
     cells.insert(1, html.th('Stage'))

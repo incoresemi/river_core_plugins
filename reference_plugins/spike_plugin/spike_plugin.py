@@ -4,7 +4,6 @@ import os
 import sys
 import pluggy
 import shutil
-import yaml
 import random
 import re
 import glob
@@ -17,231 +16,110 @@ from river_core.utils import *
 dut_hookimpl = pluggy.HookimplMarker('dut')
 
 
-class SpikePlugin(object):
+class spike_plugin(object):
     '''
         Plugin to set Spike as ref
     '''
     @dut_hookimpl
-    def init(self, ini_config, test_list, asm_dir, config_yaml):
+    def init(self, ini_config, test_list, work_dir, plugin_path):
+        self.name = 'spike'
         logger.debug('Pre Compile Stage')
+
         # Get plugin specific configs from ini
         self.jobs = ini_config['jobs']
-        # self.seed = ini_config['seed']
+
         self.filter = ini_config['filter']
-        # TODO Might  be useful later on
-        # Eventually add support for riscv_config
-        self.isa = ini_config['isa']
 
-        # Check if Spike is installed?
-        self.installation = ini_config['installed']
-        # Check if dir exists
-        # if (os.path.isdir(output_dir)):
-        #     logger.debug('Directory exists')
-        #     shutil.rmtree(output_dir, ignore_errors=True)
-        # os.makedirs(output_dir + '/chromite_plugin')
-        # Generic commands
-        self.output_dir = asm_dir.replace('work/', '')
-        self.compile_output_path = self.output_dir + 'spike_plugin'
-        self.regress_list = '{0}/spike-regresslist.yaml'.format(
-            self.compile_output_path)
-        # Save YAML to load again in gen_framework.yaml
-        self.config_yaml = config_yaml
-        self.test_list_yaml = test_list
-        # Report output directory
-        self.report_dir = self.output_dir + 'reports'
-        # Check if dir exists
-        if (os.path.isdir(self.report_dir)):
-            logger.debug('Report Directory exists')
-            # shutil.rmtree(output_dir, ignore_errors=True)
+        self.riscv_isa = ini_config['isa']
+        if '64' in self.riscv_isa:
+            self.xlen = 64
         else:
-            os.makedirs(self.report_dir)
+            self.xlen = 32
+        self.elf = 'ref.elf'
 
-        # Help setup Spike, if not set in path
-        # FIXME Get this checked by Neel and Pavan, could be some uncessary installtion.
-        if self.installation is False:
-            logger.info(
-                "Attempting to install the spike into your home directory")
-            logger.info(
-                "Please ensure you have RISCV Toolchain installed in your path"
-            )
-            response = input(
-                "Please respond with N/n, if you don't want to install and exit or if you don't have the requirements installed.\n IMP: If you have no standard install, or want to customize the installation, please go for manual mode of installation."
-            )
-            if response == ('n', 'N'):
-                raise SystemExit
-            else:
-                logger.info("Continuing with the installation")
-                logger.info('Setting the RISCV path to /opt/riscv')
-            # TODO Get this from the user maybe?
-            os.chdir(os.path.expanduser('~') + '/references')
-            # https://chromite.readthedocs.io/en/latest/getting_started.html#building-the-core
-            try:
-                sys_command(
-                    'git clone https://gitlab.com/shaktiproject/tools/mod-spike.git',
-                    1000)
-                sys_command('cd mod-spike')
-                sys_command('git checkout bump-to-latest')
-                sys_command(
-                    'git clone https://github.com/riscv/riscv-isa-sim.git',
-                    1000)
-                sys_command('cd riscv-isa-sim')
-                sys_command(
-                    'git checkout 6d15c93fd75db322981fe58ea1db13035e0f7add')
-                sys_command('git apply ../shakti.patch')
-                logger.info('Setting the RISCV path to /opt/riscv')
-                sys_command('export RISCV=/opt/riscv')
-                sys_command('mkdir build')
-                sys_command('cd build')
-                sys_command('../configure --prefix=$RISCV')
-                sys_command('make')
-                logger.info(
-                    'One tiny step is left, open a shell instance and complete the setup by running, sudo make install.'
-                )
-            except:
-                raise SystemExit(
-                    'Something went wrong while getting things ready')
+        self.objdump_cmd = 'riscv{0}-unknown-elf-objdump -D ref.elf > ref.disass && '.format(
+            self.xlen)
+        self.sim_cmd = 'spike'
+        self.sim_args = '-c --isa={0} {1}'
+
+        self.work_dir = os.path.abspath(work_dir) + '/'
+        self.test_list = load_yaml(test_list)
+
+        self.json_dir = self.work_dir + '/.json/'
+        # Check if dir exists
+        if (os.path.isdir(self.json_dir)):
+            logger.debug(self.json_dir + ' Directory exists')
+        else:
+            os.makedirs(self.json_dir)
+
+        if shutil.which('spike') is None:
+            logger.error('Spike not available in $PATH')
+            raise SystemExit
 
     @dut_hookimpl
-    def build(self, asm_dir, asm_gen):
+    def build(self):
         logger.debug('Build Hook')
-        make_file = os.path.join(asm_dir, 'Makefile.spike')
-        # Load YAML files
-        logger.debug('Loading the plugin specific YAML from {0}'.format(
-            self.config_yaml))
-        config_file = open(self.config_yaml, 'r')
-        config_yaml_data = yaml.safe_load(config_file)
-        config_file.close()
-        logger.debug('Load Test-List YAML file i.e {0}'.format(
-            self.test_list_yaml))
-        with open(self.test_list_yaml, 'r') as cfile:
-            test_list_yaml_data = yaml.safe_load(cfile)
-            # TODO Check all necessary flags
-            # Generic commands
-            key_list = list(test_list_yaml_data.keys())
-            self.key_list = key_list
-            # Load common things from config.yaml
-            # Disass
-            objdump_bin = config_yaml_data['objdump']['command']
-            objdump_args = config_yaml_data['objdump']['args']
-            # Elf2hex
-            elf2hex_bin = config_yaml_data['elf2hex']['command']
-            elf2hex_args = config_yaml_data['elf2hex']['args']
-            # Sim
-            sim_bin = config_yaml_data['sim']['command']
-            sim_args = config_yaml_data['sim']['args']
+        make = makeUtil(makefilePath=os.path.join(self.work_dir,"Makefile." +\
+            self.name))
+        make.makeCommand = 'make -j1'
+        self.make_file = os.path.join(self.work_dir, 'Makefile.' + self.name)
+        self.test_names = []
 
-            # Load teh Makefile
-            os.chdir(asm_dir)
-            make_file = make_file
-            with open(make_file, "w") as makefile:
-                makefile.write(
-                    "# Auto generated makefile created by river_core compile based on test list yaml"
-                )
-                makefile.write("\n# generated on: {0}\n".format(
-                    datetime.datetime.now()))
-                # get the variables into the file
-                # makefile.write("\nASM_SRC_DIR := " + asm_dir + asm)
-                # makefile.write("\nCRT_FILE := " + asm_dir + crt_file)
-                makefile.write("\nBIN_DIR := bin")
-                makefile.write("\nOBJ_DIR := objdump")
-                makefile.write("\nSIM_DIR := sim")
-                # ROOT Dir for resutls
-                makefile.write("\nROOT_DIR := spike")
-                for key in key_list:
-                    abi = test_list_yaml_data[key]['mabi']
-                    arch = test_list_yaml_data[key]['march']
-                    isa = test_list_yaml_data[key]['isa']
-                    work_dir = test_list_yaml_data[key]['work_dir']
-                    file_name = key
-                    # GCC Specific
-                    gcc_compile_bin = test_list_yaml_data[key]['cc']
-                    gcc_compile_args = test_list_yaml_data[key]['cc_args']
-                    asm_file = test_list_yaml_data[key]['asm_file']
-                    # Linker
-                    linker_args = test_list_yaml_data[key]['linker_args']
-                    linker_file = test_list_yaml_data[key]['linker_file']
-                    crt_file = test_list_yaml_data[key]['crt_file']
+        for test, attr in self.test_list.items():
+            logger.debug('Creating Make Target for ' + str(test))
+            abi = attr['mabi']
+            arch = attr['march']
+            isa = attr['isa']
+            work_dir = attr['work_dir']
+            link_args = attr['linker_args']
+            link_file = attr['linker_file']
+            cc = attr['cc']
+            cc_args = attr['cc_args']
+            asm_file = attr['asm_file']
 
-                    # # Get files from the directory
-                    # asm_files = glob.glob(asm_dir+'*.S')
-                    # makefile.write(
-                    #     "\nBASE_SRC_FILES := $(wildcard $(ASM_SRC_DIR)/*.S) \nSRC_FILES := $(filter-out $(wildcard $(ASM_SRC_DIR)/*template.S),$(BASE_SRC_FILES))\nBIN_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(BIN_DIR)/%.riscv, $(SRC_FILES))\nOBJ_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(OBJ_DIR)/%.objdump, $(SRC_FILES))\nSIM_FILES := $(patsubst $(ASM_SRC_DIR)/%.S, $(ROOT_DIR)/$(SIM_DIR)/%.log, $(SRC_FILES))"
-                    # )
-                    # Add all section
-                    # makefile.write("\n\nall: build objdump sim")
-                    # makefile.write(
-                    #     "\n\t$(info ===== All steps are now finished ====== )")
-                    # Build for part one
-                    makefile.write("\n\n{0}-build:".format(file_name))
-                    makefile.write(
-                        "\n\t$(info ================ Compiling asm to binary ============)"
-                    )
-                    makefile.write(
-                        "\n\tmkdir -p $(ROOT_DIR)/$(BIN_DIR)/{0}".format(
-                            file_name))
-                    makefile.write("\n\t" + gcc_compile_bin + " " +
-                                   gcc_compile_args +
-                                   " -o $(ROOT_DIR)/$(BIN_DIR)/{0}/{0}.bin ".
-                                   format(file_name) +
-                                   "asm/{0}/{0}.S ".format(file_name) +
-                                   crt_file + " " + linker_args + " " +
-                                   "asm/{0}/".format(file_name) + linker_file)
-                    # Create an objdump file
-                    makefile.write("\n\n{0}-objdump:".format(file_name))
-                    makefile.write(
-                        "\n\t$(info ========== Disassembling binary ===============)"
-                    )
-                    makefile.write(
-                        "\n\tmkdir -p $(ROOT_DIR)/$(OBJ_DIR)/{0}".format(
-                            file_name))
-                    makefile.write(
-                        "\n\t" + objdump_bin + " " + objdump_args + " " +
-                        "$(ROOT_DIR)/$(BIN_DIR)/{0}/{0}.bin > $(ROOT_DIR)/$(OBJ_DIR)/{0}/{0}.objdump"
-                        .format(file_name))
-                    # Run on target
-                    makefile.write("\n\n.ONESHELL:")
-                    makefile.write("\n{0}-sim:".format(file_name))
-                    makefile.write(
-                        "\n\tmkdir -p $(ROOT_DIR)/$(SIM_DIR)/{0}".format(
-                            file_name))
-                    makefile.write(
-                        "\n\tcd $(ROOT_DIR)/$(SIM_DIR)/{0}".format(file_name))
-                    makefile.write("\n\t $(info ===== Run on spike ===== )")
-                    makefile.write("\n\t" + sim_bin + " " + sim_args +
-                                   " --isa=" + arch +
-                                   " ../../$(BIN_DIR)/{0}/{0}.bin 2> {0}.log".
-                                   format(file_name))
-                    makefile.write(
-                        "\n\t cp spike.dump {0}-ref_rc.dump".format(file_name))
-                    # makefile.write("\n\n.PHONY : build")
-                # Run on target
+            spike_isa = 'rv' + str(self.xlen) + 'i'
+            spike_isa += 'm' if 'm' in arch else ''
+            spike_isa += 'a' if 'a' in arch else ''
+            spike_isa += 'f' if 'f' in arch else ''
+            spike_isa += 'd' if 'd' in arch else ''
+            spike_isa += 'c' if 'c' in arch else ''
 
-        self.make_file = make_file
+            ch_cmd = 'cd {0} && '.format(work_dir)
+            compile_cmd = '{0} {1} -march={2} -mabi={3} {4} {5} {6}'.format(\
+                    cc, cc_args, arch, abi, link_args, link_file, asm_file)
+            for x in attr['extra_compile']:
+                compile_cmd += ' ' + x
+            compile_cmd += ' -o ref.elf && '
+            post_process_cmd = 'mv spike.dump ref.dump'
+            target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
+                    self.sim_cmd + ' ' + \
+                    self.sim_args.format(spike_isa, self.elf) + \
+                    ' && '+ post_process_cmd
+            make.add_target(target_cmd, test)
+            self.test_names.append(test)
 
     @dut_hookimpl
-    def run(self, module_dir, asm_dir):
+    def run(self, module_dir):
         logger.debug('Run Hook')
         logger.debug('Module dir: {0}'.format(module_dir))
         pytest_file = module_dir + '/spike_plugin/gen_framework.py'
         logger.debug('Pytest file: {0}'.format(pytest_file))
 
-        report_file_name = '{0}/spike_{1}'.format(
-            self.report_dir,
+        report_file_name = '{0}/{1}_{2}'.format(
+            self.json_dir, self.name,
             datetime.datetime.now().strftime("%Y%m%d-%H%M"))
 
         # TODO Regression list currently removed, check back later
         # TODO The logger doesn't exactly work like in the pytest module
-        # pytest.main([pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(self.filter), '-v', '--compileconfig={0}'.format(compile_config), '--html=compile.html', '--self-contained-html'])
         pytest.main([
             pytest_file,
             '-n={0}'.format(self.jobs),
             '-k={0}'.format(self.filter),
-            # '--html={0}.html'.format(report_file_name),
-            # '--self-contained-html',
+            '--html={0}.html'.format(self.work_dir + '/reports/' + self.name),
             '--report-log={0}.json'.format(report_file_name),
-            '--asm_dir={0}'.format(asm_dir),
+            '--work_dir={0}'.format(self.work_dir),
             '--make_file={0}'.format(self.make_file),
-            '--key_list={0}'.format(self.key_list),
+            '--key_list={0}'.format(self.test_names),
             # TODO Debug parameters, remove later on
             '--log-cli-level=DEBUG',
             '-o log_cli=true'
@@ -250,9 +128,17 @@ class SpikePlugin(object):
         return report_file_name
 
     @dut_hookimpl
-    def post_run(self):
-        logger.debug('Post Run')
-        log_dir = self.output_dir + 'spike/sim/'
-        log_files = glob.glob(log_dir + '*/*-ref_rc.dump')
-        logger.debug("Detected Spike Log Files:{0}".format(log_files))
-        return log_files
+    def post_run(self, test_dict, config):
+        if str_2_bool(config['river_core']['space_saver']):
+            logger.debug("Going to remove stuff now")
+            for test in test_dict:
+                if test_dict[test]['result'] and not test_dict[test][
+                        'result'] == 'Unavailable':
+                    logger.info("Removing extra files")
+                    work_dir = test_dict[test]['work_dir']
+                    try:
+                        os.remove(work_dir + '/ref.disass')
+                        os.remove(work_dir + '/ref.dump')
+                    except:
+                        logger.info(
+                            "Something went wrong trying to remove the files")

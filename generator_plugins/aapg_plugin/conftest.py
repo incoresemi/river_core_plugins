@@ -1,6 +1,10 @@
 # conftest.py
 
 
+def pytest_html_report_title(report):
+    report.title = "Generation Report - AAPG"
+
+
 def pytest_addoption(parser):
     parser.addoption("--configlist", action="store")
 

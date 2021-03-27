@@ -16,24 +16,24 @@ from river_core.utils import *
 dut_hookimpl = pluggy.HookimplMarker('dut')
 
 
-class chromite_verilator_plugin(object):
+class chromite_cadence_plugin(object):
     '''
         Plugin to set chromite as the target
     '''
     @dut_hookimpl
     def init(self, ini_config, test_list, work_dir, coverage_config,
              plugin_path):
-        self.name = 'chromite_verilator'
+        self.name = 'chromite_cadence'
         logger.info('Pre Compile Stage')
 
         # TODO: These 2 variables need to be set by user
         self.src_dir = [
             # Verilog Dir
-            '/scratch/git-repo/incoresemi/core-generators/chromite/build/hw/verilog/',
+            '/scratch/git-repo/incoresemi/chromite/build/hw/verilog/',
             # BSC Path
-            '/software/open-bsc/lib/Verilog',
+            '/hw_tools/bluespec/open_bsc/lib/Verilog',
             # Wrapper path
-            '/scratch/git-repo/incoresemi/core-generators/chromite/bsvwrappers/common_lib'
+            '/scratch/git-repo/incoresemi//chromite/bsvwrappers/common_lib'
         ]
         self.top_module = 'mkTbSoc'
 
@@ -55,10 +55,6 @@ class chromite_verilator_plugin(object):
         else:
             self.xlen = 32
         self.elf = 'dut.elf'
-
-        if coverage_config:
-            logger.warn('Hope RTL binary has coverage enabled')
-
 
         self.elf2hex_cmd = 'elf2hex {0} 4194304 dut.elf 2147483648 > code.mem && '.format(
             str(int(self.xlen / 8)))
@@ -87,72 +83,54 @@ class chromite_verilator_plugin(object):
                          ' does not exist')
             raise SystemExit
 
+        check_utils = ['elf2hex','ncvlog','ncelab','ncvlog','imc']
+
+        for exe in check_utils:
+            if shutil.which(exe) is None:
+                logger.error(exe + ' utility not found in $PATH')
+                raise SystemExit
+
         for path in self.src_dir:
             if not os.path.exists(path):
                 logger.error('Source code ' + path + ' does not exist')
                 raise SystemExit
 
-        if shutil.which('elf2hex') is None:
-            logger.error('elf2hex utility not found in $PATH')
-            raise SystemExit
-
-        if shutil.which('verilator') is None:
-            logger.error('verilator utility not found in $PATH')
-            raise SystemExit
-
-        if shutil.which('bsc') is None:
-            logger.error('bsc toolchain not found in $PATH')
-            raise SystemExit
-        # Build verilator again
-
-        self.verilator_speed = 'OPT_SLOW="-O3" OPT_FAST="-O3"'
-
         orig_path = os.getcwd()
-        logger.info("Build verilator")
+        logger.info("Build using NCVLOG")
         os.chdir(self.sim_path)
+        shutil.copy(self.plugin_path+self.name+'_plugin/hdl.var', \
+                self.sim_path)
+        shutil.copy(self.plugin_path+self.name+'_plugin/cds.lib', \
+                self.sim_path)
+        os.makedirs(self.sim_path+'/work', exist_ok=True)
         # header_generate = 'mkdir -p bin obj_dir + echo "#define TOPMODULE V{0}" > sim_main.h + echo "#include "V{0}.h"" >> sim_main.h'.format(
         #     self.top_module)
         # sys_command(header_generate)
-        verilator_command = 'verilator {0} -O3 -LDFLAGS \
-                "-static" --x-assign fast  --x-initial fast \
-                --noassert sim_main.cpp --bbox-sys -Wno-STMTDLY  \
-                -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY \
-                -Wno-INITIALDLY  --autoflush   --threads 1 \
-                -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY \
-                --output-split 20000  --output-split-ctrace 10000 \
-                --cc '                       + self.top_module + '.v  -y ' + self.src_dir[0] + \
-                ' -y ' + self.src_dir[1] + ' -y ' + self.src_dir[2] + \
-                ' --exe'
+        ncvlog_cmd = 'ncvlog -64BIT -cdslib ./cds.lib -hdlvar ./hdl.var \
+                +define+TOP={0} +define+BSV_RESET_FIFO_HEAD  \
+                +define+BSV_RESET_FIFO_ARRAY \
+                /hw_tools/bluespec/open_bsc/lib/Verilog/main.v \
+                -y {1} -y {2} -y {3}'.format( \
+                self.top_module, self.src_dir[0], self.src_dir[1], \
+                self.src_dir[2] )
+        ncelab_cmd = 'ncelab -64BIT -cdslib ./cds.lib -hdlvar ./hdl.var work.main \
+                -timescale 1ns/1ps '
         if coverage_config:
             logger.info(
                 "Coverage is enabled, compiling the chromite with coverage")
-            verilator_command = verilator_command.format('--coverage-line')
-        else:
-            logger.info(
-                "Coverage is disabled, compiling the chromite with usual options"
-            )
-            verilator_command = verilator_command.format('')
+            ncelab_cmd = ncelab_cmd + ' -coverage ALL -covdut mkccore_axi4'
 
-        # create simulation header files
-        sim_header = open(self.sim_path + '/sim_main.h', 'w')
-        sim_header.write('#define TOPMODULE V{0}\n'.format(self.top_module))
-        sim_header.write('#include "V{0}.h"\n'.format(self.top_module))
-        sim_header.close()
 
-        # copy the sim_main.cpp testbench from the plugin folder
-        shutil.copy(self.plugin_path + self.name + '_plugin/sim_main.cpp',
-                    self.sim_path)
+        sys_command(ncvlog_cmd,500)
+        sys_command(ncelab_cmd,500)
+        logger.info("Making ncsim binary")
+        with open('chromite_core','w') as f:
+            f.write('ncsim -64BIT +rtldump -cdslib ./cds.lib -hdlvar ./hdl.var work.main\n')
+            if self.coverage:
+                f.write('imc -exec imc.cmd\n')
 
-        sys_command(verilator_command,500)
-        logger.info("Linking verilator simulation sources")
-        sys_command("ln -f -s ../sim_main.cpp obj_dir/sim_main.cpp")
-        sys_command("ln -f -s ../sim_main.h obj_dir/sim_main.h")
-        make_command = 'make ' + self.verilator_speed + ' VM_PARALLEL_BUILDS=1 -j' + self.jobs + ' -C obj_dir -f V' + self.top_module + '.mk'
-        logger.info("Making verilator binary")
-        sys_command(make_command,500)
-        logger.info('Renaming verilator Binary')
-        shutil.copy(self.sim_path + '/obj_dir/V{0}'.format(self.top_module),
-                    self.sim_path + '/chromite_core')
+        logger.info('Renaming Binary')
+        sys_command('chmod +x chromite_core')
 
         logger.info('Creating boot-files')
         sys_command('make -C {0} XLEN={1}'.format(
@@ -193,8 +171,19 @@ class chromite_verilator_plugin(object):
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
             compile_cmd += ' -o dut.elf && '
+            with open(work_dir+'/imc.cmd','w') as f:
+                f.write('load '+work_dir+'/cov_work/scope/test \n')
+                f.write('report -overwrite -out coverage_code.html -html -detail \
+                -metrics overall -all -aspect both -assertionStatus \
+                -allAssertionCounters -type *\n')
+                f.write('report -overwrite -out coverage_code.rpt -detail -metrics \
+                code -all -aspect both -assertionStatus -allAssertionCounters \
+                -type *\n')
             sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/boot.mem . && '
+            sim_setup += 'ln -f -s ' + self.sim_path + '/cds.lib . && '
+            sim_setup += 'ln -f -s ' + self.sim_path + '/hdl.var . && '
+            sim_setup += 'ln -f -s ' + self.sim_path + '/work . && '
             post_process_cmd = 'head -n -4 rtl.dump > dut.dump && rm -f rtl.dump'
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
                     self.elf2hex_cmd + sim_setup + self.sim_cmd + ' ' + \
@@ -206,7 +195,7 @@ class chromite_verilator_plugin(object):
     def run(self, module_dir):
         logger.info('Run Hook')
         logger.debug('Module dir: {0}'.format(module_dir))
-        pytest_file = module_dir + '/chromite_verilator_plugin/gen_framework.py'
+        pytest_file = module_dir + '/chromite_cadence_plugin/gen_framework.py'
         logger.debug('Pytest file: {0}'.format(pytest_file))
 
         report_file_name = '{0}/{1}_{2}'.format(
@@ -232,31 +221,30 @@ class chromite_verilator_plugin(object):
         # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
 
         if self.coverage:
-            final_cov_file = self.work_dir + '/final_coverage.dat'
-            coverage_cmd = 'verilator_coverage -write {0}'.format(
-                final_cov_file)
+            merge_cmd = 'merge -out '+self.work_dir+'/final_coverage '
+            rank_cmd = 'rank -out '+self.work_dir+'final_rank -html'
             logger.info('Initiating Merging of coverage files')
-            if shutil.which('verilator_coverage') is None:
-                logger.error('verilator_coverage missing from $PATH')
-                raise SystemExit
             for test, attr in self.test_list.items():
                 test_wd = attr['work_dir']
-                if not os.path.exists(test_wd + '/coverage.dat'):
-                    logger.error(\
-                            'Coverage enabled but coverage file for test: '+\
-                            test + ' is missing')
-                else:
-                    coverage_cmd += ' ' + test_wd + '/coverage.dat'
-            (ret, out, error) = sys_command(coverage_cmd)
+                merge_cmd += ' ' + test_wd + '/cov_work/scope/test/'
+                rank_cmd += ' ' + test_wd + '/cov_work/scope/test/'
+            with open(self.work_dir+'/merge_imc.cmd','w') as f:
+                f.write(merge_cmd + ' \n')
+                f.write('load -run ./final_coverage\n')
+                f.write('report -overwrite -out final_coverage_html -html -detail \
+                -metrics overall -all -aspect both -assertionStatus \
+                -allAssertionCounters -type *\n')
+                f.write(rank_cmd +'\n')
+
+            orig_path = os.getcwd()
+            os.chdir(self.work_dir)
+            (ret, out, error) = sys_command('imc -exec merge_imc.cmd')
+            os.chdir(orig_path)
+
             logger.info(
-                'Final coverage file is at: {0}'.format(final_cov_file))
-            logger.info('Annotating source files with final_coverage.dat')
-            (ret, out, error) = sys_command(\
-                'verilator_coverage {0} --annotate {1}'.format(final_cov_file,
-                    self.work_dir+'/annotated_src/'))
+                'Final coverage file is at: {0}'.format(self.work_dir+'/final_coverage_html'))
             logger.info(
-                'Annotated source available at: {0}/annotated_src'.format(
-                    self.work_dir))
+                'Final rank file is at: {0}'.format(self.work_dir+'/final_rank'))
         return report_file_name
 
     @dut_hookimpl
