@@ -1,7 +1,0 @@
-gen_binary_path: /home/vagrant/tools/float/TestFloat-3e/build/Linux-x86_64-GCC/testfloat_gen
-# Template key ;
-# You can add a class or type of test into a folder and mention it here
-# Preferred name scheme is given as an example
-templates:
-    rv64imafdc:
-        path: templates/chromite

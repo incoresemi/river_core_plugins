@@ -1,0 +1,18 @@
+# Generator bin path
+gen_binary_path: /home/vagrant/tools/float/TestFloat-3e/build/Linux-x86_64-GCC/testfloat_gen
+# Instructions to generate
+# Instruction and then dest, reg1, reg2, mode 
+# Possible modes include:
+# RNE Round to nearest, ties to Even -> 0
+# RTZ Rount to Zero -> 1
+# RDN Round Down -> 2
+# RUP Round Up -> 3
+# RMM Round to Nearest, ties to Max Magnitude -> 4
+instructions:
+     inst: [f.add.s, f.mul.s] 
+     dest: 0,31
+     reg1: 0,31
+     reg2: 0,31
+     rounding-mode: [RNE, RNE]
+     # Needs to be above 46464
+     tests_per_instruction: 50000

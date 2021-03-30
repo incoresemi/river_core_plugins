@@ -17,60 +17,94 @@ from envyaml import EnvYAML
 def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
 
     logger.debug('Now generating commands for gen plugin')
-    pwd = os.getcwd()
     try:
         env_gen_list = EnvYAML(gen_config)
     except:
         logger.error("Is your plugin YAML file properly configured?")
         raise SystemExit
 
-    gen_list = utils.load_yaml(gen_config)
+    inst_yaml_list = utils.load_yaml(gen_config)
     setup_dir = ''
     run_command = []
-    for key, value in gen_list.items():
+    for key, value in inst_yaml_list.items():
         if key == 'gen_binary_path':
-            testfloat_bin = gen_list[key]
+            testfloat_bin = inst_yaml_list[key]
         dirname = output_dir + '/testfloat'
 
-        if re.search('^templates', key):
+        if re.search('^instructions', key):
 
-            for template_key, template_value in gen_list[key].items():
-                # config_file_path = config_path + '/' + gen_list[key]['path'] + '/'
-                config_file_path = config_path + '/' + gen_list[key][
-                    template_key]['path'] + '/'
-                files = os.listdir(config_file_path)
-                for config_file_name in files:
-                    config_file = config_file_path + config_file_name
-                    template_name = os.path.basename(config_file)
-                    for i in range(int(count)):
-                        if seed == 'random':
-                            gen_seed = random.randint(0, 10000)
-                        else:
-                            gen_seed = int(seed)
+            rounding_mode_gen = ''
+            inst_list = inst_yaml_list[key]['inst']
+            # Using index so as to ensure that we can iterate both
+            for inst_index in range(0, len(inst_list)):
+                inst = inst_list[inst_index]
+                # Get precision
+                if '.s' in inst:
+                    inst_prefix = 'f32'
+                if '.d' in inst:
+                    inst_prefix = 'f64'
+                if '.q' in inst:
+                    inst_prefix = 'f128'
+                # Dest
+                dest = inst_yaml_list[key]['dest'].split(',')
+                dest = random.randint(int(dest[0]), int(dest[1]))
+                dest_reg = 'f' + str(dest)
+                # Register 1
+                reg1 = inst_yaml_list[key]['reg1'].split(',')
+                reg1 = random.randint(int(reg1[0]), int(reg1[1]))
+                reg1_reg = 'f' + str(reg1)
+                # Register 2
+                reg2 = inst_yaml_list[key]['reg2'].split(',')
+                reg2 = random.randint(int(reg2[0]), int(reg2[1]))
+                reg2_reg = 'f' + str(reg2)
+                rounding_mode = inst_yaml_list[key]['rounding-mode']
+                tests_per_instruction = inst_yaml_list[key][
+                    'tests_per_instruction']
+                # Convert the string to values
+                if rounding_mode == 'RNE':
+                    rounding_mode = 0
+                    rounding_mode_gen = '-rnear_even'
+                elif rounding_mode == 'RTZ':
+                    rounding_mode = 1
+                    rounding_mode_gen = '-rminMag'
+                elif rounding_mode == 'RDN':
+                    rounding_mode = 2
+                    rounding_mode_gen = '-rmin'
+                elif rounding_mode == 'RUP':
+                    rounding_mode = 3
+                    rounding_mode_gen = '-rmax'
+                elif rounding_mode == 'RMM':
+                    rounding_mode = 4
+                    rounding_mode_gen = '-rnear_maxMag'
+                # Get other info
+                template_name = os.path.basename(inst)
+                for i in range(int(count)):
+                    if seed == 'random':
+                        gen_seed = random.randint(0, 10000)
+                    else:
+                        gen_seed = int(seed)
 
-                        now = datetime.datetime.now()
-                        gen_prefix = '{0:06}_{1}'.format(
-                            gen_seed, now.strftime('%d%m%Y%H%M%S%f'))
-                        test_prefix = 'aapg_{0}_{1}_{2:05}'.format(
-                            template_name.replace('.yaml', ''), gen_prefix, i)
-                        testdir = '{0}/asm/{1}'.format(dirname, test_prefix)
-                        run_command.append('aapg gen \
-                                            --config_file {0} \
-                                            --setup_dir {1} \
-                                            --output_dir {2} \
-                                            --asm_name {3} \
-                                            --seed {4}\
-                                            '.format(config_file, setup_dir,
-                                                     testdir, test_prefix,
-                                                     gen_seed))
+                    now = datetime.datetime.now()
+                    gen_prefix = '{0:06}_{1}'.format(
+                        gen_seed, now.strftime('%d%m%Y%H%M%S%f'))
+                    test_prefix = 'testfloat_{0}_{1}_{2:05}'.format(
+                        template_name, gen_prefix, i)
+                    testdir = '{0}/asm/{1}'.format(dirname, test_prefix)
+                    # Need to find a way to fix this, can't write to file this way
+                    run_command.append('{0} \
+                                        -seed {1} \
+                                        -n {2} \
+                                        {3} \
+                                        {4}_{5} >> test '.format(
+                        testfloat_bin, gen_seed, tests_per_instruction,
+                        rounding_mode_gen, inst_prefix, inst[2:-2],
+                        test_prefix))
 
     return run_command
 
 
 def idfnc(val):
-    template_match = re.search('--config_file (.*).yaml', '{0}'.format(val))
-    logger.debug('{0}'.format(val))
-    return 'Generating {0}'.format(template_match.group(1))
+    return val
 
 
 def pytest_generate_tests(metafunc):
@@ -84,18 +118,12 @@ def pytest_generate_tests(metafunc):
 
 
 @pytest.fixture
-def test_input(request, autouse=True):
+def test_input(request):
     # compile tests
+    logger.debug('Generating commands from test_input fixture')
     program = request.param
-    template_match = re.search('--config_file (.*).yaml', program)
-    #sys_command(program)
-    #return 0
-    if os.path.isfile('{0}.yaml'.format(template_match.group(1))):
-        (ret, out, err) = utils.sys_command(program)
-        return ret
-    else:
-        logger.error('File not found {0}'.format(template_match.group(1)))
-        return 1
+    (ret, out, err) = utils.sys_command(program)
+    return ret, err
 
 
 def test_eval(test_input):

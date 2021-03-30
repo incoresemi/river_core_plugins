@@ -4,8 +4,10 @@ Testfloat Generator Plugin for river_core
 Will be removed in final commit
 -------------------------------
 
-
 Things to note here:
+- .s -> indicates Single Precision
+  .d -> indicates Double Precision
+- TODO: Get the programs compiling, probably missing something in `-march` or `-mabi`
 - testfloat_gen creates a file containing values:
    C010FFFF7FFFFFFE | BCAFFFFF00001FFE | C010FFFF7FFFFFFE | 01
    Operand 1          Operand 2           Expected Value    Exception Flags
@@ -31,3 +33,15 @@ Things to note here:
     4. Create a possible Makefile ?
   - PostGen
     Nothing planned at the moment
+
+- Genframework
+
+  Get stuff from config yaml, create folder with testflat name, copy stuff model.H, linker to folder
+Installation:
+------------
+1. Download `TestFloat <http://www.jhauser.us/arithmetic/TestFloat.html>`_ and `SoftFloat <http://www.jhauser.us/arithmetic/SoftFloat.html>`_.
+2. Extract the archive and move to the `Build` directory.
+   
+    Add code block here
+3. Run `make`
+4. Edit the `config.yaml` with necesarry info.

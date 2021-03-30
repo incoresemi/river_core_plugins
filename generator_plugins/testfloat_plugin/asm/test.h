@@ -15,8 +15,8 @@
     inst destreg, freg1, freg2;   \
     li x2, correctval;  \
     FTOX x1, destreg;  \
-    bneq x1, x2, rvtest_code_end; \
+    bne x1, x2, rvtest_code_end; \
     csrrs x1, fflags, x0;   \
     li x2, correctflags;  \
-    bneq x1, x2, rvtest_code_end;
+    bne x1, x2, rvtest_code_end;
 

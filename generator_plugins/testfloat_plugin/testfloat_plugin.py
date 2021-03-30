@@ -77,10 +77,10 @@ class testfloat_plugin(object):
             self.json_dir, self.name,
             datetime.datetime.now().strftime("%Y%m%d-%H%M"))
         pytest.main([
-            pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(
+            pytest_file, '--pdb', '-n0'.format(self.jobs), '-k={0}'.format(
                 self.filter), '--configlist={0}'.format(gen_config), '-v',
             '--seed={0}'.format(self.seed), '--count={0}'.format(self.count),
-            '--html={0}/reports/aapg.html'.format(output_dir),
+            '--html={0}/reports/testfloat.html'.format(output_dir),
             '--report-log={0}.json'.format(report_file_name),
             '--self-contained-html', '--output_dir={0}'.format(output_dir),
             '--module_dir={0}'.format(module_dir)
@@ -129,7 +129,7 @@ class testfloat_plugin(object):
             base_key = os.path.basename(test)[:-2]
             test_list[base_key] = {}
             test_list[base_key][
-                'work_dir'] = output_dir + '/aapg/asm/' + base_key
+                'work_dir'] = output_dir + '/testfloat/asm/' + base_key
             test_list[base_key]['isa'] = self.isa
             test_list[base_key]['march'] = march_str
             test_list[base_key]['mabi'] = mabi_str
@@ -140,11 +140,11 @@ class testfloat_plugin(object):
             test_list[base_key][
                 'linker_args'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
             test_list[base_key][
-                'linker_file'] = output_dir + '/aapg/asm/' + base_key + '/' + base_key + '.ld'
+                'linker_file'] = output_dir + '/testfloat/asm/' + base_key + '/' + base_key + '.ld'
             test_list[base_key][
-                'asm_file'] = output_dir + '/aapg/asm/' + base_key + '/' + base_key + '.S'
+                'asm_file'] = output_dir + '/testfloat/asm/' + base_key + '/' + base_key + '.S'
             test_list[base_key]['extra_compile'] = [
-                output_dir + '/aapg/common/crt.S'
+                output_dir + '/testfloat/common/crt.S'
             ]
             # TODO:DOC Add info possible results for the below variable
             test_list[base_key]['result'] = 'Unavailable'
