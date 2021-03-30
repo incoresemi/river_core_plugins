@@ -39,10 +39,21 @@ class chromite_cadence_plugin(object):
 
         self.plugin_path = plugin_path + '/'
 
-        if coverage_config:
+        if coverage_config is not None:
             self.coverage = True
+            self.coverage_func = coverage_config['functional']
+            self.coverage_struct = coverage_config['structural']
         else:
             self.coverage = False
+            self.coverage_struct = False
+            self.coverage_func = False
+
+        if shutil.which('bsc') is None:
+            logger.error('bsc not available in $PATH')
+            raise SystemExit
+        else:
+            self.bsc_path = shutil.which("bsc")[:-7]
+
 
         # Get plugin specific configs from ini
         self.jobs = ini_config['jobs']
@@ -95,6 +106,15 @@ class chromite_cadence_plugin(object):
                 logger.error('Source code ' + path + ' does not exist')
                 raise SystemExit
 
+        logger.debug('fix path in tb_top')
+        tbfile =  open(self.plugin_path+self.name+'_plugin/sv_top/tb_top.sv','r')
+        tbfile_read = tbfile.read()
+        tbfile_read = tbfile_read.replace('plugin_path',self.plugin_path+self.name+'_plugin/')
+        tbfile.close()
+        tbfile =  open(self.plugin_path+self.name+'_plugin/sv_top/tb_top.sv','w')
+        tbfile.write(tbfile_read)
+        tbfile.close()
+
         orig_path = os.getcwd()
         logger.info("Build using NCVLOG")
         os.chdir(self.sim_path)
@@ -109,17 +129,25 @@ class chromite_cadence_plugin(object):
         ncvlog_cmd = 'ncvlog -64BIT -sv -cdslib ./cds.lib -hdlvar ./hdl.var \
                 +define+TOP={0} +define+BSV_RESET_FIFO_HEAD  \
                 +define+BSV_RESET_FIFO_ARRAY \
-                /Projects/incorecpu/vinay.kariyanna/rc_new/river_core_plugins/dut_plugins/sv_top/tb_top.sv \
-                /Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog/main.v \
-                -y {1} -y {2} -y {3}'.format( \
+                {4}/sv_top/tb_top.sv \
+                {5}/lib/Verilog/main.v \
+                -y {1} -y {2} -y {3} '.format( \
                 self.top_module, self.src_dir[0], self.src_dir[1], \
-                self.src_dir[2] )
-        ncelab_cmd = 'ncelab -64BIT +access+rw -cdslib ./cds.lib -hdlvar ./hdl.var work.main \
+                self.src_dir[2], self.plugin_path+self.name+'_plugin', \
+                self.bsc_path)
+        ncelab_cmd = 'ncelab -64BIT {0} -cdslib ./cds.lib -hdlvar ./hdl.var work.main \
                 -timescale 1ns/1ps '
-        if coverage_config:
-            logger.info(
-                "Coverage is enabled, compiling the chromite with coverage")
-            ncelab_cmd = ncelab_cmd + '-coverage ALL '
+
+        if self.coverage:
+            ncelab_cmd = ncelab_cmd.format('+access+rw')
+        else:
+            ncelab_cmd = ncelab_cmd.format('')
+
+        if self.coverage_struct:
+            logger.info("Structural is enabled")
+            ncelab_cmd = ncelab_cmd + ' -coverage ALL '
+            if not self.coverage_func:
+                ncelab_cmd = ncelab_cmd + ' -covdut mkccore_axi4 '
 
 
         sys_command(ncvlog_cmd,500)
@@ -253,8 +281,7 @@ class chromite_cadence_plugin(object):
         if str_2_bool(config['river_core']['space_saver']):
             logger.debug("Going to remove stuff now")
             for test in test_dict:
-                if test_dict[test]['result'] and not test_dict[test][
-                        'result'] == 'Unavailable':
+                if test_dict[test]['result'] =='Passed' :
                     logger.debug("Removing extra files for Test: "+str(test))
                     work_dir = test_dict[test]['work_dir']
                     try:
