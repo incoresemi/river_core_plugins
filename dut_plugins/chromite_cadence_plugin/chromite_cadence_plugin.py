@@ -29,13 +29,13 @@ class chromite_cadence_plugin(object):
         # TODO: These 2 variables need to be set by user
         self.src_dir = [
             # Verilog Dir
-            '/scratch/git-repo/incoresemi/chromite/build/hw/verilog/',
+            '/Projects/incorecpu/vinay.kariyanna/chromite/build/hw/verilog',
             # BSC Path
-            '/hw_tools/bluespec/open_bsc/lib/Verilog',
+            '/Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog',
             # Wrapper path
-            '/scratch/git-repo/incoresemi//chromite/bsvwrappers/common_lib'
+            '/Projects/incorecpu/vinay.kariyanna/chromite/bsvwrappers/common_lib'
         ]
-        self.top_module = 'mkTbSoc'
+        self.top_module = 'tb_top'
 
         self.plugin_path = plugin_path + '/'
 
@@ -106,26 +106,27 @@ class chromite_cadence_plugin(object):
         # header_generate = 'mkdir -p bin obj_dir + echo "#define TOPMODULE V{0}" > sim_main.h + echo "#include "V{0}.h"" >> sim_main.h'.format(
         #     self.top_module)
         # sys_command(header_generate)
-        ncvlog_cmd = 'ncvlog -64BIT -cdslib ./cds.lib -hdlvar ./hdl.var \
+        ncvlog_cmd = 'ncvlog -64BIT -sv -cdslib ./cds.lib -hdlvar ./hdl.var \
                 +define+TOP={0} +define+BSV_RESET_FIFO_HEAD  \
                 +define+BSV_RESET_FIFO_ARRAY \
-                /hw_tools/bluespec/open_bsc/lib/Verilog/main.v \
+                /Projects/incorecpu/vinay.kariyanna/rc_new/river_core_plugins/dut_plugins/sv_top/tb_top.sv \
+                /Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog/main.v \
                 -y {1} -y {2} -y {3}'.format( \
                 self.top_module, self.src_dir[0], self.src_dir[1], \
                 self.src_dir[2] )
-        ncelab_cmd = 'ncelab -64BIT -cdslib ./cds.lib -hdlvar ./hdl.var work.main \
+        ncelab_cmd = 'ncelab -64BIT +access+rw -cdslib ./cds.lib -hdlvar ./hdl.var work.main \
                 -timescale 1ns/1ps '
         if coverage_config:
             logger.info(
                 "Coverage is enabled, compiling the chromite with coverage")
-            ncelab_cmd = ncelab_cmd + ' -coverage ALL -covdut mkccore_axi4'
+            ncelab_cmd = ncelab_cmd + '-coverage ALL '
 
 
         sys_command(ncvlog_cmd,500)
         sys_command(ncelab_cmd,500)
         logger.info("Making ncsim binary")
         with open('chromite_core','w') as f:
-            f.write('ncsim -64BIT +rtldump -cdslib ./cds.lib -hdlvar ./hdl.var work.main\n')
+            f.write('ncsim -64BIT +rtldump -COVOVERWRITE -cdslib ./cds.lib -hdlvar ./hdl.var work.main\n')
             if self.coverage:
                 f.write('imc -exec imc.cmd\n')
 

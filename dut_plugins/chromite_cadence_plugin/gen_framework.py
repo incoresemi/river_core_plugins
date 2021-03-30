@@ -60,7 +60,7 @@ def test_input(request):
     logger.debug('Generating commands from test_input fixture')
     program = request.param
     stage = program.split()[-1]
-    (ret, out, err) = sys_command(program, 500)
+    (ret, out, err) = sys_command(program, timeout=5000)
     return ret, err, stage
 
 def test_eval(test_input):

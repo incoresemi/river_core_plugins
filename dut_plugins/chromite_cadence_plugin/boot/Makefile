@@ -32,7 +32,7 @@ append16:
 .PHONY: create_hex
 create_hex:
 	@dtc -O dtb -o chromite.dtb -b 0 chromite.dts
-	@xxd -e -c $(width) chromite.dtb config.chromite
+	@xxd -g 1 -c 8 chromite.dtb | awk 'NF{NF-=1};1' | awk '{print $9 $8 $7 $6 $5 $4 $3 $2}' >config.chromite
 	@head -n -1 config.chromite > 1
 	@mv 1 config.chromite
 ifeq ($(XLEN),128)
