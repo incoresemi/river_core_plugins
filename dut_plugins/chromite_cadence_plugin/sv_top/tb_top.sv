@@ -1,5 +1,5 @@
 `define BSV_RESET_NAME RST_N
-`include "/scratch/git-repo/incoresemi/river_core_plugins/dut_plugins/chromite_cadence_plugin//sv_top/interface.sv"
+`include "/Projects/incorecpu/vinay.kariyanna/rc_new/river_core_plugins/dut_plugins/chromite_cadence_plugin/sv_top/interface.sv"
 module tb_top(input CLK,RST_N);
  chromite_intf intf(CLK,RST_N);
  mkTbSoc mktbsoc(.CLK(intf.CLK),.RST_N(intf.RST_N));

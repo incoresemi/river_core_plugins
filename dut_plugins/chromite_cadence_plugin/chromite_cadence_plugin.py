@@ -41,12 +41,13 @@ class chromite_cadence_plugin(object):
 
         if coverage_config is not None:
             self.coverage = True
-            self.coverage_func = coverage_config['functional']
-            self.coverage_struct = coverage_config['structural']
+            self.coverage_func =bool(distutils.util.strtobool((coverage_config['functional'])))
+            self.coverage_struct = bool(distutils.util.strtobool((coverage_config['code'])))
+
         else:
             self.coverage = False
-            self.coverage_struct = False
-            self.coverage_func = False
+            self.coverage_func =bool(distutils.util.strtobool((coverage_config['functional'])))
+            self.coverage_struct = bool(distutils.util.strtobool((coverage_config['code'])))
 
         if shutil.which('bsc') is None:
             logger.error('bsc not available in $PATH')
@@ -143,11 +144,20 @@ class chromite_cadence_plugin(object):
         else:
             ncelab_cmd = ncelab_cmd.format('')
 
-        if self.coverage_struct:
-            logger.info("Structural is enabled")
+        if self.coverage_struct and self.coverage_func:
+            logger.info("Structural and functional coverage are enabled")
             ncelab_cmd = ncelab_cmd + ' -coverage ALL '
-            if not self.coverage_func:
-                ncelab_cmd = ncelab_cmd + ' -covdut mkccore_axi4 '
+        elif self.coverage_struct and not self.coverage_func:
+            logger.info("Structural coverage is enabled")
+            ncelab_cmd = ncelab_cmd + ' -coverage ALL  ' + ' -covdut mkccore_axi4 '
+        elif self.coverage_func and not self.coverage_struct:
+            logger.info("functional coverage is enabled")
+            ncelab_cmd = ncelab_cmd + ' -coverage functional ' 
+        else :
+            logger.info("coverage is disabled")
+            ncelab_cmd = ncelab_cmd.format('') 
+            #if not self.coverage_func:
+                #ncelab_cmd = ncelab_cmd + ' -covdut mkccore_axi4 '
 
 
         sys_command(ncvlog_cmd,500)
