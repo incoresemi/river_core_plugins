@@ -133,7 +133,6 @@ class testfloat_plugin(object):
             test_list[base_key]['isa'] = self.isa
             test_list[base_key]['march'] = march_str
             test_list[base_key]['mabi'] = mabi_str
-            # test_list[base_key]['gcc_cmd'] = gcc_compile_bin + " " + "-march=" + arch + " " + "-mabi=" + abi + " " + gcc_compile_args + " -I " + asm_dir + include_dir + " -o $@ $< $(CRT_FILE) " + linker_args + " $(<D)/$*.ld"
             test_list[base_key]['cc'] = 'riscv64-unknown-elf-gcc'
             test_list[base_key][
                 'cc_args'] = ' -mcmodel=medany -static -std=gnu99 -O2 -fno-common -fno-builtin-printf -fvisibility=hidden '
