@@ -4,6 +4,7 @@ import os
 import sys
 import pluggy
 import shutil
+import pdb
 from river_core.log import logger
 import river_core.utils as utils
 from river_core.constants import *
@@ -13,9 +14,29 @@ import datetime
 import pytest
 from envyaml import EnvYAML
 
+# Output globals.
+# This is done, because writing to file is complicated business
+test_file = []
+folder_dir = ''
+file_ctr = 0
+
+
+def create_asm(gen_file):
+    global folder_dir
+    work_dir = os.path.dirname(os.path.realpath(gen_file))
+    folder_dir = folder_dir + '/testfloat_plugin/asm/'
+    # copy stuff for asm
+    shutil.copy(folder_dir + 'test.h', work_dir)
+    shutil.copy(folder_dir + 'model.h', work_dir)
+    shutil.copy(folder_dir + 'link.ld', work_dir)
+    # Create test.S
+    pdb.set_trace()
+
 
 def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
 
+    global folder_dir
+    folder_dir = module_dir
     logger.debug('Now generating commands for gen plugin')
     try:
         env_gen_list = EnvYAML(gen_config)
@@ -26,6 +47,7 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
     inst_yaml_list = utils.load_yaml(gen_config)
     setup_dir = ''
     run_command = []
+    global test_file
     for key, value in inst_yaml_list.items():
         if key == 'gen_binary_path':
             testfloat_bin = inst_yaml_list[key]
@@ -58,8 +80,8 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                 reg2 = random.randint(int(reg2[0]), int(reg2[1]))
                 reg2_reg = 'f' + str(reg2)
                 rounding_mode = inst_yaml_list[key]['rounding-mode']
-                tests_per_instruction = inst_yaml_list[key][
-                    'tests_per_instruction']
+                tests_per_instruction = int(
+                    inst_yaml_list[key]['tests_per_instruction'])
                 # Convert the string to values
                 if rounding_mode == 'RNE':
                     rounding_mode = 0
@@ -89,16 +111,20 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                         gen_seed, now.strftime('%d%m%Y%H%M%S%f'))
                     test_prefix = 'testfloat_{0}_{1}_{2:05}'.format(
                         template_name, gen_prefix, i)
-                    testdir = '{0}/asm/{1}'.format(dirname, test_prefix)
-                    # Need to find a way to fix this, can't write to file this way
-                    run_command.append('{0} \
-                                        -seed {1} \
-                                        -n {2} \
-                                        {3} \
-                                        {4}_{5} >> test '.format(
-                        testfloat_bin, gen_seed, tests_per_instruction,
-                        rounding_mode_gen, inst_prefix, inst[2:-2],
-                        test_prefix))
+                    testdir = '{0}/asm/{1}/'.format(dirname, test_prefix)
+                    # TODO Need to find a way to fix this, can't write to file this way
+                    try:
+                        os.makedirs(testdir, exist_ok=True)
+                    except:
+                        logger.error(
+                            "Unable to create a directory, exiting tests")
+                        raise SystemExit
+                    run_command.append(
+                        '{0} -seed {1} -n {2} {3} {4}_{5}'.format(
+                            testfloat_bin, gen_seed, tests_per_instruction,
+                            rounding_mode_gen, inst_prefix, inst[2:-2],
+                            test_prefix))
+                    test_file.append(testdir + test_prefix + '.gen')
 
     return run_command
 
@@ -120,11 +146,14 @@ def pytest_generate_tests(metafunc):
 @pytest.fixture
 def test_input(request):
     # compile tests
+    global file_ctr
     logger.debug('Generating commands from test_input fixture')
     program = request.param
-    (ret, out, err) = utils.sys_command(program)
+    (ret, out, err) = utils.sys_command_file(program, test_file[file_ctr])
+    create_asm(test_file[file_ctr])
+    file_ctr = file_ctr + 1
     return ret, err
 
 
 def test_eval(test_input):
-    assert test_input == 0
+    assert test_input[0] == 0
