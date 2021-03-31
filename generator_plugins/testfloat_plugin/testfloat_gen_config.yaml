@@ -9,7 +9,7 @@ gen_binary_path: /home/vagrant/tools/float/TestFloat-3e/build/Linux-x86_64-GCC/t
 # RUP Round Up -> 3
 # RMM Round to Nearest, ties to Max Magnitude -> 4
 instructions:
-     inst: [f.add.s, f.mul.s] 
+     inst: [fadd.s, fmul.s] 
      dest: 0,31
      reg1: 0,31
      reg2: 0,31

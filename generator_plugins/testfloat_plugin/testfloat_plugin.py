@@ -77,7 +77,7 @@ class testfloat_plugin(object):
             self.json_dir, self.name,
             datetime.datetime.now().strftime("%Y%m%d-%H%M"))
         pytest.main([
-            pytest_file, '--pdb', '-n0'.format(self.jobs), '-k={0}'.format(
+            pytest_file, '-n{0}'.format(self.jobs), '-k={0}'.format(
                 self.filter), '--configlist={0}'.format(gen_config), '-v',
             '--seed={0}'.format(self.seed), '--count={0}'.format(self.count),
             '--html={0}/reports/testfloat.html'.format(output_dir),
@@ -144,7 +144,8 @@ class testfloat_plugin(object):
             test_list[base_key][
                 'asm_file'] = output_dir + '/testfloat/asm/' + base_key + '/' + base_key + '.S'
             test_list[base_key]['extra_compile'] = [
-                output_dir + '/testfloat/common/crt.S'
+                output_dir + '/testfloat/asm/' + base_key + '.h',
+                output_dir + '/testfloat/asm/' + base_key + '-model.h'
             ]
             # TODO:DOC Add info possible results for the below variable
             test_list[base_key]['result'] = 'Unavailable'
@@ -154,38 +155,4 @@ class testfloat_plugin(object):
     # generates the regress list from the generation
     @gen_hookimpl
     def post_gen(self, output_dir, regressfile):
-        test_dict = dict()
-        test_files = []
-        test_file = ''
-        ld_file = ''
-        test_dict['aapg'] = {}
-        """
-        Overwrites the aapg entries in the regressfile with the latest present in the gendir
-        """
-
-        output_dir = os.path.abspath(output_dir)
-        remove_list = dict()
-        test_dict['aapg']['aapg_global_testpath'] = output_dir
-        if os.path.isdir(output_dir):
-            output_dir_list = []
-            for dirname in os.listdir(output_dir):
-                if re.match('^aapg_.*', dirname):
-                    test_dict['aapg'][dirname] = {
-                        'testname': '',
-                        'ld': '',
-                        'template': ''
-                    }
-                    test_dict['aapg'][dirname]['testname'] = dirname + '.S'
-                    test_dict['aapg'][dirname]['ld'] = dirname + '.ld'
-                    test_dict['aapg'][dirname][
-                        'template'] = dirname + '_template.S'
-
-        if os.path.isfile(regressfile):
-            with open(regressfile, 'r') as rgfile:
-                testlist = utils.load_yaml(rgfile)
-                testlist['aapg'].update(test_dict)
-            rgfile.close()
-
-        rgfile = open(regressfile, 'w')
-
-        utils.yaml.dump(test_dict, rgfile)
+        pass
