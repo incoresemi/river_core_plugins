@@ -172,35 +172,31 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                     param_list.append(rounding_mode_int)
                     num_tests = inst_yaml_list[key]['num_tests']
                     for num_index in range(int(num_tests)):
-                        for cnt_index in range(int(count)):
-                            if seed == 'random':
-                                gen_seed = random.randint(0, 10000)
-                            else:
-                                gen_seed = int(seed)
+                        if seed == 'random':
+                            gen_seed = random.randint(0, 10000)
+                        else:
+                            gen_seed = int(seed)
 
-                            now = datetime.datetime.now()
-                            gen_prefix = '{0:06}_{1}'.format(
-                                gen_seed, now.strftime('%d%m%Y%H%M%S%f'))
-                            test_prefix = 'testfloat_{0}_{1}_{2}_{3:05}_{4}_{5}'.format(
-                                key, inst, rounding_mode_str, cnt_index,
-                                num_index, gen_prefix)
-                            testdir = '{0}/asm/{1}/'.format(
-                                dirname, test_prefix)
-                            # TODO Need to find a way to fix this, can't write to file this way
-                            try:
-                                os.makedirs(testdir, exist_ok=True)
-                            except:
-                                logger.error(
-                                    "Unable to create a directory, exiting tests"
-                                )
-                                raise SystemExit
-                            run_command.append(
-                                '{0} -seed {1} -n {2} {3} {4}_{5}'.format(
-                                    testfloat_bin, gen_seed,
-                                    tests_per_instruction, rounding_mode_gen,
-                                    inst_prefix, inst[1:-2], test_prefix))
-                            test_file.append(testdir + test_prefix + '.gen')
-                            parameter_list.append(param_list)
+                        now = datetime.datetime.now()
+                        gen_prefix = '{0:06}_{1}'.format(
+                            gen_seed, now.strftime('%d%m%Y%H%M%S%f'))
+                        test_prefix = 'testfloat_{0}_{1}_{2}_{3}_{4}'.format(
+                            key, inst, rounding_mode_str, num_index, gen_prefix)
+                        testdir = '{0}/asm/{1}/'.format(dirname, test_prefix)
+                        # TODO Need to find a way to fix this, can't write to file this way
+                        try:
+                            os.makedirs(testdir, exist_ok=True)
+                        except:
+                            logger.error(
+                                "Unable to create a directory, exiting tests")
+                            raise SystemExit
+                        run_command.append(
+                            '{0} -seed {1} -n {2} {3} {4}_{5}'.format(
+                                testfloat_bin, gen_seed, tests_per_instruction,
+                                rounding_mode_gen, inst_prefix, inst[1:-2],
+                                test_prefix))
+                        test_file.append(testdir + test_prefix + '.gen')
+                        parameter_list.append(param_list)
 
     return run_command
 
