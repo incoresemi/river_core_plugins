@@ -102,9 +102,15 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
     for key, value in inst_yaml_list.items():
         if key == 'gen_binary_path':
             testfloat_bin = inst_yaml_list[key]
+
+            # Check if aapg is there on path
+            if shutil.which(testfloat_bin) is None:
+                logger.error(
+                    'Plugin requires testfloat to be installed and executable')
+                raise SystemExit
         dirname = output_dir + '/testfloat'
 
-        if re.search('^instructions', key):
+        if re.search('^set', key):
 
             inst_list = inst_yaml_list[key]['inst']
             # Using index so as to ensure that we can iterate both
@@ -120,10 +126,15 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                     inst_prefix = ''
                     if '.s' in inst:
                         inst_prefix = 'f32'
-                    if '.d' in inst:
+                    elif '.d' in inst:
                         inst_prefix = 'f64'
-                    if '.q' in inst:
+                    elif '.q' in inst:
                         inst_prefix = 'f128'
+                    else:
+                        logger.error(
+                            'Something went wrong while parsing YAML file \nPrecision not supported'
+                        )
+                        raise SystemExit
                     # Dest
                     dest = inst_yaml_list[key]['dest'].split(',')
                     param_list.append(dest)
@@ -152,35 +163,44 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                     elif rounding_mode_str == 'RMM':
                         rounding_mode_int = 4
                         rounding_mode_gen = '-rnear_maxMag'
+                    else:
+                        logger.error(
+                            'Something went wrong while parsing YAML file \nIncorrect Rounding Mode for block {0}'
+                            .format(key))
+                        raise SystemExit
                     # Get other info
-                    template_name = os.path.basename(inst)
                     param_list.append(rounding_mode_int)
-                    for i in range(int(count)):
-                        if seed == 'random':
-                            gen_seed = random.randint(0, 10000)
-                        else:
-                            gen_seed = int(seed)
+                    num_tests = inst_yaml_list[key]['num_tests']
+                    for num_index in range(int(num_tests)):
+                        for cnt_index in range(int(count)):
+                            if seed == 'random':
+                                gen_seed = random.randint(0, 10000)
+                            else:
+                                gen_seed = int(seed)
 
-                        now = datetime.datetime.now()
-                        gen_prefix = '{0:06}_{1}'.format(
-                            gen_seed, now.strftime('%d%m%Y%H%M%S%f'))
-                        test_prefix = 'testfloat_{0}_{1}_{2:05}'.format(
-                            template_name, gen_prefix, i)
-                        testdir = '{0}/asm/{1}/'.format(dirname, test_prefix)
-                        # TODO Need to find a way to fix this, can't write to file this way
-                        try:
-                            os.makedirs(testdir, exist_ok=True)
-                        except:
-                            logger.error(
-                                "Unable to create a directory, exiting tests")
-                            raise SystemExit
-                        run_command.append(
-                            '{0} -seed {1} -n {2} {3} {4}_{5}'.format(
-                                testfloat_bin, gen_seed, tests_per_instruction,
-                                rounding_mode_gen, inst_prefix, inst[1:-2],
-                                test_prefix))
-                        test_file.append(testdir + test_prefix + '.gen')
-                        parameter_list.append(param_list)
+                            now = datetime.datetime.now()
+                            gen_prefix = '{0:06}_{1}'.format(
+                                gen_seed, now.strftime('%d%m%Y%H%M%S%f'))
+                            test_prefix = 'testfloat_{0}_{1}_{2}_{3:05}_{4}_{5}'.format(
+                                key, inst, rounding_mode_str, cnt_index,
+                                num_index, gen_prefix)
+                            testdir = '{0}/asm/{1}/'.format(
+                                dirname, test_prefix)
+                            # TODO Need to find a way to fix this, can't write to file this way
+                            try:
+                                os.makedirs(testdir, exist_ok=True)
+                            except:
+                                logger.error(
+                                    "Unable to create a directory, exiting tests"
+                                )
+                                raise SystemExit
+                            run_command.append(
+                                '{0} -seed {1} -n {2} {3} {4}_{5}'.format(
+                                    testfloat_bin, gen_seed,
+                                    tests_per_instruction, rounding_mode_gen,
+                                    inst_prefix, inst[1:-2], test_prefix))
+                            test_file.append(testdir + test_prefix + '.gen')
+                            parameter_list.append(param_list)
 
     return run_command
 
