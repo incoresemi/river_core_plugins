@@ -6,7 +6,7 @@
   #define XTOF fmv.w.x
 #endif
 
-#define TEST_FPRR_OP(inst, destreg, freg1, freg2, rm, correctval, correctflags, val1, val2) \
+#define TEST_AR_OP(inst, destreg, freg1, freg2, rm, correctval, correctflags, val1, val2) \
     li x1, val1;  \
     XTOF freg1, x1;  \
     li x1, val2;  \
@@ -19,4 +19,3 @@
     csrrs x1, fflags, x0;   \
     li x2, correctflags;  \
     bne x1, x2, rvtest_code_end;
-

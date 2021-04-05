@@ -16,9 +16,15 @@ from envyaml import EnvYAML
 # Output globals.
 # This is done, because writing to file is complicated business
 test_file = []
+# Parameter list is a list designed to get all useful info while generating things from testfloat
+# It is a nested list.
+# Main = [Sub1, Sub2, Sub3]
+# Sub1 = [Inst, Dest, Reg1, Reg2, Mode]
+# Dest, Reg1, Reg2 are again a list of values to generate the addresses from
 parameter_list = []
 run_command = []
 folder_dir = ''
+# File_ctr is a variable to account for total number of test_cases
 file_ctr = 0
 
 # ASM Filter
@@ -77,10 +83,23 @@ def create_asm(gen_file):
             value_2 = '0x' + str(case_data[1])
             expected_result = '0x' + str(case_data[2])
             exception_flag = '0x' + str(case_data[3])
-            generated_asm_inst = '\ninst_{0}:\nTEST_FPRR_OP({1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9})\n'.format(
-                case_index, asm_inst, dest_reg, reg_1_str, reg_2_str, mode,
-                expected_result, exception_flag, value_1, value_2)
-            asm_file_pointer.write(generated_asm_inst)
+            # TODO parse the inst and divide default is arthematic operations
+            arthematic_inst = ['add', 'sub', 'mul', 'div']
+            min_max_inst = ['min', 'max']
+            convert_inst = ['cvt']
+            if any(element in asm_inst for element in arthematic_inst):
+                generated_asm_inst = '\ninst_{0}:\nTEST_AR_OP({1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9})\n'.format(
+                    case_index, asm_inst, dest_reg, reg_1_str, reg_2_str, mode,
+                    expected_result, exception_flag, value_1, value_2)
+                asm_file_pointer.write(generated_asm_inst)
+            elif any(element in asm_inst for element in min_max_inst):
+                pass
+            elif any(element in asm_inst for element in convert_inst):
+                pass
+            else:
+                logger.warning(
+                    'Failed to detect any instructions \n empty ASM file will be generated'
+                )
         asm_file_pointer.write(footer)
 
 
