@@ -77,7 +77,7 @@ class testfloat_plugin(object):
             self.json_dir, self.name,
             datetime.datetime.now().strftime("%Y%m%d-%H%M"))
         pytest.main([
-            pytest_file, '-n{0}'.format(self.jobs), '-k={0}'.format(
+            pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(
                 self.filter), '--configlist={0}'.format(gen_config), '-v',
             '--seed={0}'.format(self.seed), '--count={0}'.format(self.count),
             '--html={0}/reports/testfloat.html'.format(output_dir),

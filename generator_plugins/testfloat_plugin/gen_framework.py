@@ -78,23 +78,29 @@ def create_asm(gen_file):
             reg_2 = random.randint(int(parameter_list[file_ctr][3][0]),
                                    int(parameter_list[file_ctr][3][1]))
             reg_2_str = 'f' + str(reg_2)
-            case_data = gen_data[case_index].split(' ')
-            value_1 = '0x' + str(case_data[0])
-            value_2 = '0x' + str(case_data[1])
-            expected_result = '0x' + str(case_data[2])
-            exception_flag = '0x' + str(case_data[3])
-            # TODO parse the inst and divide default is arthematic operations
             arthematic_inst = ['add', 'sub', 'mul', 'div']
             min_max_inst = ['min', 'max']
             convert_inst = ['cvt']
             if any(element in asm_inst for element in arthematic_inst):
+                case_data = gen_data[case_index].split(' ')
+                value_1 = '0x' + str(case_data[0])
+                value_2 = '0x' + str(case_data[1])
+                expected_result = '0x' + str(case_data[2])
+                exception_flag = '0x' + str(case_data[3])
                 generated_asm_inst = '\ninst_{0}:\nTEST_AR_OP({1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9})\n'.format(
                     case_index, asm_inst, dest_reg, reg_1_str, reg_2_str, mode,
                     expected_result, exception_flag, value_1, value_2)
                 asm_file_pointer.write(generated_asm_inst)
-            elif any(element in asm_inst for element in min_max_inst):
-                pass
             elif any(element in asm_inst for element in convert_inst):
+                case_data = gen_data[case_index].split(' ')
+                value_1 = '0x' + str(case_data[0])
+                expected_result = '0x' + str(case_data[1])
+                exception_flag = '0x' + str(case_data[2])
+                generated_asm_inst = '\ninst_{0}:\nTEST_CVT_OP({1}, {2}, {3}, {4}, {5}, {6}, {7})\n'.format(
+                    case_index, asm_inst, dest_reg, reg_1_str, mode,
+                    expected_result, exception_flag, value_1)
+                asm_file_pointer.write(generated_asm_inst)
+            elif any(element in asm_inst for element in min_max_inst):
                 pass
             else:
                 logger.warning(
@@ -141,19 +147,6 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                 param_list.append(inst)
                 rounding_mode = inst_yaml_list[key]['rounding-mode']
                 for rounding_mode_index in range(0, len(rounding_mode)):
-                    # Get precision
-                    inst_prefix = ''
-                    if '.s' in inst:
-                        inst_prefix = 'f32'
-                    elif '.d' in inst:
-                        inst_prefix = 'f64'
-                    elif '.q' in inst:
-                        inst_prefix = 'f128'
-                    else:
-                        logger.error(
-                            'Something went wrong while parsing YAML file \nPrecision not supported'
-                        )
-                        raise SystemExit
                     # Dest
                     dest = inst_yaml_list[key]['dest'].split(',')
                     param_list.append(dest)
@@ -202,18 +195,90 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                         test_prefix = 'testfloat_{0}_{1}_{2}_{3}_{4}'.format(
                             key, inst, rounding_mode_str, num_index, gen_prefix)
                         testdir = '{0}/asm/{1}/'.format(dirname, test_prefix)
-                        # TODO Need to find a way to fix this, can't write to file this way
+
                         try:
                             os.makedirs(testdir, exist_ok=True)
                         except:
                             logger.error(
                                 "Unable to create a directory, exiting tests")
                             raise SystemExit
+
+                        arthematic_inst = ['add', 'sub', 'mul', 'div']
+                        min_max_inst = ['min', 'max']
+                        convert_inst = ['cvt']
+                        gen_inst = ''
+
+                        if any(element in inst for element in arthematic_inst):
+                            gen_inst = inst[1:-2]
+                            # Get precision
+                            inst_prefix = ''
+                            if '.s' in inst:
+                                inst_prefix = 'f32'
+                            elif '.d' in inst:
+                                inst_prefix = 'f64'
+                            elif '.q' in inst:
+                                inst_prefix = 'f128'
+                            else:
+                                logger.error(
+                                    'Something went wrong while parsing YAML file \nPrecision not supported'
+                                )
+                                raise SystemExit
+
+                            gen_inst = inst_prefix + '_' + gen_inst
+                        elif any(element in inst for element in min_max_inst):
+                            pass
+                        elif any(element in inst for element in convert_inst):
+                            gen_inst = 'to'
+                            src_prefix = ''
+                            dest_prefix = ''
+
+                            # TODO Check for illegal conversions
+                            if inst[-1] == 'w':
+                                src_prefix = 'i32'
+                            elif inst[-1] == 'wu':
+                                src_prefix = 'ui32'
+                            elif inst[-1] == 'l':
+                                src_prefix = 'i64'
+                            elif inst[-1] == 'lu':
+                                src_prefix = 'ui64'
+                            elif inst[-1] == 's':
+                                src_prefix = 'f32'
+                            elif inst[-1] == 'd':
+                                src_prefix = 'f64'
+                            elif inst[-1] == 'q':
+                                src_prefix = 'f128'
+                            else:
+                                logger.error(
+                                    'Something went wrong while parsing YAML file \nConversion invalid'
+                                )
+                                raise SystemExit
+
+                            if inst[-3] == 'w':
+                                dest_prefix = 'i32'
+                            elif inst[-3] == 'wu':
+                                dest_prefix = 'ui32'
+                            elif inst[-3] == 'l':
+                                dest_prefix = 'i64'
+                            elif inst[-3] == 'lu':
+                                dest_prefix = 'ui64'
+                            elif inst[-3] == 's':
+                                dest_prefix = 'f32'
+                            elif inst[-3] == 'd':
+                                dest_prefix = 'f64'
+                            elif inst[-3] == 'q':
+                                dest_prefix = 'f128'
+                            else:
+                                logger.error(
+                                    'Something went wrong while parsing YAML file \nConversion invalid'
+                                )
+                                raise SystemExit
+
+                            gen_inst = src_prefix + '_' + gen_inst + '_' + dest_prefix
+
                         run_command.append(
-                            '{0} -seed {1} -n {2} {3} {4}_{5}'.format(
+                            '{0} -seed {1} -n {2} {3} {4}'.format(
                                 testfloat_bin, gen_seed, tests_per_instruction,
-                                rounding_mode_gen, inst_prefix, inst[1:-2],
-                                test_prefix))
+                                rounding_mode_gen, gen_inst))
                         test_file.append(testdir + test_prefix + '.gen')
                         parameter_list.append(param_list)
 
