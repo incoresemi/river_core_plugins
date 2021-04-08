@@ -92,29 +92,19 @@ class testfloat_plugin(object):
         asm_test_list = glob.glob(asm_dir + '**/*[!_template].S')
         # asm_templates = glob.glob(asm_dir+'/**/*.S')
         for test in asm_test_list:
-            with open(test, 'r') as file:
-                test_asm = file.read()
             isa = set()
             isa.add('i')
-            xlen = 64
-            dist_list = re.findall(r'^#\s*(rel_.*?)$', test_asm, re.M | re.S)
-            for dist in dist_list:
-                ext = dist.split(':')[0][4:].split('.')[0]
-                ext_count = int(dist.split(':')[1])
-
-                if ext_count != 0:
-                    if 'rv64' in ext:
-                        xlen = 64
-                    if 'm' in ext:
-                        isa.add('m')
-                    if 'a' in ext:
-                        isa.add('a')
-                    if 'f' in ext:
-                        isa.add('f')
-                    if 'd' in ext:
-                        isa.add('d')
-                    if 'c' in ext:
-                        isa.add('c')
+            xlen = 64 if '64' in self.isa else 32
+            if 'm' in self.isa:
+                isa.add('m')
+            if 'a' in self.isa:
+                isa.add('a')
+            if 'f' in self.isa:
+                isa.add('f')
+            if 'd' in self.isa:
+                isa.add('d')
+            if 'c' in self.isa:
+                isa.add('c')
             canonical_order = {'i': 0, 'm': 1, 'a': 2, 'f': 3, 'd': 4, 'c': 5}
             canonical_isa = sorted(list(isa), key=lambda d: canonical_order[d])
 
@@ -142,10 +132,10 @@ class testfloat_plugin(object):
                 'linker_file'] = output_dir + '/testfloat/asm/' + base_key + '/' + base_key + '.ld'
             test_list[base_key][
                 'asm_file'] = output_dir + '/testfloat/asm/' + base_key + '/' + base_key + '.S'
-            test_list[base_key]['extra_compile'] = [
-                output_dir + '/testfloat/asm/' + base_key + '.h',
-                output_dir + '/testfloat/asm/' + base_key + '-model.h'
+            test_list[base_key]['include'] = [
+                    module_dir + '/testfloat_plugin/asm'
             ]
+            test_list[base_key]['extra_compile'] = []
             # TODO:DOC Add info possible results for the below variable
             test_list[base_key]['result'] = 'Unavailable'
 
