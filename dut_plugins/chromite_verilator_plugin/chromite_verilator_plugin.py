@@ -20,6 +20,7 @@ class chromite_verilator_plugin(object):
     '''
         Plugin to set chromite as the target
     '''
+
     @dut_hookimpl
     def init(self, ini_config, test_list, work_dir, coverage_config,
              plugin_path):
@@ -59,7 +60,6 @@ class chromite_verilator_plugin(object):
         if coverage_config:
             logger.warn('Hope RTL binary has coverage enabled')
 
-
         self.elf2hex_cmd = 'elf2hex {0} 4194304 dut.elf 2147483648 > code.mem && '.format(
             str(int(self.xlen / 8)))
         self.objdump_cmd = 'riscv{0}-unknown-elf-objdump -D dut.elf > dut.disass && '.format(
@@ -83,8 +83,7 @@ class chromite_verilator_plugin(object):
             os.makedirs(self.json_dir)
 
         if not os.path.exists(self.sim_path):
-            logger.error('Sim binary Path ' + self.sim_path +
-                         ' does not exist')
+            logger.error('Sim binary Path ' + self.sim_path + ' does not exist')
             raise SystemExit
 
         for path in self.src_dir:
@@ -120,7 +119,7 @@ class chromite_verilator_plugin(object):
                 -Wno-INITIALDLY  --autoflush   --threads 1 \
                 -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY \
                 --output-split 20000  --output-split-ctrace 10000 \
-                --cc '                       + self.top_module + '.v  -y ' + self.src_dir[0] + \
+                --cc '                                                                   + self.top_module + '.v  -y ' + self.src_dir[0] + \
                 ' -y ' + self.src_dir[1] + ' -y ' + self.src_dir[2] + \
                 ' --exe'
         if coverage_config:
@@ -143,13 +142,13 @@ class chromite_verilator_plugin(object):
         shutil.copy(self.plugin_path + self.name + '_plugin/sim_main.cpp',
                     self.sim_path)
 
-        sys_command(verilator_command,500)
+        sys_command(verilator_command, 500)
         logger.info("Linking verilator simulation sources")
         sys_command("ln -f -s ../sim_main.cpp obj_dir/sim_main.cpp")
         sys_command("ln -f -s ../sim_main.h obj_dir/sim_main.h")
         make_command = 'make ' + self.verilator_speed + ' VM_PARALLEL_BUILDS=1 -j' + self.jobs + ' -C obj_dir -f V' + self.top_module + '.mk'
         logger.info("Making verilator binary")
-        sys_command(make_command,500)
+        sys_command(make_command, 500)
         logger.info('Renaming verilator Binary')
         shutil.copy(self.sim_path + '/obj_dir/V{0}'.format(self.top_module),
                     self.sim_path + '/chromite_core')
@@ -215,10 +214,9 @@ class chromite_verilator_plugin(object):
 
         # TODO Regression list currently removed, check back later
         # TODO The logger doesn't exactly work like in the pytest module
-        # pytest.main([pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(self.filter), '-v', '--compileconfig={0}'.format(compile_config), '--html=compile.html', '--self-contained-html'])
-        # breakpoint()
-        pytest.main([
+        pytest_state = pytest.main([
             pytest_file,
+            '-x',  # Stop on first failure 
             '-n={0}'.format(self.jobs),
             '-k={0}'.format(self.filter),
             '--html={0}.html'.format(self.work_dir + '/reports/' + self.name),
@@ -230,6 +228,11 @@ class chromite_verilator_plugin(object):
             '-o log_cli=true',
         ])
         # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
+        if pytest_state == (pytest.ExitCode.INTERRUPTED or
+                            pytest.ExitCode.TESTS_FAILED):
+            logger.error(
+                'DuT Plugin failed to compile tests, exiting river_core')
+            raise SystemExit
 
         if self.coverage:
             final_cov_file = self.work_dir + '/final_coverage.dat'
@@ -248,8 +251,7 @@ class chromite_verilator_plugin(object):
                 else:
                     coverage_cmd += ' ' + test_wd + '/coverage.dat'
             (ret, out, error) = sys_command(coverage_cmd)
-            logger.info(
-                'Final coverage file is at: {0}'.format(final_cov_file))
+            logger.info('Final coverage file is at: {0}'.format(final_cov_file))
             logger.info('Annotating source files with final_coverage.dat')
             (ret, out, error) = sys_command(\
                 'verilator_coverage {0} --annotate {1}'.format(final_cov_file,
@@ -266,7 +268,7 @@ class chromite_verilator_plugin(object):
             for test in test_dict:
                 if test_dict[test]['result'] and not test_dict[test][
                         'result'] == 'Unavailable':
-                    logger.debug("Removing extra files for Test: "+str(test))
+                    logger.debug("Removing extra files for Test: " + str(test))
                     work_dir = test_dict[test]['work_dir']
                     try:
                         os.remove(work_dir + '/app_log')
