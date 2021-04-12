@@ -32,14 +32,29 @@
     li x2, correctflags;  \
     bne x1, x2, rvtest_code_end;
 
-/* TODO */
-#define TEST_MIN_MAX_OP(inst, destreg, freg1, freg2, correctval, correctflags, val1, val2) \
+#define TEST_CMP_OP(inst, destreg, freg1, freg2, rm, correctval, correctflags, val1, val2) \
     li x1, val1;  \
     XTOF freg1, x1;  \
     li x1, val2;  \
     XTOF freg2, x1;  \
     csrrwi x0, frm, rm;   \
     inst destreg, freg1, freg2;   \
+    li x2, correctval;  \
+    FTOX x1, destreg;  \
+    bne x1, x2, rvtest_code_end; \
+    csrrs x1, fflags, x0;   \
+    li x2, correctflags;  \
+    bne x1, x2, rvtest_code_end;
+
+#define TEST_FMADD_OP(inst, destreg, freg1, freg2, freg3, rm, correctval, correctflags, val1, val2, val3) \
+    li x1, val1;  \
+    XTOF freg1, x1;  \
+    li x1, val2;  \
+    XTOF freg2, x1;  \
+    li x1, val3;  \
+    XTOF freg3, x1;  \
+    csrrwi x0, frm, rm;   \
+    inst destreg, freg1, freg2, freg3;   \
     li x2, correctval;  \
     FTOX x1, destreg;  \
     bne x1, x2, rvtest_code_end; \
