@@ -20,6 +20,7 @@ class chromite_cadence_plugin(object):
     '''
         Plugin to set chromite as the target
     '''
+
     @dut_hookimpl
     def init(self, ini_config, test_list, work_dir, coverage_config,
              plugin_path):
@@ -41,20 +42,23 @@ class chromite_cadence_plugin(object):
 
         if coverage_config is not None:
             self.coverage = True
-            self.coverage_func =bool(distutils.util.strtobool((coverage_config['functional'])))
-            self.coverage_struct = bool(distutils.util.strtobool((coverage_config['code'])))
+            self.coverage_func = bool(
+                distutils.util.strtobool((coverage_config['functional'])))
+            self.coverage_struct = bool(
+                distutils.util.strtobool((coverage_config['code'])))
 
         else:
             self.coverage = False
-            self.coverage_func =bool(distutils.util.strtobool((coverage_config['functional'])))
-            self.coverage_struct = bool(distutils.util.strtobool((coverage_config['code'])))
+            self.coverage_func = bool(
+                distutils.util.strtobool((coverage_config['functional'])))
+            self.coverage_struct = bool(
+                distutils.util.strtobool((coverage_config['code'])))
 
         if shutil.which('bsc') is None:
             logger.error('bsc not available in $PATH')
             raise SystemExit
         else:
             self.bsc_path = shutil.which("bsc")[:-7]
-
 
         # Get plugin specific configs from ini
         self.jobs = ini_config['jobs']
@@ -91,11 +95,10 @@ class chromite_cadence_plugin(object):
             os.makedirs(self.json_dir)
 
         if not os.path.exists(self.sim_path):
-            logger.error('Sim binary Path ' + self.sim_path +
-                         ' does not exist')
+            logger.error('Sim binary Path ' + self.sim_path + ' does not exist')
             raise SystemExit
 
-        check_utils = ['elf2hex','ncvlog','ncelab','ncvlog','imc']
+        check_utils = ['elf2hex', 'ncvlog', 'ncelab', 'ncvlog', 'imc']
 
         for exe in check_utils:
             if shutil.which(exe) is None:
@@ -108,11 +111,14 @@ class chromite_cadence_plugin(object):
                 raise SystemExit
 
         logger.debug('fix path in tb_top')
-        tbfile =  open(self.plugin_path+self.name+'_plugin/sv_top/tb_top.sv','r')
+        tbfile = open(self.plugin_path + self.name + '_plugin/sv_top/tb_top.sv',
+                      'r')
         tbfile_read = tbfile.read()
-        tbfile_read = tbfile_read.replace('plugin_path',self.plugin_path+self.name+'_plugin/')
+        tbfile_read = tbfile_read.replace(
+            'plugin_path', self.plugin_path + self.name + '_plugin/')
         tbfile.close()
-        tbfile =  open(self.plugin_path+self.name+'_plugin/sv_top/tb_top.sv','w')
+        tbfile = open(self.plugin_path + self.name + '_plugin/sv_top/tb_top.sv',
+                      'w')
         tbfile.write(tbfile_read)
         tbfile.close()
 
@@ -123,7 +129,7 @@ class chromite_cadence_plugin(object):
                 self.sim_path)
         shutil.copy(self.plugin_path+self.name+'_plugin/cds.lib', \
                 self.sim_path)
-        os.makedirs(self.sim_path+'/work', exist_ok=True)
+        os.makedirs(self.sim_path + '/work', exist_ok=True)
         # header_generate = 'mkdir -p bin obj_dir + echo "#define TOPMODULE V{0}" > sim_main.h + echo "#include "V{0}.h"" >> sim_main.h'.format(
         #     self.top_module)
         # sys_command(header_generate)
@@ -132,7 +138,7 @@ class chromite_cadence_plugin(object):
                 +define+BSV_RESET_FIFO_ARRAY \
                 {4}/sv_top/tb_top.sv \
                 {5}/lib/Verilog/main.v \
-                -y {1} -y {2} -y {3} '.format( \
+                -y {1} -y {2} -y {3} '                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          .format( \
                 self.top_module, self.src_dir[0], self.src_dir[1], \
                 self.src_dir[2], self.plugin_path+self.name+'_plugin', \
                 self.bsc_path)
@@ -152,19 +158,20 @@ class chromite_cadence_plugin(object):
             ncelab_cmd = ncelab_cmd + ' -coverage ALL  ' + ' -covdut mkccore_axi4 '
         elif self.coverage_func and not self.coverage_struct:
             logger.info("functional coverage is enabled")
-            ncelab_cmd = ncelab_cmd + ' -coverage functional ' 
-        else :
+            ncelab_cmd = ncelab_cmd + ' -coverage functional '
+        else:
             logger.info("coverage is disabled")
-            ncelab_cmd = ncelab_cmd.format('') 
+            ncelab_cmd = ncelab_cmd.format('')
             #if not self.coverage_func:
-                #ncelab_cmd = ncelab_cmd + ' -covdut mkccore_axi4 '
+            #ncelab_cmd = ncelab_cmd + ' -covdut mkccore_axi4 '
 
-
-        sys_command(ncvlog_cmd,500)
-        sys_command(ncelab_cmd,500)
+        sys_command(ncvlog_cmd, 500)
+        sys_command(ncelab_cmd, 500)
         logger.info("Making ncsim binary")
-        with open('chromite_core','w') as f:
-            f.write('ncsim -64BIT +rtldump -COVOVERWRITE -cdslib ./cds.lib -hdlvar ./hdl.var work.main\n')
+        with open('chromite_core', 'w') as f:
+            f.write(
+                'ncsim -64BIT +rtldump -COVOVERWRITE -cdslib ./cds.lib -hdlvar ./hdl.var work.main\n'
+            )
             if self.coverage:
                 f.write('imc -exec imc.cmd\n')
 
@@ -210,12 +217,14 @@ class chromite_cadence_plugin(object):
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
             compile_cmd += ' -o dut.elf && '
-            with open(work_dir+'/imc.cmd','w') as f:
-                f.write('load '+work_dir+'/cov_work/scope/test \n')
-                f.write('report -overwrite -out coverage_code.html -html -detail \
+            with open(work_dir + '/imc.cmd', 'w') as f:
+                f.write('load ' + work_dir + '/cov_work/scope/test \n')
+                f.write(
+                    'report -overwrite -out coverage_code.html -html -detail \
                 -metrics overall -all -aspect both -assertionStatus \
                 -allAssertionCounters -type *\n')
-                f.write('report -overwrite -out coverage_code.rpt -detail -metrics \
+                f.write(
+                    'report -overwrite -out coverage_code.rpt -detail -metrics \
                 code -all -aspect both -assertionStatus -allAssertionCounters \
                 -type *\n')
             sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core . && '
@@ -260,39 +269,41 @@ class chromite_cadence_plugin(object):
         # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
 
         if self.coverage:
-            merge_cmd = 'merge -out '+self.work_dir+'/final_coverage '
-            rank_cmd = 'rank -out '+self.work_dir+'final_rank -html'
+            merge_cmd = 'merge -out ' + self.work_dir + '/final_coverage '
+            rank_cmd = 'rank -out ' + self.work_dir + 'final_rank -html'
             logger.info('Initiating Merging of coverage files')
             for test, attr in self.test_list.items():
                 test_wd = attr['work_dir']
                 merge_cmd += ' ' + test_wd + '/cov_work/scope/test/'
                 rank_cmd += ' ' + test_wd + '/cov_work/scope/test/'
-            with open(self.work_dir+'/merge_imc.cmd','w') as f:
+            with open(self.work_dir + '/merge_imc.cmd', 'w') as f:
                 f.write(merge_cmd + ' \n')
                 f.write('load -run ./final_coverage\n')
-                f.write('report -overwrite -out final_coverage_html -html -detail \
+                f.write(
+                    'report -overwrite -out final_coverage_html -html -detail \
                 -metrics overall -all -aspect both -assertionStatus \
                 -allAssertionCounters -type *\n')
-                f.write(rank_cmd +'\n')
+                f.write(rank_cmd + '\n')
 
             orig_path = os.getcwd()
             os.chdir(self.work_dir)
-            (ret, out, error) = sys_command('imc -exec merge_imc.cmd')
+            (ret, out, error) = utils.sys_command('imc -exec merge_imc.cmd')
             os.chdir(orig_path)
 
             logger.info(
-                'Final coverage file is at: {0}'.format(self.work_dir+'/final_coverage_html'))
-            logger.info(
-                'Final rank file is at: {0}'.format(self.work_dir+'/final_rank'))
+                'Final coverage file is at: {0}'.format(self.work_dir +
+                                                        '/final_coverage_html'))
+            logger.info('Final rank file is at: {0}'.format(self.work_dir +
+                                                            '/final_rank'))
         return report_file_name
 
     @dut_hookimpl
     def post_run(self, test_dict, config):
-        if str_2_bool(config['river_core']['space_saver']):
+        if utils.str_2_bool(config['river_core']['space_saver']):
             logger.debug("Going to remove stuff now")
             for test in test_dict:
-                if test_dict[test]['result'] =='Passed' :
-                    logger.debug("Removing extra files for Test: "+str(test))
+                if test_dict[test]['result'] == 'Passed':
+                    logger.debug("Removing extra files for Test: " + str(test))
                     work_dir = test_dict[test]['work_dir']
                     try:
                         os.remove(work_dir + '/app_log')
@@ -303,3 +314,28 @@ class chromite_cadence_plugin(object):
                     except:
                         logger.info(
                             "Something went wrong trying to remove the files")
+
+    @dut_hookimpl
+    def merge_db(self, db_files, output_db, config):
+
+        # Add commands to run here :)
+        work_dir = config['work_dir']
+        logger.info('Initiating Merging of coverage files')
+        merge_cmd = 'merge -out ' + work_dir + str(output_db)
+        rank_cmd = 'rank -out ' + work_dir + str(output_db) + '_rank -html'
+
+        for db_file in db_files:
+            merge_cmd += ' ' + db_file
+            rank_cmd += ' ' + db_file
+        with open(self.work_dir + '/merge_imc.cmd', 'w') as f:
+            f.write(merge_cmd + ' \n')
+            f.write('load -run ./final_coverage\n')
+            f.write('report -overwrite -out final_coverage_html -html -detail \
+            -metrics overall -all -aspect both -assertionStatus \
+            -allAssertionCounters -type *\n')
+            f.write(rank_cmd + '\n')
+
+        orig_path = os.getcwd()
+        os.chdir(work_dir)
+        (ret, out, error) = utils.sys_command('imc -exec merge_imc.cmd')
+        os.chdir(orig_path)
