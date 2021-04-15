@@ -287,7 +287,7 @@ class chromite_cadence_plugin(object):
 
             orig_path = os.getcwd()
             os.chdir(self.work_dir)
-            (ret, out, error) = utils.sys_command('imc -exec merge_imc.cmd')
+            (ret, out, error) = sys_command('imc -exec merge_imc.cmd')
             os.chdir(orig_path)
 
             logger.info(
@@ -299,7 +299,7 @@ class chromite_cadence_plugin(object):
 
     @dut_hookimpl
     def post_run(self, test_dict, config):
-        if utils.str_2_bool(config['river_core']['space_saver']):
+        if str_2_bool(config['river_core']['space_saver']):
             logger.debug("Going to remove stuff now")
             for test in test_dict:
                 if test_dict[test]['result'] == 'Passed':
@@ -319,23 +319,23 @@ class chromite_cadence_plugin(object):
     def merge_db(self, db_files, output_db, config):
 
         # Add commands to run here :)
-        work_dir = config['work_dir']
+        work_dir = config['river_core']['work_dir']
         logger.info('Initiating Merging of coverage files')
-        merge_cmd = 'merge -out ' + work_dir + str(output_db)
-        rank_cmd = 'rank -out ' + work_dir + str(output_db) + '_rank -html'
+        merge_cmd = 'merge -overwrite -out '+'./'+  str(output_db)
+        rank_cmd = 'rank -overwrite -out ./reports/'+  str(output_db) + '_rank -html '
 
         for db_file in db_files:
             merge_cmd += ' ' + db_file
-            rank_cmd += ' ' + db_file
-        with open(self.work_dir + '/merge_imc.cmd', 'w') as f:
+            rank_cmd += ' '  + db_file
+        with open(work_dir + '/merge_imc.cmd', 'w') as f:
             f.write(merge_cmd + ' \n')
-            f.write('load -run ./final_coverage\n')
-            f.write('report -overwrite -out final_coverage_html -html -detail \
+            f.write('load -run ./cov_work/'+ str(output_db)+ '/' +'\n')
+            f.write('report -overwrite -out ./reports/' + str(output_db) +'_html ' '-html -detail \
             -metrics overall -all -aspect both -assertionStatus \
             -allAssertionCounters -type *\n')
-            f.write(rank_cmd + '\n')
+            f.write(rank_cmd + ' ./cov_work/'+ str(output_db)+ '/' + '\n')
 
         orig_path = os.getcwd()
         os.chdir(work_dir)
-        (ret, out, error) = utils.sys_command('imc -exec merge_imc.cmd')
+        (ret, out, error) = sys_command('imc -exec merge_imc.cmd')
         os.chdir(orig_path)
