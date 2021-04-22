@@ -40,6 +40,8 @@ class chromite_cadence_plugin(object):
 
         self.plugin_path = plugin_path + '/'
 
+        self.test_list_name = test_list.split('/')[-1].split('.')[0]
+
         if coverage_config is not None:
             self.coverage = True
             self.coverage_func = bool(
@@ -138,7 +140,7 @@ class chromite_cadence_plugin(object):
                 +define+BSV_RESET_FIFO_ARRAY \
                 {4}/sv_top/tb_top.sv \
                 {5}/lib/Verilog/main.v \
-                -y {1} -y {2} -y {3} '                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          .format( \
+                -y {1} -y {2} -y {3} '                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      .format( \
                 self.top_module, self.src_dir[0], self.src_dir[1], \
                 self.src_dir[2], self.plugin_path+self.name+'_plugin', \
                 self.bsc_path)
@@ -269,8 +271,8 @@ class chromite_cadence_plugin(object):
         # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
 
         if self.coverage:
-            merge_cmd = 'merge -out ' + self.work_dir + '/final_coverage '
-            rank_cmd = 'rank -out ' + self.work_dir + 'final_rank -html'
+            merge_cmd = 'merge -out ' + self.work_dir + '/reports/' + self.test_list_name + '/final_coverage '
+            rank_cmd = 'rank -out ' + self.work_dir + '/reports/' + self.test_list_name + 'final_rank -html'
             logger.info('Initiating Merging of coverage files')
             for test, attr in self.test_list.items():
                 test_wd = attr['work_dir']
@@ -319,23 +321,24 @@ class chromite_cadence_plugin(object):
     def merge_db(self, db_files, output_db, config):
 
         # Add commands to run here :)
-        work_dir = config['river_core']['work_dir']
         logger.info('Initiating Merging of coverage files')
-        merge_cmd = 'merge -overwrite -out '+'./'+  str(output_db)
-        rank_cmd = 'rank -overwrite -out ./reports/'+  str(output_db) + '_rank -html '
-
+        merge_cmd = 'merge -overwrite -out ' + str(output_db)
+        rank_cmd = 'rank -overwrite -out /' + str(output_db) + '_rank -html '
         for db_file in db_files:
             merge_cmd += ' ' + db_file
-            rank_cmd += ' '  + db_file
-        with open(work_dir + '/merge_imc.cmd', 'w') as f:
+            rank_cmd += ' ' + db_file
+        with open(output_db + '/final_coverage/final_merge_imc.cmd', 'w') as f:
             f.write(merge_cmd + ' \n')
-            f.write('load -run ./cov_work/'+ str(output_db)+ '/' +'\n')
-            f.write('report -overwrite -out ./reports/' + str(output_db) +'_html ' '-html -detail \
+            # Change this
+            f.write('load -run ' + str(output_db) + '/final_coverage/' + '\n')
+            f.write('report -overwrite -out' + str(output_db) + './final_html/'
+                    '-html -detail \
             -metrics overall -all -aspect both -assertionStatus \
             -allAssertionCounters -type *\n')
-            f.write(rank_cmd + ' ./cov_work/'+ str(output_db)+ '/' + '\n')
+            f.write(rank_cmd + ' ' + str(output_db) + '/final_coverage' + '\n')
 
         orig_path = os.getcwd()
-        os.chdir(work_dir)
-        (ret, out, error) = sys_command('imc -exec merge_imc.cmd')
+        os.chdir(output_db + '/final_coverage')
+        # Jyothi: Please enable this after checking the merge_imc.cmd
+        # (ret, out, error) = sys_command('imc -exec final_merge_imc.cmd')
         os.chdir(orig_path)
