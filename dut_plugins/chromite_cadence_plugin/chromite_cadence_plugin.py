@@ -347,7 +347,7 @@ class chromite_cadence_plugin(object):
 
         # HTML Web pages
         final_html = output_db + '/final_html/index.html'
-        final_rank_html = output_db + '/final_html_rank/index.html'
+        final_rank_html = output_db + '/final_html_rank/rank_sub_dir/rank.html'
         os.chdir(orig_path)
 
         return final_html, final_rank_html
