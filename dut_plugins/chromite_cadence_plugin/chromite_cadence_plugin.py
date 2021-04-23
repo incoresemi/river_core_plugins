@@ -326,14 +326,13 @@ class chromite_cadence_plugin(object):
         merge_cmd = 'merge -overwrite -out ' + str(output_db)
         rank_cmd = 'rank -overwrite -out /' + str(output_db) + '_rank -html '
         for db_file in db_files:
-            merge_cmd += ' ' + db_file
-            rank_cmd += ' ' + db_file
+            merge_cmd += ' ' + os.path.dirname(db_file)
+            rank_cmd += ' ' + os.path.dirname(db_file)
         with open(output_db + '/final_coverage/final_merge_imc.cmd', 'w') as f:
             f.write(merge_cmd + ' \n')
-            # Change this
             f.write('load -run ' + str(output_db) + '/final_coverage/' + '\n')
             f.write('report -overwrite -out' + str(output_db) + './final_html/'
-                    '-html -detail \
+                    ' -html -detail \
             -metrics overall -all -aspect both -assertionStatus \
             -allAssertionCounters -type *\n')
             f.write(rank_cmd + ' ' + str(output_db) + '/final_coverage' + '\n')
