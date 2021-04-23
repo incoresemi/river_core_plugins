@@ -323,15 +323,17 @@ class chromite_cadence_plugin(object):
         # Add commands to run here :)
         # TODO: DOC: Ensure plugin developers understand the reason for using final_coverage  and other hardcoded values
         logger.info('Initiating Merging of coverage files')
-        merge_cmd = 'merge -overwrite -out ' + str(output_db)
-        rank_cmd = 'rank -overwrite -out /' + str(output_db) + '_rank -html '
+        merge_cmd = 'merge -overwrite -out ' + str(
+            output_db) + '/final_coverage/ '
+        rank_cmd = 'rank -overwrite -out ' + str(
+            output_db) + '/final_html_rank/ -html '
         for db_file in db_files:
             merge_cmd += ' ' + os.path.dirname(db_file)
             rank_cmd += ' ' + os.path.dirname(db_file)
         with open(output_db + '/final_coverage/final_merge_imc.cmd', 'w') as f:
             f.write(merge_cmd + ' \n')
             f.write('load -run ' + str(output_db) + '/final_coverage/' + '\n')
-            f.write('report -overwrite -out' + str(output_db) + './final_html/'
+            f.write('report -overwrite -out ' + str(output_db) + '/final_html/'
                     ' -html -detail \
             -metrics overall -all -aspect both -assertionStatus \
             -allAssertionCounters -type *\n')
