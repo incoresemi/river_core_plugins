@@ -321,6 +321,7 @@ class chromite_cadence_plugin(object):
     def merge_db(self, db_files, output_db, config):
 
         # Add commands to run here :)
+        # TODO: DOC: Ensure plugin developers understand the reason for using final_coverage  and other hardcoded values
         logger.info('Initiating Merging of coverage files')
         merge_cmd = 'merge -overwrite -out ' + str(output_db)
         rank_cmd = 'rank -overwrite -out /' + str(output_db) + '_rank -html '
@@ -339,6 +340,13 @@ class chromite_cadence_plugin(object):
 
         orig_path = os.getcwd()
         os.chdir(output_db + '/final_coverage')
+
         # Jyothi: Please enable this after checking the merge_imc.cmd
         # (ret, out, error) = sys_command('imc -exec final_merge_imc.cmd')
+
+        # HTML Web pages
+        final_html = output_db + '/final_html/index.html'
+        final_rank_html = output_db + '/final_html_rank/index.html'
         os.chdir(orig_path)
+
+        return final_html, final_rank_html
