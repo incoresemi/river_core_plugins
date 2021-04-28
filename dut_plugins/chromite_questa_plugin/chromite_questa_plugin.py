@@ -29,11 +29,11 @@ class chromite_questa_plugin(object):
         # TODO: These 2 variables need to be set by user
         self.src_dir = [
             # Verilog Dir
-            '/Projects/incorecpu/vinay.kariyanna/chromite/build/hw/verilog',
+            '/Projects/incorecpu/jyothi.g/chromite/build/hw/verilog',
             # BSC Path
             '/Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog',
             # Wrapper path
-            '/Projects/incorecpu/vinay.kariyanna/chromite/bsvwrappers/common_lib'
+            '/Projects/incorecpu/jyothi.g/chromite/bsvwrappers/common_lib'
         ]
         self.top_module = 'tb_top'
 
@@ -129,15 +129,22 @@ class chromite_questa_plugin(object):
         # sys_command(header_generate)
 #"\n\tvlog -sv -work work +libext+.v+.vqm -y $(VERILOGDIR) -y $(BS_VERILOG_LIB) -y $(BSV_WRAPPER_PATH)/ +define+TOP=tb_top  $(BS_VERILOG_LIB)/main.v \$(SV_TB_TOP_PATH)/tb_top.sv  > compile_log"
         vlib_cmd = 'vlib work'
-        vlog_cmd = 'vlog -cover bcefst -sv -work work +libext+.v+.vqm -y /Projects/incorecpu/vinay.kariyanna/chromite/build/hw/verilog -y /Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog -y /Projects/incorecpu/vinay.kariyanna/chromite/bsvwrappers/common_lib/ \
-              +define+TOP=tb_top /Projects/incorecpu/vinay.kariyanna/rc_new/river_core_plugins/dut_plugins/chromite_questa_plugin/sv_top/tb_top.sv /Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog/main.v'             
+        #vlog_cmd = 'vlog -cover bcefst -sv -work work +libext+.v+.vqm -y /Projects/incorecpu/jyothi.g/chromite/build/hw/verilog -y /Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog -y /Projects/incorecpu/jyothi.g/chromite/bsvwrappers/common_lib/ \
+             # +define+TOP=tb_top /Projects/incorecpu/jyothi.g/rc_new/river_core_plugins/dut_plugins/chromite_questa_plugin/sv_top/tb_top.sv /Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog/main.v'
+
+        vlog_cmd = 'vlog -cover bcefst -sv -work work +libext+.v+.vqm \
+                    -y {1} -y {2} -y {3} \
+                   +define+TOP={0} {4}/sv_top/tb_top.sv {5}/lib/Verilog/main.v ' \
+                   .format(self.top_module, self.src_dir[0], self.src_dir[1], self.src_dir[2], self.plugin_path+self.name+'_plugin', self.bsc_path)
+
         vsim_cmd = 'vsim -quiet  -novopt  +rtldump -lib work -c main' 
 
         if self.coverage_struct and self.coverage_func:
             logger.info("Structural and functional coverage are enabled")
-            vlog_cmd =vlog_cmd 
-            with open('chromite_core','w') as f:
-              f.write(vsim_cmd + ' -coverage '+ ' -cvgperinstance ' +' -assertcover ' + ' -voptargs="+cover=bcfst" ' +' -do "coverage save -cvg -assert -onexit -codeAll test_cov.ucdb;run -all; quit" ')
+            vlog_cmd =vlog_cmd
+            for test, attr in self.test_list.items():
+             with open('chromite_core_{0}'.format(test),'w') as f:
+              f.write(vsim_cmd + ' -coverage '+ ' -cvgperinstance ' +' -assertcover ' + ' -voptargs="+cover=bcfst" ' +' -do "coverage save -cvg -assert -onexit -codeAll '+ test + '.ucdb;run -all; quit" ')
               #f.write('vcover report -hidecvginsts -details -cvg -code bcefst -assert -html -htmldir ./coverage/report_html/ test_cov.ucdb')
         elif self.coverage_struct and not self.coverage_func:
             logger.info("Structural coverage is enabled")
@@ -165,7 +172,8 @@ class chromite_questa_plugin(object):
         sys_command(vlog_cmd,500)
        
         logger.info('Renaming Binary')
-        sys_command('chmod +x chromite_core')
+        for test, attr in self.test_list.items():
+          sys_command('chmod +x chromite_core_{0}'.format(test))
 
         logger.info('Creating boot-files')
         sys_command('make -C {0} XLEN={1}'.format(
@@ -174,8 +182,8 @@ class chromite_questa_plugin(object):
                 self.sim_path+'/boot.mem')
 
         os.chdir(orig_path)
-        if not os.path.isfile(self.sim_path + '/' + self.sim_cmd):
-            logger.error(self.sim_cmd + ' binary does not exist in ' +
+        if not os.path.isfile(self.sim_path + '/' + self.sim_cmd + '_' + test):
+            logger.error(self.sim_cmd + '_' + test + ' binary does not exist in ' +
                          self.sim_path)
             raise SystemExit
     @dut_hookimpl
@@ -206,14 +214,14 @@ class chromite_questa_plugin(object):
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
             compile_cmd += ' -o dut.elf && '
-            sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core . && '
+            sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core_{0} . && '.format(test)
             sim_setup += 'ln -f -s ' + self.sim_path + '/boot.mem . && '
             #sim_setup += 'ln -f -s ' + self.sim_path + '/cds.lib . && '
             #sim_setup += 'ln -f -s ' + self.sim_path + '/hdl.var . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/work . && '
             post_process_cmd = 'head -n -4 rtl.dump > dut.dump && rm -f rtl.dump'
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
-                    self.elf2hex_cmd + sim_setup + self.sim_cmd + ' ' + \
+                    self.elf2hex_cmd + sim_setup + self.sim_cmd + '_' + test + ' ' + \
                     self.sim_args +' && '+ post_process_cmd
             make.add_target(target_cmd, test)
             self.test_names.append(test)
@@ -249,29 +257,31 @@ class chromite_questa_plugin(object):
         ])
         # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
         if self.coverage:
-            os.makedirs(self.work_dir + '/coverage/merged_ucdb')
+            #os.makedirs(self.work_dir + '/final_coverage/merged_ucdb')
             #os.makedirs(work_dir + '/coverage/testcase_ucdb/')
             #shutil.move(work_dir+'/test_cov.ucdb', work_dir +'/coverage/testcase_ucdb/')
-            #os.makedirs(self.work_dir + '/coverage/merged_ucdb/report_html')
-            os.makedirs(self.work_dir + '/coverage/rank/')
-            merge_cmd = 'vcover merge -testassociated ' + self.work_dir + '/coverage/merged_ucdb/merged_ucdb.ucdb'
+            os.makedirs(self.work_dir + '/final_coverage/rank')
+            os.makedirs(self.work_dir + '/final_coverage/cov_html')
+            os.makedirs(self.work_dir + 'final_coverage/rank_html/')
+            merge_cmd = 'vcover merge -testassociated -outputstore ' + self.work_dir + 'final_coverage/' + ' -out ' + self.work_dir + '/final_coverage/' + 'merged_ucdb.ucdb'
             logger.info('Initiating Merging of coverage files')
             for test, attr in self.test_list.items():
                 test_wd = attr['work_dir']
-                os.makedirs(test_wd + '/coverage/testcase_ucdb/')
-                shutil.copy(test_wd +'/test_cov.ucdb', test_wd + '/coverage/testcase_ucdb/')
-                merge_cmd += ' ' + test_wd + '/coverage/testcase_ucdb/*.ucdb'
+                os.makedirs(test_wd + '/coverage')
+                shutil.move(test_wd +'/' + test + '.ucdb', test_wd + '/coverage/'+ test +'.ucdb')
+                sys_command('vcover report -cvg -assert -details -html -htmldir ' + test_wd + '/coverage/ -verbose '+ test_wd + '/coverage/'+ test + '.ucdb' + '\n')
+                merge_cmd += ' ' + test_wd + '/coverage/*.ucdb'
             with open(self.work_dir+'/merge.cmd','w') as f:
                 f.write(merge_cmd + ' \n')
-                f.write('vcover report -html -htmldir ./coverage/merged_report_html -verbose ./coverage/merged_ucdb/merged_ucdb.ucdb'+ '\n')
-                f.write('vcover ranktest -64 -assertion -codeAll -cvg  -directive -rankfile ' +self.work_dir+ '/coverage/rank/out.rank ' +self.work_dir+ 'coverage/merged_ucdb/merged_ucdb.ucdb' + '\n')
-                f.write('vcover report -html -rank ' +self.work_dir+ '/coverage/rank/out.rank ' +'-details=abcdefgpst -htmldir ' +self.work_dir+'/coverage/rank_html' )
-            sys_command('chmod +x ./mywork/merge.cmd')
-            os.system('./mywork/merge.cmd')
+                f.write('vcover report -cvg -assert -details -html -htmldir ' + self.work_dir+ '/final_coverage/cov_html -verbose '+ self.work_dir + '/final_coverage/merged_ucdb.ucdb '+ '\n')
+                f.write('vcover ranktest -64 -assertion -codeAll -cvg  -directive -rankfile ' + self.work_dir+ '/final_coverage/rank/out.rank ' + self.work_dir + '/final_coverage/merged_ucdb.ucdb ' + '\n')
+                f.write('vcover report -html -rank ' + self.work_dir + '/final_coverage/rank/out.rank ' +'-details=abcdefgpst -htmldir ' + self.work_dir +'/final_coverage/rank_html ' )
+            sys_command('chmod +x ./mywork_questa_wednesday/merge.cmd')
+            os.system('./mywork_questa_wednesday/merge.cmd')
             logger.info(
-                'Final coverage file is at: {0}'.format(self.work_dir+'/coverage/merged_report_html'))
+                'Final coverage file is at: {0}'.format(self.work_dir + '/final_coverage/'))
             logger.info(
-                'Final rank file is at: {0}'.format(self.work_dir+'/coverage/rank_html'))
+                'Final rank file is at: {0}'.format(self.work_dir + '/final_coverage/rank_html'))
         return report_file_name
 
     @dut_hookimpl
@@ -298,21 +308,22 @@ class chromite_questa_plugin(object):
         # Add commands to run here :)
         work_dir = config['river_core']['work_dir']
         self.work_dir=os.path.abspath(work_dir) + '/'
-        os.makedirs(self.work_dir + 'reports/'+ str(output_db)+'/rank/')
+        os.makedirs(self.work_dir + 'reports/'+ str(output_db)+'_rank/')
         logger.info('Initiating Merging of coverage files')
-        merge_cmd = 'vcover merge -testassociated -outputstore ' + self.work_dir + 'reports/' + str(output_db)+'/merged_ucdb' +' -out ' + self.work_dir + '/reports/' +str(output_db) +'/merged_ucdb/merged_ucdb.ucdb'
-        rank_cmd = 'vcover ranktest -64 -assertion -codeAll -cvg  -directive -rankfile ' + self.work_dir+ '/reports/' + str(output_db)+ '/rank/out.rank' 
+        merge_cmd = 'vcover merge -testassociated -outputstore ' + self.work_dir + 'reports/' + str(output_db)+'/'+str(output_db)+'_ucdb' +' -out ' + self.work_dir + '/reports/' +str(output_db) +'_ucdb/merged_ucdb.ucdb'
+        rank_cmd = 'vcover ranktest -64 -assertion -codeAll -cvg  -directive -rankfile ' + self.work_dir+ '/reports/' + str(output_db)+'/'+str(output_db)+ '_rank/out.rank' 
         
         for db_file in db_files:
             merge_cmd += ' ' + db_file
             rank_cmd += ' '  + db_file
         with open(work_dir + '/final_merge.cmd', 'w') as f:
             f.write(merge_cmd + ' \n')
-            f.write('vcover report -html -htmldir ' + self.work_dir+ '/reports/' + str(output_db)+ '/'+ str(output_db)+'_html -verbose '+ self.work_dir + '/reports/' + str(output_db) +'/merged_ucdb/merged_ucdb.ucdb '+ '\n')
+            f.write('vcover report -cvg -assert -details -html -htmldir ' + self.work_dir+ '/reports/' + str(output_db)+ '/'+ str(output_db)+'_html -verbose '+ self.work_dir + '/reports/' + str(output_db) +'_ucdb/merged_ucdb.ucdb '+ '\n')
             f.write(rank_cmd + '\n')
-            f.write('vcover report -html -rank ' + self.work_dir+ '/reports/' + str(output_db)+ '/rank/out.rank '  +' -details=abcdefgpst -htmldir ' + self.work_dir+ '/reports/' + str(output_db)+ '/rank_html ')
+            f.write('vcover report -html -rank ' + self.work_dir+ '/reports/' + str(output_db)+ '_rank/out.rank '  +' -details=abcdefgpst -htmldir ' + self.work_dir+ '/reports/' + str(output_db)+ '/rank_html ')
         orig_path = os.getcwd()
         os.chdir(work_dir)
         sys_command('chmod +x final_merge.cmd')
         os.system('./final_merge.cmd')
         os.chdir(orig_path)
+
