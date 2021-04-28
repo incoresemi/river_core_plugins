@@ -340,7 +340,9 @@ class chromite_questa_plugin(object):
 
         # Add commands to run here :)
         # Create RANK folder
-        # os.makedirs(str(output_db) + '_rank/')
+        os.makedirs(str(output_db) + '/final_rank/')
+        os.makedirs(str(output_db) + '/final_html_rank/')
+        os.makedirs(str(output_db) + '/final_html/')
         logger.info('Initiating Merging of coverage files')
         merge_cmd = 'vcover merge -testassociated -outputstore ' + str(
             output_db) + '/final_coverage/' + ' -out ' + str(
@@ -353,9 +355,10 @@ class chromite_questa_plugin(object):
             rank_cmd += ' ' + db_file
         with open(str(output_db) + '/final_merge_vcover.cmd', 'w') as f:
             f.write(merge_cmd + ' \n')
-            f.write('vcover report -cvg -assert -details -html -htmldir ' +
-                    str(output_db) + '/final_html -verbose ' + str(output_db) +
-                    '/final_coverage/merged_ucdb.ucdb ' + '\n')
+            f.write(
+                'vcover report -cvg -assert -codeAll -details -html -htmldir ' +
+                str(output_db) + '/final_html -verbose ' + str(output_db) +
+                '/final_coverage/merged_ucdb.ucdb ' + '\n')
             f.write(rank_cmd + '\n')
             f.write('vcover report -html -rank ' + str(output_db) +
                     '/final_rank/out.rank ' + ' -details=abcdefgpst -htmldir ' +
@@ -367,6 +370,6 @@ class chromite_questa_plugin(object):
 
         # Need to confirm this Jyothi
         final_html = output_db + '/final_html/index.html'
-        final_rank_html = output_db + '/final_html_rank/rank_sub_dir/rank.html'
+        final_rank_html = output_db + '/final_html_rank/rank.html'
         os.chdir(orig_path)
         return final_html, final_rank_html
