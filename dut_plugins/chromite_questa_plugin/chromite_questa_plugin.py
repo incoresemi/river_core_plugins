@@ -20,6 +20,7 @@ class chromite_questa_plugin(object):
     '''
         Plugin to set chromite as the target
     '''
+
     @dut_hookimpl
     def init(self, ini_config, test_list, work_dir, coverage_config,
              plugin_path):
@@ -41,20 +42,23 @@ class chromite_questa_plugin(object):
 
         if coverage_config is not None:
             self.coverage = True
-            self.coverage_func =bool(distutils.util.strtobool((coverage_config['functional'])))
-            self.coverage_struct = bool(distutils.util.strtobool((coverage_config['code'])))
+            self.coverage_func = bool(
+                distutils.util.strtobool((coverage_config['functional'])))
+            self.coverage_struct = bool(
+                distutils.util.strtobool((coverage_config['code'])))
 
         else:
             self.coverage = False
-            self.coverage_func =bool(distutils.util.strtobool((coverage_config['functional'])))
-            self.coverage_struct = bool(distutils.util.strtobool((coverage_config['code'])))
+            self.coverage_func = bool(
+                distutils.util.strtobool((coverage_config['functional'])))
+            self.coverage_struct = bool(
+                distutils.util.strtobool((coverage_config['code'])))
 
         if shutil.which('bsc') is None:
             logger.error('bsc not available in $PATH')
             raise SystemExit
         else:
             self.bsc_path = shutil.which("bsc")[:-7]
-
 
         # Get plugin specific configs from ini
         self.jobs = ini_config['jobs']
@@ -91,11 +95,10 @@ class chromite_questa_plugin(object):
             os.makedirs(self.json_dir)
 
         if not os.path.exists(self.sim_path):
-            logger.error('Sim binary Path ' + self.sim_path +
-                         ' does not exist')
+            logger.error('Sim binary Path ' + self.sim_path + ' does not exist')
             raise SystemExit
 
-        check_utils = ['elf2hex','vlib','vlog','vsim','vcover']
+        check_utils = ['elf2hex', 'vlib', 'vlog', 'vsim', 'vcover']
 
         for exe in check_utils:
             if shutil.which(exe) is None:
@@ -108,72 +111,86 @@ class chromite_questa_plugin(object):
                 raise SystemExit
 
         logger.debug('fix path in tb_top')
-        tbfile =  open(self.plugin_path+self.name+'_plugin/sv_top/tb_top.sv','r')
+        tbfile = open(self.plugin_path + self.name + '_plugin/sv_top/tb_top.sv',
+                      'r')
         tbfile_read = tbfile.read()
-        tbfile_read = tbfile_read.replace('plugin_path',self.plugin_path+self.name+'_plugin/')
+        tbfile_read = tbfile_read.replace(
+            'plugin_path', self.plugin_path + self.name + '_plugin/')
         tbfile.close()
-        tbfile =  open(self.plugin_path+self.name+'_plugin/sv_top/tb_top.sv','w')
+        tbfile = open(self.plugin_path + self.name + '_plugin/sv_top/tb_top.sv',
+                      'w')
         tbfile.write(tbfile_read)
         tbfile.close()
 
         orig_path = os.getcwd()
         logger.info("Build using msim")
         os.chdir(self.sim_path)
-       # shutil.copy(self.plugin_path+self.name+'_plugin/hdl.var', \
-                #self.sim_path)
+        # shutil.copy(self.plugin_path+self.name+'_plugin/hdl.var', \
+        #self.sim_path)
         #shutil.copy(self.plugin_path+self.name+'_plugin/cds.lib', \
-               # self.sim_path)
+        # self.sim_path)
         #os.makedirs(self.sim_path+'/work', exist_ok=True)
         # header_generate = 'mkdir -p bin obj_dir + echo "#define TOPMODULE V{0}" > sim_main.h + echo "#include "V{0}.h"" >> sim_main.h'.format(
         #     self.top_module)
         # sys_command(header_generate)
-#"\n\tvlog -sv -work work +libext+.v+.vqm -y $(VERILOGDIR) -y $(BS_VERILOG_LIB) -y $(BSV_WRAPPER_PATH)/ +define+TOP=tb_top  $(BS_VERILOG_LIB)/main.v \$(SV_TB_TOP_PATH)/tb_top.sv  > compile_log"
+        #"\n\tvlog -sv -work work +libext+.v+.vqm -y $(VERILOGDIR) -y $(BS_VERILOG_LIB) -y $(BSV_WRAPPER_PATH)/ +define+TOP=tb_top  $(BS_VERILOG_LIB)/main.v \$(SV_TB_TOP_PATH)/tb_top.sv  > compile_log"
         vlib_cmd = 'vlib work'
         #vlog_cmd = 'vlog -cover bcefst -sv -work work +libext+.v+.vqm -y /Projects/incorecpu/jyothi.g/chromite/build/hw/verilog -y /Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog -y /Projects/incorecpu/jyothi.g/chromite/bsvwrappers/common_lib/ \
-             # +define+TOP=tb_top /Projects/incorecpu/jyothi.g/rc_new/river_core_plugins/dut_plugins/chromite_questa_plugin/sv_top/tb_top.sv /Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog/main.v'
+        # +define+TOP=tb_top /Projects/incorecpu/jyothi.g/rc_new/river_core_plugins/dut_plugins/chromite_questa_plugin/sv_top/tb_top.sv /Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog/main.v'
 
         vlog_cmd = 'vlog -cover bcefst -sv -work work +libext+.v+.vqm \
                     -y {1} -y {2} -y {3} \
                    +define+TOP={0} {4}/sv_top/tb_top.sv {5}/lib/Verilog/main.v ' \
                    .format(self.top_module, self.src_dir[0], self.src_dir[1], self.src_dir[2], self.plugin_path+self.name+'_plugin', self.bsc_path)
 
-        vsim_cmd = 'vsim -quiet  -novopt  +rtldump -lib work -c main' 
+        vsim_cmd = 'vsim -quiet  -novopt  +rtldump -lib work -c main'
 
         if self.coverage_struct and self.coverage_func:
             logger.info("Structural and functional coverage are enabled")
-            vlog_cmd =vlog_cmd
+            vlog_cmd = vlog_cmd
             for test, attr in self.test_list.items():
-             with open('chromite_core_{0}'.format(test),'w') as f:
-              f.write(vsim_cmd + ' -coverage '+ ' -cvgperinstance ' +' -assertcover ' + ' -voptargs="+cover=bcfst" ' +' -do "coverage save -cvg -assert -onexit -codeAll '+ test + '.ucdb;run -all; quit" ')
-              #f.write('vcover report -hidecvginsts -details -cvg -code bcefst -assert -html -htmldir ./coverage/report_html/ test_cov.ucdb')
+                with open('chromite_core_{0}'.format(test), 'w') as f:
+                    f.write(
+                        vsim_cmd + ' -coverage ' + ' -cvgperinstance ' +
+                        ' -assertcover ' + ' -voptargs="+cover=bcfst" ' +
+                        ' -do "coverage save -cvg -assert -onexit -codeAll ' +
+                        test + '.ucdb;run -all; quit" ')
+                    #f.write('vcover report -hidecvginsts -details -cvg -code bcefst -assert -html -htmldir ./coverage/report_html/ test_cov.ucdb')
         elif self.coverage_struct and not self.coverage_func:
             logger.info("Structural coverage is enabled")
-            vlog_cmd =vlog_cmd + ' -cover bcefst'
-            with open('chromite_core','w') as f:
-             f.write(vsim_cmd + '-coverage'+  '-voptargs="+cover=bcfest"' +'-do "coverage save -onexit -codeAll test_cov.ucdb;run -all; quit')
-             #f.write('vcover report -details  -code bcefst -html -htmldir ./coverage/report_html/ test_cov.ucdb')
+            vlog_cmd = vlog_cmd + ' -cover bcefst'
+            with open('chromite_core', 'w') as f:
+                f.write(
+                    vsim_cmd + '-coverage' + '-voptargs="+cover=bcfest"' +
+                    '-do "coverage save -onexit -codeAll test_cov.ucdb;run -all; quit'
+                )
+                #f.write('vcover report -details  -code bcefst -html -htmldir ./coverage/report_html/ test_cov.ucdb')
         elif self.coverage_func and not self.coverage_struct:
             logger.info("functional coverage is enabled")
-            vlog_cmd =vlog_cmd.format('')
-            with open('chromite_core','w') as f:
-             f.write(vsim_cmd +'-cvgperinstance' +'-assertcover' + '-do "coverage save -cvg -assert -onexit test_cov.ucdb;run -all; quit')
+            vlog_cmd = vlog_cmd.format('')
+            with open('chromite_core', 'w') as f:
+                f.write(
+                    vsim_cmd + '-cvgperinstance' + '-assertcover' +
+                    '-do "coverage save -cvg -assert -onexit test_cov.ucdb;run -all; quit'
+                )
             # f.write('vcover report -hidecvginsts -details -cvg  -assert -html -htmldir ./coverage/report_html/ test_cov.ucdb')
-        else :
+        else:
             logger.info("coverage is disabled")
-            vlog_cmd =vlog_cmd.format('')
-            with open('chromite_core','w') as f:
-             f.write(vsim_cmd + '-do "coverage save -onexit test_cov.ucdb;run -all; quit')
-             #f.write('vcover report -details -html -htmldir ./coverage/report_html/ test_cov.ucdb')
+            vlog_cmd = vlog_cmd.format('')
+            with open('chromite_core', 'w') as f:
+                f.write(
+                    vsim_cmd +
+                    '-do "coverage save -onexit test_cov.ucdb;run -all; quit')
+                #f.write('vcover report -details -html -htmldir ./coverage/report_html/ test_cov.ucdb')
             #if not self.coverage_func:
-                #ncelab_cmd = ncelab_cmd + ' -covdut mkccore_axi4 '
+            #ncelab_cmd = ncelab_cmd + ' -covdut mkccore_axi4 '
 
+        sys_command(vlib_cmd, 500)
+        sys_command(vlog_cmd, 500)
 
-        sys_command(vlib_cmd,500)
-        sys_command(vlog_cmd,500)
-       
         logger.info('Renaming Binary')
         for test, attr in self.test_list.items():
-          sys_command('chmod +x chromite_core_{0}'.format(test))
+            sys_command('chmod +x chromite_core_{0}'.format(test))
 
         logger.info('Creating boot-files')
         sys_command('make -C {0} XLEN={1}'.format(
@@ -183,9 +200,10 @@ class chromite_questa_plugin(object):
 
         os.chdir(orig_path)
         if not os.path.isfile(self.sim_path + '/' + self.sim_cmd + '_' + test):
-            logger.error(self.sim_cmd + '_' + test + ' binary does not exist in ' +
-                         self.sim_path)
+            logger.error(self.sim_cmd + '_' + test +
+                         ' binary does not exist in ' + self.sim_path)
             raise SystemExit
+
     @dut_hookimpl
     def build(self):
         logger.info('Build Hook')
@@ -210,11 +228,12 @@ class chromite_questa_plugin(object):
             ch_cmd = 'cd {0} && '.format(work_dir)
             compile_cmd = '{0} {1} -march={2} -mabi={3} {4} {5} {6}'.format(\
                     cc, cc_args, arch, abi, link_args, link_file, asm_file)
-            
+
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
             compile_cmd += ' -o dut.elf && '
-            sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core_{0} . && '.format(test)
+            sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core_{0} . && '.format(
+                test)
             sim_setup += 'ln -f -s ' + self.sim_path + '/boot.mem . && '
             #sim_setup += 'ln -f -s ' + self.sim_path + '/cds.lib . && '
             #sim_setup += 'ln -f -s ' + self.sim_path + '/hdl.var . && '
@@ -232,7 +251,7 @@ class chromite_questa_plugin(object):
     def run(self, module_dir):
         logger.info('Run Hook')
         logger.debug('Module dir: {0}'.format(module_dir))
-        pytest_file = module_dir +'/chromite_questa_plugin/gen_framework.py'
+        pytest_file = module_dir + '/chromite_questa_plugin/gen_framework.py'
         logger.debug('Pytest file: {0}'.format(pytest_file))
 
         report_file_name = '{0}/{1}_{2}'.format(
@@ -268,20 +287,34 @@ class chromite_questa_plugin(object):
             for test, attr in self.test_list.items():
                 test_wd = attr['work_dir']
                 os.makedirs(test_wd + '/coverage')
-                shutil.move(test_wd +'/' + test + '.ucdb', test_wd + '/coverage/'+ test +'.ucdb')
-                sys_command('vcover report -cvg -assert -details -html -htmldir ' + test_wd + '/coverage/ -verbose '+ test_wd + '/coverage/'+ test + '.ucdb' + '\n')
+                shutil.move(test_wd + '/' + test + '.ucdb',
+                            test_wd + '/coverage/' + test + '.ucdb')
+                sys_command(
+                    'vcover report -cvg -assert -details -html -htmldir ' +
+                    test_wd + '/coverage/ -verbose ' + test_wd + '/coverage/' +
+                    test + '.ucdb' + '\n')
                 merge_cmd += ' ' + test_wd + '/coverage/*.ucdb'
-            with open(self.work_dir+'/merge.cmd','w') as f:
+            with open(self.work_dir + '/merge.cmd', 'w') as f:
                 f.write(merge_cmd + ' \n')
-                f.write('vcover report -cvg -assert -details -html -htmldir ' + self.work_dir+ '/final_coverage/cov_html -verbose '+ self.work_dir + '/final_coverage/merged_ucdb.ucdb '+ '\n')
-                f.write('vcover ranktest -64 -assertion -codeAll -cvg  -directive -rankfile ' + self.work_dir+ '/final_coverage/rank/out.rank ' + self.work_dir + '/final_coverage/merged_ucdb.ucdb ' + '\n')
-                f.write('vcover report -html -rank ' + self.work_dir + '/final_coverage/rank/out.rank ' +'-details=abcdefgpst -htmldir ' + self.work_dir +'/final_coverage/rank_html ' )
+                f.write('vcover report -cvg -assert -details -html -htmldir ' +
+                        self.work_dir + '/final_coverage/cov_html -verbose ' +
+                        self.work_dir + '/final_coverage/merged_ucdb.ucdb ' +
+                        '\n')
+                f.write(
+                    'vcover ranktest -64 -assertion -codeAll -cvg  -directive -rankfile '
+                    + self.work_dir + '/final_coverage/rank/out.rank ' +
+                    self.work_dir + '/final_coverage/merged_ucdb.ucdb ' + '\n')
+                f.write('vcover report -html -rank ' + self.work_dir +
+                        '/final_coverage/rank/out.rank ' +
+                        '-details=abcdefgpst -htmldir ' + self.work_dir +
+                        '/final_coverage/rank_html ')
             sys_command('chmod +x ./mywork_questa_wednesday/merge.cmd')
             os.system('./mywork_questa_wednesday/merge.cmd')
             logger.info(
-                'Final coverage file is at: {0}'.format(self.work_dir + '/final_coverage/'))
-            logger.info(
-                'Final rank file is at: {0}'.format(self.work_dir + '/final_coverage/rank_html'))
+                'Final coverage file is at: {0}'.format(self.work_dir +
+                                                        '/final_coverage/'))
+            logger.info('Final rank file is at: {0}'.format(
+                self.work_dir + '/final_coverage/rank_html'))
         return report_file_name
 
     @dut_hookimpl
@@ -289,8 +322,8 @@ class chromite_questa_plugin(object):
         if str_2_bool(config['river_core']['space_saver']):
             logger.debug("Going to remove stuff now")
             for test in test_dict:
-                if test_dict[test]['result'] =='Passed' :
-                    logger.debug("Removing extra files for Test: "+str(test))
+                if test_dict[test]['result'] == 'Passed':
+                    logger.debug("Removing extra files for Test: " + str(test))
                     work_dir = test_dict[test]['work_dir']
                     try:
                         os.remove(work_dir + '/app_log')
@@ -306,24 +339,34 @@ class chromite_questa_plugin(object):
     def merge_db(self, db_files, output_db, config):
 
         # Add commands to run here :)
-        work_dir = config['river_core']['work_dir']
-        self.work_dir=os.path.abspath(work_dir) + '/'
-        os.makedirs(self.work_dir + 'reports/'+ str(output_db)+'_rank/')
+        # Create RANK folder
+        # os.makedirs(str(output_db) + '_rank/')
         logger.info('Initiating Merging of coverage files')
-        merge_cmd = 'vcover merge -testassociated -outputstore ' + self.work_dir + 'reports/' + str(output_db)+'/'+str(output_db)+'_ucdb' +' -out ' + self.work_dir + '/reports/' +str(output_db) +'_ucdb/merged_ucdb.ucdb'
-        rank_cmd = 'vcover ranktest -64 -assertion -codeAll -cvg  -directive -rankfile ' + self.work_dir+ '/reports/' + str(output_db)+'/'+str(output_db)+ '_rank/out.rank' 
-        
+        merge_cmd = 'vcover merge -testassociated -outputstore ' + str(
+            output_db) + '/final_coverage/' + ' -out ' + str(
+                output_db) + '/final_coverage/merged_ucdb.ucdb'
+        rank_cmd = 'vcover ranktest -64 -assertion -codeAll -cvg  -directive -rankfile ' + str(
+            output_db) + '/final_rank/out.rank'
+
         for db_file in db_files:
             merge_cmd += ' ' + db_file
-            rank_cmd += ' '  + db_file
-        with open(work_dir + '/final_merge.cmd', 'w') as f:
+            rank_cmd += ' ' + db_file
+        with open(str(output_db) + '/final_merge_vcover.cmd', 'w') as f:
             f.write(merge_cmd + ' \n')
-            f.write('vcover report -cvg -assert -details -html -htmldir ' + self.work_dir+ '/reports/' + str(output_db)+ '/'+ str(output_db)+'_html -verbose '+ self.work_dir + '/reports/' + str(output_db) +'_ucdb/merged_ucdb.ucdb '+ '\n')
+            f.write('vcover report -cvg -assert -details -html -htmldir ' +
+                    str(output_db) + '/final_html -verbose ' + str(output_db) +
+                    '/final_coverage/merged_ucdb.ucdb ' + '\n')
             f.write(rank_cmd + '\n')
-            f.write('vcover report -html -rank ' + self.work_dir+ '/reports/' + str(output_db)+ '_rank/out.rank '  +' -details=abcdefgpst -htmldir ' + self.work_dir+ '/reports/' + str(output_db)+ '/rank_html ')
+            f.write('vcover report -html -rank ' + str(output_db) +
+                    '/final_rank/out.rank ' + ' -details=abcdefgpst -htmldir ' +
+                    str(output_db) + '/final_html_rank')
         orig_path = os.getcwd()
-        os.chdir(work_dir)
-        sys_command('chmod +x final_merge.cmd')
-        os.system('./final_merge.cmd')
-        os.chdir(orig_path)
+        os.chdir(output_db + '/final_coverage')
+        sys_command('chmod +x {0}/final_merge_vcover.cmd'.format(output_db))
+        sys_command('sh {0}/final_merge_vcover.cmd'.format(output_db))
 
+        # Need to confirm this Jyothi
+        final_html = output_db + '/final_html/index.html'
+        final_rank_html = output_db + '/final_html_rank/rank_sub_dir/rank.html'
+        os.chdir(orig_path)
+        return final_html, final_rank_html

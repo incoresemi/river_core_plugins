@@ -342,8 +342,7 @@ class chromite_cadence_plugin(object):
         orig_path = os.getcwd()
         os.chdir(output_db + '/final_coverage')
 
-        # Jyothi: Please enable this after checking the merge_imc.cmd
-        # (ret, out, error) = sys_command('imc -exec final_merge_imc.cmd')
+        (ret, out, error) = sys_command('imc -exec final_merge_imc.cmd')
 
         # HTML Web pages
         final_html = output_db + '/final_html/index.html'
