@@ -159,28 +159,28 @@ class chromite_questa_plugin(object):
         elif self.coverage_struct and not self.coverage_func:
             logger.info("Structural coverage is enabled")
             vlog_cmd = vlog_cmd + ' -cover bcefst'
-            with open('chromite_core', 'w') as f:
+            with open('chromite_core_{0}'.format(test), 'w') as f:
                 f.write(
                     vsim_cmd + '-coverage' + '-voptargs="+cover=bcfest"' +
-                    '-do "coverage save -onexit -codeAll test_cov.ucdb;run -all; quit'
+                    '-do "coverage save -onexit -codeAll ' + test + '.ucdb;run -all; quit'
                 )
                 #f.write('vcover report -details  -code bcefst -html -htmldir ./coverage/report_html/ test_cov.ucdb')
         elif self.coverage_func and not self.coverage_struct:
             logger.info("functional coverage is enabled")
             vlog_cmd = vlog_cmd.format('')
-            with open('chromite_core', 'w') as f:
+            with open('chromite_core_{0}'.format(test), 'w') as f:
                 f.write(
                     vsim_cmd + '-cvgperinstance' + '-assertcover' +
-                    '-do "coverage save -cvg -assert -onexit test_cov.ucdb;run -all; quit'
+                    '-do "coverage save -cvg -assert -onexit ' + test + '.ucdb;run -all; quit'
                 )
             # f.write('vcover report -hidecvginsts -details -cvg  -assert -html -htmldir ./coverage/report_html/ test_cov.ucdb')
         else:
             logger.info("coverage is disabled")
             vlog_cmd = vlog_cmd.format('')
-            with open('chromite_core', 'w') as f:
+            with open('chromite_core_{0}'.format(test), 'w') as f:
                 f.write(
                     vsim_cmd +
-                    '-do "coverage save -onexit test_cov.ucdb;run -all; quit')
+                    '-do "coverage save -onexit ' + test +'.ucdb;run -all; quit')
                 #f.write('vcover report -details -html -htmldir ./coverage/report_html/ test_cov.ucdb')
             #if not self.coverage_func:
             #ncelab_cmd = ncelab_cmd + ' -covdut mkccore_axi4 '
@@ -290,13 +290,13 @@ class chromite_questa_plugin(object):
                 shutil.move(test_wd + '/' + test + '.ucdb',
                             test_wd + '/coverage/' + test + '.ucdb')
                 sys_command(
-                    'vcover report -cvg -assert -details -html -htmldir ' +
+                    'vcover report -cvg -assert -code bcefst -details -html -htmldir ' +
                     test_wd + '/coverage/ -verbose ' + test_wd + '/coverage/' +
                     test + '.ucdb' + '\n')
                 merge_cmd += ' ' + test_wd + '/coverage/*.ucdb'
             with open(self.work_dir + '/merge.cmd', 'w') as f:
                 f.write(merge_cmd + ' \n')
-                f.write('vcover report -cvg -assert -details -html -htmldir ' +
+                f.write('vcover report -cvg -assert -code bcefst -details -html -htmldir ' +
                         self.work_dir + '/final_coverage/cov_html -verbose ' +
                         self.work_dir + '/final_coverage/merged_ucdb.ucdb ' +
                         '\n')
@@ -308,8 +308,8 @@ class chromite_questa_plugin(object):
                         '/final_coverage/rank/out.rank ' +
                         '-details=abcdefgpst -htmldir ' + self.work_dir +
                         '/final_coverage/rank_html ')
-            sys_command('chmod +x ./mywork_questa_wednesday/merge.cmd')
-            os.system('./mywork_questa_wednesday/merge.cmd')
+            sys_command('chmod +x {0}/merge.cmd'.format(self.work_dir))
+            os.system('sh {0}/merge.cmd'.format(self.work_dir))
             logger.info(
                 'Final coverage file is at: {0}'.format(self.work_dir +
                                                         '/final_coverage/'))
@@ -355,21 +355,20 @@ class chromite_questa_plugin(object):
             rank_cmd += ' ' + db_file
         with open(str(output_db) + '/final_merge_vcover.cmd', 'w') as f:
             f.write(merge_cmd + ' \n')
-            f.write(
-                'vcover report -cvg -assert -codeAll -details -html -htmldir ' +
-                str(output_db) + '/final_html -verbose ' + str(output_db) +
-                '/final_coverage/merged_ucdb.ucdb ' + '\n')
+            f.write('vcover report -cvg -assert -code bcefst -details -html -htmldir ' +
+                    str(output_db) + '/final_html -verbose ' + str(output_db) +
+                    '/final_coverage/merged_ucdb.ucdb ' + '\n')
             f.write(rank_cmd + '\n')
             f.write('vcover report -html -rank ' + str(output_db) +
                     '/final_rank/out.rank ' + ' -details=abcdefgpst -htmldir ' +
                     str(output_db) + '/final_html_rank')
         orig_path = os.getcwd()
-        os.chdir(output_db + '/final_coverage')
+        os.chdir(output_db)
         sys_command('chmod +x {0}/final_merge_vcover.cmd'.format(output_db))
         sys_command('sh {0}/final_merge_vcover.cmd'.format(output_db))
 
         # Need to confirm this Jyothi
         final_html = output_db + '/final_html/index.html'
-        final_rank_html = output_db + '/final_html_rank/rank.html'
+        final_rank_html = output_db + '/final_html_rank/rank_sub_dir/rank.html'
         os.chdir(orig_path)
         return final_html, final_rank_html

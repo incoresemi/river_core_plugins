@@ -18,6 +18,7 @@ logic [31 : 0] decoder_func_32_inst;
 
 //fn_decompress signal
 logic [15:0]fn_decompress_inst;
+logic [31:0]fn_decompress;
 
 ///--------coverpoints for functional coverage -------////
 
@@ -416,6 +417,6 @@ endproperty
 always @(posedge CLK)
 rg_delayed_redirect_assert: assert property (rg_delayed_redirect_prop);
 
-cover property(rg_delayed_redirect_prop);
+//cover property(rg_delayed_redirect_prop);
 endinterface
 

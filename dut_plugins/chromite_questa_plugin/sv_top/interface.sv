@@ -375,7 +375,6 @@ fn_decompress_inst_cp : coverpoint fn_decompress_inst {
 	wildcard bins C_FSDSP	 = {16'b101_xxxxxx_xxxxx_10};//(RV32/64)
 	wildcard bins C_SWSP	 = {16'b110_xxxxxx_xxxxx_10};//(RV32/64)
 	
-
 `ifdef RV32	
 	wildcard bins C_SLLI	 = {16'b000_x_xxxxx_xxxxx_10} iff (fn_decompress_inst[11:7]!=5'b0);//(HINT, rd=0; RV32 Custom, nzuimm[5]=1)
 	wildcard bins C_FLWSP	 = {16'b011_x_xxxxx_xxxxx_10};//(RV32)
@@ -418,15 +417,15 @@ endproperty
 always @(posedge CLK)
 rg_delayed_redirect_assert: assert property (rg_delayed_redirect_prop);
 
-cover property(rg_delayed_redirect_prop);
+//cover property(rg_delayed_redirect_prop);
 
 
-property fn_decomp_reserved_prop;
+/*property fn_decomp_reserved_prop;
 @(posedge CLK) fn_decompress_inst==(16'b010_x_00000_xxxxx_10)  |-> fn_decompress==32'b0 ;
 endproperty
 
 always @(posedge CLK)
-fn_decomp_reserved_assert: assert property (fn_decomp_reserved_prop);
+fn_decomp_reserved_assert: assert property (fn_decomp_reserved_prop);*/
 
 endinterface
 

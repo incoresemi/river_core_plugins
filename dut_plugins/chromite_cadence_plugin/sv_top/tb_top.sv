@@ -6,7 +6,7 @@
 
 `define BSV_RESET_NAME RST_N
 
-`include "/Projects/incorecpu/vinay.kariyanna/rc_new/river_core_plugins/dut_plugins/chromite_cadence_plugin/sv_top/interface.sv"
+`include "/Projects/incorecpu/jyothi.g/rc_new/river_core_plugins/dut_plugins/chromite_cadence_plugin/sv_top/interface.sv"
 module tb_top(input CLK,RST_N);
  chromite_intf intf(CLK,RST_N);
  mkTbSoc mktbsoc(.CLK(intf.CLK),.RST_N(intf.RST_N));
@@ -36,6 +36,8 @@ else begin
 
 //fn_decompress signal 
  intf.fn_decompress_inst =mktbsoc.soc.ccore.riscv.stage1.instance_fn_decompress_0.fn_decompress_inst ;
+ intf.fn_decompress      =mktbsoc.soc.ccore.riscv.stage1.instance_fn_decompress_0.fn_decompress ;
+
 //mkstage2 signals
  intf.EN_update_eEpoch=mktbsoc.soc.ccore.riscv.stage2.EN_update_eEpoch;
  intf.EN_update_wEpoch=mktbsoc.soc.ccore.riscv.stage2.EN_update_wEpoch;

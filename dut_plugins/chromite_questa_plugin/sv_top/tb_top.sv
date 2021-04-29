@@ -17,6 +17,7 @@ if(!RST_N) begin
 intf.decoder_func_32 = mktbsoc.soc.ccore.riscv.stage2.instance_decoder_func_32_2.decoder_func_32;
  intf.decoder_func_32_inst =mktbsoc.soc.ccore.riscv.stage2.instance_decoder_func_32_2.decoder_func_32_inst;
 intf.fn_decompress_inst =mktbsoc.soc.ccore.riscv.stage1.instance_fn_decompress_0.fn_decompress_inst ;
+ intf.fn_decompress      =mktbsoc.soc.ccore.riscv.stage1.instance_fn_decompress_0.fn_decompress ;
 intf.rg_eEpoch=mktbsoc.soc.ccore.riscv.stage0.rg_eEpoch;
  intf.rg_wEpoch=mktbsoc.soc.ccore.riscv.stage0.rg_wEpoch;
  intf.rg_fence=mktbsoc.soc.ccore.riscv.stage0.rg_fence;
@@ -36,6 +37,7 @@ else begin
 //fn_decompress signal 
  intf.fn_decompress_inst =mktbsoc.soc.ccore.riscv.stage1.instance_fn_decompress_0.fn_decompress_inst ;
  intf.fn_decompress      =mktbsoc.soc.ccore.riscv.stage1.instance_fn_decompress_0.fn_decompress ;
+
 //mkstage2 signals
  intf.EN_update_eEpoch=mktbsoc.soc.ccore.riscv.stage2.EN_update_eEpoch;
  intf.EN_update_wEpoch=mktbsoc.soc.ccore.riscv.stage2.EN_update_wEpoch;

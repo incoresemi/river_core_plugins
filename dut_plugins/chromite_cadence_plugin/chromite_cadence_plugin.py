@@ -30,11 +30,11 @@ class chromite_cadence_plugin(object):
         # TODO: These 2 variables need to be set by user
         self.src_dir = [
             # Verilog Dir
-            '/Projects/incorecpu/vinay.kariyanna/chromite/build/hw/verilog',
+            '/Projects/incorecpu/jyothi.g/chromite/build/hw/verilog',
             # BSC Path
             '/Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog',
             # Wrapper path
-            '/Projects/incorecpu/vinay.kariyanna/chromite/bsvwrappers/common_lib'
+            '/Projects/incorecpu/jyothi.g/chromite/bsvwrappers/common_lib'
         ]
         self.top_module = 'tb_top'
 
@@ -170,15 +170,19 @@ class chromite_cadence_plugin(object):
         sys_command(ncvlog_cmd, 500)
         sys_command(ncelab_cmd, 500)
         logger.info("Making ncsim binary")
-        with open('chromite_core', 'w') as f:
+
+        for test, attr in self.test_list.items():
+          with open('chromite_core_{0}'.format(test), 'w') as f:
             f.write(
-                'ncsim -64BIT +rtldump -COVOVERWRITE -cdslib ./cds.lib -hdlvar ./hdl.var work.main\n'
+                'ncsim -64BIT +rtldump -COVOVERWRITE -covtest ' + test + ' -cdslib ./cds.lib -hdlvar ./hdl.var work.main\n'
             )
             if self.coverage:
                 f.write('imc -exec imc.cmd\n')
+          logger.info('Renaming Binary')
+          sys_command('chmod +x chromite_core_{0}'.format(test))
 
-        logger.info('Renaming Binary')
-        sys_command('chmod +x chromite_core')
+        #logger.info('Renaming Binary')
+        #sys_command('chmod +x chromite_core')
 
         logger.info('Creating boot-files')
         sys_command('make -C {0} XLEN={1}'.format(
@@ -220,7 +224,7 @@ class chromite_cadence_plugin(object):
                 compile_cmd += ' ' + x
             compile_cmd += ' -o dut.elf && '
             with open(work_dir + '/imc.cmd', 'w') as f:
-                f.write('load ' + work_dir + '/cov_work/scope/test \n')
+                f.write('load ' + work_dir + '/cov_work/scope/' + test + '\n')
                 f.write(
                     'report -overwrite -out coverage_code.html -html -detail \
                 -metrics overall -all -aspect both -assertionStatus \
@@ -229,14 +233,14 @@ class chromite_cadence_plugin(object):
                     'report -overwrite -out coverage_code.rpt -detail -metrics \
                 code -all -aspect both -assertionStatus -allAssertionCounters \
                 -type *\n')
-            sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core . && '
+            sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core_{0} . && '.format(test)
             sim_setup += 'ln -f -s ' + self.sim_path + '/boot.mem . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/cds.lib . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/hdl.var . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/work . && '
             post_process_cmd = 'head -n -4 rtl.dump > dut.dump && rm -f rtl.dump'
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
-                    self.elf2hex_cmd + sim_setup + self.sim_cmd + ' ' + \
+                    self.elf2hex_cmd + sim_setup + self.sim_cmd + '_' + test + ' ' + \
                     self.sim_args +' && '+ post_process_cmd
             make.add_target(target_cmd, test)
             self.test_names.append(test)
@@ -271,18 +275,19 @@ class chromite_cadence_plugin(object):
         # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
 
         if self.coverage:
-            merge_cmd = 'merge -out ' + self.work_dir + '/reports/' + self.test_list_name + '/final_coverage '
-            rank_cmd = 'rank -out ' + self.work_dir + '/reports/' + self.test_list_name + 'final_rank -html'
+            merge_cmd = 'merge -out ' + self.work_dir + '/reports/' + '/final_coverage '
+            rank_cmd = 'rank -out ' + self.work_dir + '/reports/' + '/final_rank -runfile '+ self.work_dir + '/run_list -html'
             logger.info('Initiating Merging of coverage files')
             for test, attr in self.test_list.items():
                 test_wd = attr['work_dir']
-                merge_cmd += ' ' + test_wd + '/cov_work/scope/test/'
-                rank_cmd += ' ' + test_wd + '/cov_work/scope/test/'
+                merge_cmd += ' ' + test_wd + '/cov_work/scope/' + test + '/'
+                #rank_cmd += ' ' + test_wd + '/cov_work/scope/' + test + '/'
+                with open(self.work_dir + '/run_list' ,'a+') as r:
+                   r.write(test_wd + '/cov_work/scope/' + test + '/ \n')
             with open(self.work_dir + '/merge_imc.cmd', 'w') as f:
                 f.write(merge_cmd + ' \n')
-                f.write('load -run ./final_coverage\n')
-                f.write(
-                    'report -overwrite -out final_coverage_html -html -detail \
+                f.write('load -run ./reports/final_coverage\n')
+                f.write('report -overwrite -out '+ self.work_dir + 'reports/final_coverage_html -html -detail \
                 -metrics overall -all -aspect both -assertionStatus \
                 -allAssertionCounters -type *\n')
                 f.write(rank_cmd + '\n')
