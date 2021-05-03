@@ -53,7 +53,6 @@ def create_asm(gen_file):
     asm_inst = parameter_list[file_ctr][0]
     # TODO check if this needs to change
     # Can come from the inst as well
-    mode = parameter_list[file_ctr][4]
     # Create test.S
     # Clean up the file data
     with open(gen_file, 'r') as gen_file_data:
@@ -78,10 +77,15 @@ def create_asm(gen_file):
             reg_2 = random.randint(int(parameter_list[file_ctr][3][0]),
                                    int(parameter_list[file_ctr][3][1]))
             reg_2_str = 'f' + str(reg_2)
-            arthematic_inst = ['add', 'sub', 'mul', 'div']
-            min_max_inst = ['min', 'max']
-            convert_inst = ['cvt']
+            # Instruction types
+
+            arthematic_inst = ['fadd.', 'fsub.', 'fmul.', 'fdiv.']
+            convert_inst = ['fcvt.']
+            compare_inst = ['feq.', 'flt.', 'fle.']
+            fused_add_inst = ['fmadd.']
+
             if any(element in asm_inst for element in arthematic_inst):
+                mode = parameter_list[file_ctr][4]
                 case_data = gen_data[case_index].split(' ')
                 value_1 = '0x' + str(case_data[0])
                 value_2 = '0x' + str(case_data[1])
@@ -91,7 +95,9 @@ def create_asm(gen_file):
                     case_index, asm_inst, dest_reg, reg_1_str, reg_2_str, mode,
                     expected_result, exception_flag, value_1, value_2)
                 asm_file_pointer.write(generated_asm_inst)
+
             elif any(element in asm_inst for element in convert_inst):
+                mode = parameter_list[file_ctr][4]
                 case_data = gen_data[case_index].split(' ')
                 value_1 = '0x' + str(case_data[0])
                 expected_result = '0x' + str(case_data[1])
@@ -100,8 +106,43 @@ def create_asm(gen_file):
                     case_index, asm_inst, dest_reg, reg_1_str, mode,
                     expected_result, exception_flag, value_1)
                 asm_file_pointer.write(generated_asm_inst)
-            elif any(element in asm_inst for element in min_max_inst):
-                pass
+            elif any(element in asm_inst for element in compare_inst):
+                case_data = gen_data[case_index].split(' ')
+                value_1 = '0x' + str(case_data[0])
+                value_2 = '0x' + str(case_data[1])
+                expected_result = '0x' + str(case_data[2])
+                exception_flag = '0x' + str(case_data[3])
+                if 'eq' in asm_inst:
+                    mode = "010"
+                elif 'lt' in asm_inst:
+                    mode = "001"
+                elif 'le' in asm_inst:
+                    mode = "000"
+                else:
+                    logger.error('Internal error')
+                    raise SystemExit
+                generated_asm_inst = '\ninst_{0}:\nTEST_CMP_OP({1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9})\n'.format(
+                    case_index, asm_inst, dest_reg, reg_1_str, reg_2_str, mode,
+                    expected_result, exception_flag, value_1, value_2)
+                asm_file_pointer.write(generated_asm_inst)
+
+            elif any(element in asm_inst for element in fused_add_inst):
+                mode = parameter_list[file_ctr][5]
+                reg_3 = random.randint(int(parameter_list[file_ctr][4][0]),
+                                       int(parameter_list[file_ctr][4][1]))
+                reg_3_str = 'f' + str(reg_3)
+                case_data = gen_data[case_index].split(' ')
+                value_1 = '0x' + str(case_data[0])
+                value_2 = '0x' + str(case_data[1])
+                value_3 = '0x' + str(case_data[2])
+                expected_result = '0x' + str(case_data[3])
+                exception_flag = '0x' + str(case_data[4])
+                generated_asm_inst = '\ninst_{0}:\nTEST_FMADD_OP({1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11})\n'.format(
+                    case_index, asm_inst, dest_reg, reg_1_str, reg_2_str,
+                    reg_3_str, mode, expected_result, exception_flag, value_1,
+                    value_2, value_3)
+                asm_file_pointer.write(generated_asm_inst)
+
             else:
                 logger.warning(
                     'Failed to detect any instructions \n empty ASM file will be generated'
@@ -121,9 +162,11 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
         raise SystemExit
 
     inst_yaml_list = utils.load_yaml(gen_config)
+    # INIT Vars
     setup_dir = ''
     testfloat_bin = ''
     global test_file
+
     for key, value in inst_yaml_list.items():
         if key == 'gen_binary_path':
             testfloat_bin = inst_yaml_list[key]
@@ -142,46 +185,140 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
             for inst_list_index in range(0, len(inst_list)):
                 rounding_mode_gen = ''
                 rounding_mode_int = 0
+                cmp_enabled = False
                 param_list = []
                 inst = inst_list[inst_list_index]
                 param_list.append(inst)
-                rounding_mode = inst_yaml_list[key]['rounding-mode']
-                for rounding_mode_index in range(0, len(rounding_mode)):
-                    # Dest
-                    dest = inst_yaml_list[key]['dest'].split(',')
-                    param_list.append(dest)
-                    # Register 1
-                    reg1 = inst_yaml_list[key]['reg1'].split(',')
-                    param_list.append(reg1)
-                    # Register 2
-                    reg2 = inst_yaml_list[key]['reg2'].split(',')
-                    param_list.append(reg2)
-                    tests_per_instruction = int(
-                        inst_yaml_list[key]['tests_per_instruction'])
-                    rounding_mode_str = rounding_mode[rounding_mode_index]
-                    # Convert the string to values
-                    if rounding_mode_str == 'RNE':
-                        rounding_mode_int = 0
-                        rounding_mode_gen = '-rnear_even'
-                    elif rounding_mode_str == 'RTZ':
-                        rounding_mode_int = 1
-                        rounding_mode_gen = '-rminMag'
-                    elif rounding_mode_str == 'RDN':
-                        rounding_mode_int = 2
-                        rounding_mode_gen = '-rmin'
-                    elif rounding_mode_str == 'RUP':
-                        rounding_mode_int = 3
-                        rounding_mode_gen = '-rmax'
-                    elif rounding_mode_str == 'RMM':
-                        rounding_mode_int = 4
-                        rounding_mode_gen = '-rnear_maxMag'
+                # Dest
+                dest = inst_yaml_list[key]['dest'].split(',')
+                param_list.append(dest)
+                # Register 1
+                reg1 = inst_yaml_list[key]['reg1'].split(',')
+                param_list.append(reg1)
+                # Register 2
+                reg2 = inst_yaml_list[key]['reg2'].split(',')
+                param_list.append(reg2)
+                tests_per_instruction = int(
+                    inst_yaml_list[key]['tests_per_instruction'])
+                # Get inst info
+
+                arthematic_inst = ['fadd.', 'fsub.', 'fmul.', 'fdiv.']
+                convert_inst = ['fcvt.']
+                compare_inst = ['feq.', 'flt.', 'fle.']
+                fused_add_inst = ['fmadd.']
+                gen_inst = ''
+
+                if any(element in inst for element in arthematic_inst):
+                    gen_inst = inst[1:-2]
+                    # Get precision
+                    inst_prefix = ''
+                    if '.s' in inst:
+                        inst_prefix = 'f32'
+                    elif '.d' in inst:
+                        inst_prefix = 'f64'
+                    elif '.q' in inst:
+                        inst_prefix = 'f128'
                     else:
                         logger.error(
-                            'Something went wrong while parsing YAML file \nIncorrect Rounding Mode for block {0}'
-                            .format(key))
+                            'Something went wrong while parsing YAML file \nPrecision not supported'
+                        )
                         raise SystemExit
-                    # Get other info
-                    param_list.append(rounding_mode_int)
+
+                    gen_inst = inst_prefix + '_' + gen_inst
+                elif any(element in inst for element in compare_inst):
+                    gen_inst = inst[1:-2]
+                    # Get precision
+                    inst_prefix = ''
+                    if '.s' in inst:
+                        inst_prefix = 'f32'
+                    elif '.d' in inst:
+                        inst_prefix = 'f64'
+                    elif '.q' in inst:
+                        inst_prefix = 'f128'
+                    else:
+                        logger.error(
+                            'Something went wrong while parsing YAML file \nPrecision not supported'
+                        )
+                        raise SystemExit
+                    # Set a flag for later usage
+                    cmp_enabled = True
+                    gen_inst = inst_prefix + '_' + gen_inst
+
+                elif any(element in inst for element in fused_add_inst):
+                    gen_inst = 'mulAdd'
+
+                    # Get precision
+                    inst_prefix = ''
+                    if '.s' in inst:
+                        inst_prefix = 'f32'
+                    elif '.d' in inst:
+                        inst_prefix = 'f64'
+                    elif '.q' in inst:
+                        inst_prefix = 'f128'
+                    else:
+                        logger.error(
+                            'Something went wrong while parsing YAML file \nPrecision not supported'
+                        )
+                        raise SystemExit
+
+                    # Register 3
+                    reg3 = inst_yaml_list[key]['reg3'].split(',')
+                    param_list.append(reg3)
+                    gen_inst = inst_prefix + '_' + gen_inst
+
+                elif any(element in inst for element in convert_inst):
+                    gen_inst = 'to'
+                    src_prefix = ''
+                    dest_prefix = ''
+
+                    # TODO Check for illegal conversions
+                    if inst[-1] == 'w':
+                        src_prefix = 'i32'
+                    elif inst[-1] == 'wu':
+                        src_prefix = 'ui32'
+                    elif inst[-1] == 'l':
+                        src_prefix = 'i64'
+                    elif inst[-1] == 'lu':
+                        src_prefix = 'ui64'
+                    elif inst[-1] == 's':
+                        src_prefix = 'f32'
+                    elif inst[-1] == 'd':
+                        src_prefix = 'f64'
+                    elif inst[-1] == 'q':
+                        src_prefix = 'f128'
+                    else:
+                        logger.error(
+                            'Something went wrong while parsing YAML file \nConversion invalid'
+                        )
+                        raise SystemExit
+
+                    if inst[-3] == 'w':
+                        dest_prefix = 'i32'
+                    elif inst[-3] == 'wu':
+                        dest_prefix = 'ui32'
+                    elif inst[-3] == 'l':
+                        dest_prefix = 'i64'
+                    elif inst[-3] == 'lu':
+                        dest_prefix = 'ui64'
+                    elif inst[-3] == 's':
+                        dest_prefix = 'f32'
+                    elif inst[-3] == 'd':
+                        dest_prefix = 'f64'
+                    elif inst[-3] == 'q':
+                        dest_prefix = 'f128'
+                    else:
+                        logger.error(
+                            'Something went wrong while parsing YAML file \nConversion invalid'
+                        )
+                        raise SystemExit
+
+                    gen_inst = src_prefix + '_' + gen_inst + '_' + dest_prefix
+
+                # Special comparison mode to no need for rounding mode loop
+                if cmp_enabled:
+                    logger.info(
+                        'Compare operation detected\n Ignoring the Rounding Mode for block {0}\n'
+                        .format(key))
                     num_tests = inst_yaml_list[key]['num_tests']
                     for num_index in range(int(num_tests)):
                         if seed == 'random':
@@ -191,96 +328,83 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
 
                         now = datetime.datetime.now()
                         gen_prefix = '{0:06}_{1}'.format(
-                            gen_seed, now.strftime('%d%m%Y%H%M%S%f'))
-                        test_prefix = 'testfloat_{0}_{1}_{2}_{3}_{4}'.format(
-                            key, inst, rounding_mode_str, num_index, gen_prefix)
+                            gen_seed, now.strftime('%d%m%y%h%m%s%f'))
+                        test_prefix = 'testfloat_{0}_{1}_{2}_{3}'.format(
+                            key, inst, num_index, gen_prefix)
                         testdir = '{0}/asm/{1}/'.format(dirname, test_prefix)
 
                         try:
                             os.makedirs(testdir, exist_ok=True)
                         except:
                             logger.error(
-                                "Unable to create a directory, exiting tests")
+                                "unable to create a directory, exiting tests")
                             raise SystemExit
 
-                        arthematic_inst = ['add', 'sub', 'mul', 'div']
-                        min_max_inst = ['min', 'max']
-                        convert_inst = ['cvt']
-                        gen_inst = ''
-
-                        if any(element in inst for element in arthematic_inst):
-                            gen_inst = inst[1:-2]
-                            # Get precision
-                            inst_prefix = ''
-                            if '.s' in inst:
-                                inst_prefix = 'f32'
-                            elif '.d' in inst:
-                                inst_prefix = 'f64'
-                            elif '.q' in inst:
-                                inst_prefix = 'f128'
-                            else:
-                                logger.error(
-                                    'Something went wrong while parsing YAML file \nPrecision not supported'
-                                )
-                                raise SystemExit
-
-                            gen_inst = inst_prefix + '_' + gen_inst
-                        elif any(element in inst for element in min_max_inst):
-                            pass
-                        elif any(element in inst for element in convert_inst):
-                            gen_inst = 'to'
-                            src_prefix = ''
-                            dest_prefix = ''
-
-                            # TODO Check for illegal conversions
-                            if inst[-1] == 'w':
-                                src_prefix = 'i32'
-                            elif inst[-1] == 'wu':
-                                src_prefix = 'ui32'
-                            elif inst[-1] == 'l':
-                                src_prefix = 'i64'
-                            elif inst[-1] == 'lu':
-                                src_prefix = 'ui64'
-                            elif inst[-1] == 's':
-                                src_prefix = 'f32'
-                            elif inst[-1] == 'd':
-                                src_prefix = 'f64'
-                            elif inst[-1] == 'q':
-                                src_prefix = 'f128'
-                            else:
-                                logger.error(
-                                    'Something went wrong while parsing YAML file \nConversion invalid'
-                                )
-                                raise SystemExit
-
-                            if inst[-3] == 'w':
-                                dest_prefix = 'i32'
-                            elif inst[-3] == 'wu':
-                                dest_prefix = 'ui32'
-                            elif inst[-3] == 'l':
-                                dest_prefix = 'i64'
-                            elif inst[-3] == 'lu':
-                                dest_prefix = 'ui64'
-                            elif inst[-3] == 's':
-                                dest_prefix = 'f32'
-                            elif inst[-3] == 'd':
-                                dest_prefix = 'f64'
-                            elif inst[-3] == 'q':
-                                dest_prefix = 'f128'
-                            else:
-                                logger.error(
-                                    'Something went wrong while parsing YAML file \nConversion invalid'
-                                )
-                                raise SystemExit
-
-                            gen_inst = src_prefix + '_' + gen_inst + '_' + dest_prefix
-
-                        run_command.append(
-                            '{0} -seed {1} -n {2} {3} {4}'.format(
-                                testfloat_bin, gen_seed, tests_per_instruction,
-                                rounding_mode_gen, gen_inst))
+                        run_command.append('{0} -seed {1} -n {2} {3}'.format(
+                            testfloat_bin, gen_seed, tests_per_instruction,
+                            gen_inst))
                         test_file.append(testdir + test_prefix + '.gen')
                         parameter_list.append(param_list)
+
+                # Check for all suported inst using rounding-mode
+                rounding_mode = inst_yaml_list[key].get('rounding-mode')
+                if rounding_mode:
+                    for rounding_mode_index in range(0, len(rounding_mode)):
+                        rounding_mode_str = rounding_mode[rounding_mode_index]
+                        # Convert the string to values
+                        if rounding_mode_str == 'RNE':
+                            rounding_mode_int = 0
+                            rounding_mode_gen = '-rnear_even'
+                        elif rounding_mode_str == 'RTZ':
+                            rounding_mode_int = 1
+                            rounding_mode_gen = '-rminMag'
+                        elif rounding_mode_str == 'RDN':
+                            rounding_mode_int = 2
+                            rounding_mode_gen = '-rmin'
+                        elif rounding_mode_str == 'RUP':
+                            rounding_mode_int = 3
+                            rounding_mode_gen = '-rmax'
+                        elif rounding_mode_str == 'RMM':
+                            rounding_mode_int = 4
+                            rounding_mode_gen = '-rnear_maxMag'
+                        else:
+                            logger.error(
+                                'Something went wrong while parsing YAML file \nIncorrect Rounding Mode for block {0}\n'
+                                .format(key))
+                            raise SystemExit
+                        # Get other info
+                        param_list.append(rounding_mode_int)
+                        num_tests = inst_yaml_list[key]['num_tests']
+                        for num_index in range(int(num_tests)):
+                            if seed == 'random':
+                                gen_seed = random.randint(0, 10000)
+                            else:
+                                gen_seed = int(seed)
+
+                            now = datetime.datetime.now()
+                            gen_prefix = '{0:06}_{1}'.format(
+                                gen_seed, now.strftime('%d%m%y%h%m%s%f'))
+                            test_prefix = 'testfloat_{0}_{1}_{2}_{3}_{4}'.format(
+                                key, inst, rounding_mode_str, num_index,
+                                gen_prefix)
+                            testdir = '{0}/asm/{1}/'.format(
+                                dirname, test_prefix)
+
+                            try:
+                                os.makedirs(testdir, exist_ok=True)
+                            except:
+                                logger.error(
+                                    "unable to create a directory, exiting tests"
+                                )
+                                raise SystemExit
+
+                            run_command.append(
+                                '{0} -seed {1} -n {2} {3} {4}'.format(
+                                    testfloat_bin, gen_seed,
+                                    tests_per_instruction, rounding_mode_gen,
+                                    gen_inst))
+                            test_file.append(testdir + test_prefix + '.gen')
+                            parameter_list.append(param_list)
 
     return run_command
 
