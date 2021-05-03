@@ -32,7 +32,11 @@ header = '''#include "test.h"
 #include "model.h"
 .section .text.init
 .globl rvtest_entry_point
-rvtest_entry_point:'''
+rvtest_entry_point:
+
+l1 t0, 0x00006000
+csrs mstatus, t0
+'''
 footer = '''rvtest_code_end:
 RVMODEL_HALT'''
 

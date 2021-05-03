@@ -104,7 +104,7 @@ class chromite_verilator_plugin(object):
             raise SystemExit
         # Build verilator again
 
-        self.verilator_speed = 'OPT_SLOW="-O3" OPT_FAST="-O3"'
+        self.verilator_speed = ''#OPT_SLOW="-O3" OPT_FAST="-O3"'
 
         orig_path = os.getcwd()
         logger.info("Build verilator")
@@ -191,6 +191,8 @@ class chromite_verilator_plugin(object):
                     cc, cc_args, arch, abi, link_args, link_file, asm_file)
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
+            for x in attr['include']:
+                compile_cmd += ' -I'+str(x)
             compile_cmd += ' -o dut.elf && '
             sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/boot.mem . && '
@@ -200,6 +202,7 @@ class chromite_verilator_plugin(object):
                     self.sim_args +' && '+ post_process_cmd
             make.add_target(target_cmd, test)
             self.test_names.append(test)
+        raise SystemExit
 
     @dut_hookimpl
     def run(self, module_dir):
