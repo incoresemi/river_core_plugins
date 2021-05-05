@@ -32,14 +32,50 @@ header = '''#include "test.h"
 #include "model.h"
 .section .text.init
 .globl rvtest_entry_point
-rvtest_entry_point:'''
-footer = '''rvtest_code_end:
+rvtest_entry_point:
+
+li t0, 0x00006000
+csrs mstatus, t0
+
+la x1, rvtest_data
+'''
+
+code_footer = '''rvtest_code_end:
 RVMODEL_HALT'''
 
 
+def inst_precision(inst):
+    inst_prefix = ''
+    if '.s' in inst:
+        inst_prefix = 'f32'
+    elif '.d' in inst:
+        inst_prefix = 'f64'
+    elif '.q' in inst:
+        inst_prefix = 'f128'
+    else:
+        logger.error('Failed to get the proper precision')
+    return inst_prefix
+
+
+def inst_alignment(inst):
+    inst_align = 0
+    if '.s' in inst:
+        inst_align = 4
+    elif '.d' in inst:
+        inst_align = 8
+    # TODO Could be possibly wrong, can remove Q parts for now as well
+    elif '.q' in inst:
+        inst_align = 16
+    else:
+        logger.error('Failed to get the proper precision')
+    return inst_align
+
+
 def create_asm(gen_file):
+    offset_mem = []
     work_dir = os.path.dirname(os.path.realpath(gen_file))
     local_folder_dir = folder_dir + '/testfloat_plugin/asm/'
+
     # copy stuff for asm
     logger.info('Copying Header files')
     shutil.copy(local_folder_dir + 'test.h',
@@ -66,7 +102,12 @@ def create_asm(gen_file):
             datetime.datetime.now(), run_command[file_ctr])
         asm_file_pointer.write(generation_header)
         asm_file_pointer.write(header)
+
+        # Need to maintain an offset for the values
+        offset_ctr = 0
         for case_index in range(0, len(gen_data)):
+            # Get alignment values
+            align = inst_alignment(asm_inst)
             # Move the selection here to ensure max variety in the tests cases
             dest = random.randint(int(parameter_list[file_ctr][1][0]),
                                   int(parameter_list[file_ctr][1][1]))
@@ -77,77 +118,38 @@ def create_asm(gen_file):
             reg_2 = random.randint(int(parameter_list[file_ctr][3][0]),
                                    int(parameter_list[file_ctr][3][1]))
             reg_2_str = 'f' + str(reg_2)
+
             # Instruction types
 
             arthematic_inst = ['fadd.', 'fsub.', 'fmul.', 'fdiv.']
-            convert_inst = ['fcvt.']
-            compare_inst = ['feq.', 'flt.', 'fle.']
-            fused_add_inst = ['fmadd.']
 
+            # TODO: Improve, nested list parsing, regex is a good alt, but need to be pefomant heavy
             if any(element in asm_inst for element in arthematic_inst):
                 mode = parameter_list[file_ctr][4]
                 case_data = gen_data[case_index].split(' ')
-                value_1 = '0x' + str(case_data[0])
-                value_2 = '0x' + str(case_data[1])
-                expected_result = '0x' + str(case_data[2])
-                exception_flag = '0x' + str(case_data[3])
-                generated_asm_inst = '\ninst_{0}:\nTEST_AR_OP({1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9})\n'.format(
+                offset_mem.append('0x' + str(case_data[0]))
+                offset_mem.append('0x' + str(case_data[1]))
+                # expected_result = '0x' + str(case_data[2])
+                # exception_flag = '0x' + str(case_data[3])
+                generated_asm_inst = '\ninst_{0}:\nTEST_RR_OP({1}, {2}, {3}, {4}, {5}, {6}, {7})\n'.format(
                     case_index, asm_inst, dest_reg, reg_1_str, reg_2_str, mode,
-                    expected_result, exception_flag, value_1, value_2)
-                asm_file_pointer.write(generated_asm_inst)
-
-            elif any(element in asm_inst for element in convert_inst):
-                mode = parameter_list[file_ctr][4]
-                case_data = gen_data[case_index].split(' ')
-                value_1 = '0x' + str(case_data[0])
-                expected_result = '0x' + str(case_data[1])
-                exception_flag = '0x' + str(case_data[2])
-                generated_asm_inst = '\ninst_{0}:\nTEST_CVT_OP({1}, {2}, {3}, {4}, {5}, {6}, {7})\n'.format(
-                    case_index, asm_inst, dest_reg, reg_1_str, mode,
-                    expected_result, exception_flag, value_1)
-                asm_file_pointer.write(generated_asm_inst)
-            elif any(element in asm_inst for element in compare_inst):
-                case_data = gen_data[case_index].split(' ')
-                value_1 = '0x' + str(case_data[0])
-                value_2 = '0x' + str(case_data[1])
-                expected_result = '0x' + str(case_data[2])
-                exception_flag = '0x' + str(case_data[3])
-                if 'eq' in asm_inst:
-                    mode = "010"
-                elif 'lt' in asm_inst:
-                    mode = "001"
-                elif 'le' in asm_inst:
-                    mode = "000"
-                else:
-                    logger.error('Internal error')
-                    raise SystemExit
-                generated_asm_inst = '\ninst_{0}:\nTEST_CMP_OP({1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9})\n'.format(
-                    case_index, asm_inst, dest_reg, reg_1_str, reg_2_str, mode,
-                    expected_result, exception_flag, value_1, value_2)
-                asm_file_pointer.write(generated_asm_inst)
-
-            elif any(element in asm_inst for element in fused_add_inst):
-                mode = parameter_list[file_ctr][5]
-                reg_3 = random.randint(int(parameter_list[file_ctr][4][0]),
-                                       int(parameter_list[file_ctr][4][1]))
-                reg_3_str = 'f' + str(reg_3)
-                case_data = gen_data[case_index].split(' ')
-                value_1 = '0x' + str(case_data[0])
-                value_2 = '0x' + str(case_data[1])
-                value_3 = '0x' + str(case_data[2])
-                expected_result = '0x' + str(case_data[3])
-                exception_flag = '0x' + str(case_data[4])
-                generated_asm_inst = '\ninst_{0}:\nTEST_FMADD_OP({1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11})\n'.format(
-                    case_index, asm_inst, dest_reg, reg_1_str, reg_2_str,
-                    reg_3_str, mode, expected_result, exception_flag, value_1,
-                    value_2, value_3)
+                    offset_ctr, offset_ctr + align)
+                offset_ctr += align
                 asm_file_pointer.write(generated_asm_inst)
 
             else:
                 logger.warning(
                     'Failed to detect any instructions \n empty ASM file will be generated'
                 )
-        asm_file_pointer.write(footer)
+        # Finish the code section
+        asm_file_pointer.write(code_footer + '\n\n')
+        # Need to write the offsets here
+        data_header = 'RVTEST_DATA_BEGIN\n.align {0}\nrvtest_data:\n'.format(
+            align)
+        asm_file_pointer.write(data_header)
+        for memory in offset_mem:
+            asm_file_pointer.write('.word ' + str(memory) + '\n')
+        asm_file_pointer.write('RVTEST_DATA_END \n')
 
 
 def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
@@ -162,6 +164,7 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
         raise SystemExit
 
     inst_yaml_list = utils.load_yaml(gen_config)
+
     # INIT Vars
     setup_dir = ''
     testfloat_bin = ''
@@ -171,11 +174,13 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
         if key == 'gen_binary_path':
             testfloat_bin = inst_yaml_list[key]
 
-            # Check if aapg is there on path
+            # Check if testfloat is there on path
             if shutil.which(testfloat_bin) is None:
                 logger.error(
                     'Plugin requires testfloat to be installed and executable')
                 raise SystemExit
+
+        # Directory for output
         dirname = output_dir + '/testfloat'
 
         if re.search('^set', key):
@@ -185,7 +190,6 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
             for inst_list_index in range(0, len(inst_list)):
                 rounding_mode_gen = ''
                 rounding_mode_int = 0
-                cmp_enabled = False
                 param_list = []
                 inst = inst_list[inst_list_index]
                 param_list.append(inst)
@@ -200,151 +204,16 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                 param_list.append(reg2)
                 tests_per_instruction = int(
                     inst_yaml_list[key]['tests_per_instruction'])
-                # Get inst info
 
+                # Get inst info
                 arthematic_inst = ['fadd.', 'fsub.', 'fmul.', 'fdiv.']
-                convert_inst = ['fcvt.']
-                compare_inst = ['feq.', 'flt.', 'fle.']
-                fused_add_inst = ['fmadd.']
                 gen_inst = ''
 
+                # TODO: Improve, nested list parsing, regex is a good alt, but need to be pefomant heavy
                 if any(element in inst for element in arthematic_inst):
                     gen_inst = inst[1:-2]
-                    # Get precision
-                    inst_prefix = ''
-                    if '.s' in inst:
-                        inst_prefix = 'f32'
-                    elif '.d' in inst:
-                        inst_prefix = 'f64'
-                    elif '.q' in inst:
-                        inst_prefix = 'f128'
-                    else:
-                        logger.error(
-                            'Something went wrong while parsing YAML file \nPrecision not supported'
-                        )
-                        raise SystemExit
-
-                    gen_inst = inst_prefix + '_' + gen_inst
-                elif any(element in inst for element in compare_inst):
-                    gen_inst = inst[1:-2]
-                    # Get precision
-                    inst_prefix = ''
-                    if '.s' in inst:
-                        inst_prefix = 'f32'
-                    elif '.d' in inst:
-                        inst_prefix = 'f64'
-                    elif '.q' in inst:
-                        inst_prefix = 'f128'
-                    else:
-                        logger.error(
-                            'Something went wrong while parsing YAML file \nPrecision not supported'
-                        )
-                        raise SystemExit
-                    # Set a flag for later usage
-                    cmp_enabled = True
-                    gen_inst = inst_prefix + '_' + gen_inst
-
-                elif any(element in inst for element in fused_add_inst):
-                    gen_inst = 'mulAdd'
-
-                    # Get precision
-                    inst_prefix = ''
-                    if '.s' in inst:
-                        inst_prefix = 'f32'
-                    elif '.d' in inst:
-                        inst_prefix = 'f64'
-                    elif '.q' in inst:
-                        inst_prefix = 'f128'
-                    else:
-                        logger.error(
-                            'Something went wrong while parsing YAML file \nPrecision not supported'
-                        )
-                        raise SystemExit
-
-                    # Register 3
-                    reg3 = inst_yaml_list[key]['reg3'].split(',')
-                    param_list.append(reg3)
-                    gen_inst = inst_prefix + '_' + gen_inst
-
-                elif any(element in inst for element in convert_inst):
-                    gen_inst = 'to'
-                    src_prefix = ''
-                    dest_prefix = ''
-
-                    # TODO Check for illegal conversions
-                    if inst[-1] == 'w':
-                        src_prefix = 'i32'
-                    elif inst[-1] == 'wu':
-                        src_prefix = 'ui32'
-                    elif inst[-1] == 'l':
-                        src_prefix = 'i64'
-                    elif inst[-1] == 'lu':
-                        src_prefix = 'ui64'
-                    elif inst[-1] == 's':
-                        src_prefix = 'f32'
-                    elif inst[-1] == 'd':
-                        src_prefix = 'f64'
-                    elif inst[-1] == 'q':
-                        src_prefix = 'f128'
-                    else:
-                        logger.error(
-                            'Something went wrong while parsing YAML file \nConversion invalid'
-                        )
-                        raise SystemExit
-
-                    if inst[-3] == 'w':
-                        dest_prefix = 'i32'
-                    elif inst[-3] == 'wu':
-                        dest_prefix = 'ui32'
-                    elif inst[-3] == 'l':
-                        dest_prefix = 'i64'
-                    elif inst[-3] == 'lu':
-                        dest_prefix = 'ui64'
-                    elif inst[-3] == 's':
-                        dest_prefix = 'f32'
-                    elif inst[-3] == 'd':
-                        dest_prefix = 'f64'
-                    elif inst[-3] == 'q':
-                        dest_prefix = 'f128'
-                    else:
-                        logger.error(
-                            'Something went wrong while parsing YAML file \nConversion invalid'
-                        )
-                        raise SystemExit
-
-                    gen_inst = src_prefix + '_' + gen_inst + '_' + dest_prefix
-
-                # Special comparison mode to no need for rounding mode loop
-                if cmp_enabled:
-                    logger.info(
-                        'Compare operation detected\n Ignoring the Rounding Mode for block {0}\n'
-                        .format(key))
-                    num_tests = inst_yaml_list[key]['num_tests']
-                    for num_index in range(int(num_tests)):
-                        if seed == 'random':
-                            gen_seed = random.randint(0, 10000)
-                        else:
-                            gen_seed = int(seed)
-
-                        now = datetime.datetime.now()
-                        gen_prefix = '{0:06}_{1}'.format(
-                            gen_seed, now.strftime('%d%m%y%h%m%s%f'))
-                        test_prefix = 'testfloat_{0}_{1}_{2}_{3}'.format(
-                            key, inst, num_index, gen_prefix)
-                        testdir = '{0}/asm/{1}/'.format(dirname, test_prefix)
-
-                        try:
-                            os.makedirs(testdir, exist_ok=True)
-                        except:
-                            logger.error(
-                                "unable to create a directory, exiting tests")
-                            raise SystemExit
-
-                        run_command.append('{0} -seed {1} -n {2} {3}'.format(
-                            testfloat_bin, gen_seed, tests_per_instruction,
-                            gen_inst))
-                        test_file.append(testdir + test_prefix + '.gen')
-                        parameter_list.append(param_list)
+                    inst_prefix = inst_precision(inst)
+                gen_inst = str(inst_prefix) + '_' + gen_inst
 
                 # Check for all suported inst using rounding-mode
                 rounding_mode = inst_yaml_list[key].get('rounding-mode')
@@ -394,7 +263,7 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                                 os.makedirs(testdir, exist_ok=True)
                             except:
                                 logger.error(
-                                    "unable to create a directory, exiting tests"
+                                    "unable to create a directory, exiting Pytest"
                                 )
                                 raise SystemExit
 
