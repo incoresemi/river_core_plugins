@@ -134,7 +134,8 @@ def create_asm(gen_file):
                 generated_asm_inst = '\ninst_{0}:\nTEST_RR_OP({1}, {2}, {3}, {4}, {5}, {6}, {7})\n'.format(
                     case_index, asm_inst, dest_reg, reg_1_str, reg_2_str, mode,
                     offset_ctr, offset_ctr + align)
-                offset_ctr += align
+                # Ensure that the offset generated is twice the amount
+                offset_ctr += 2 * align
                 asm_file_pointer.write(generated_asm_inst)
 
             else:
