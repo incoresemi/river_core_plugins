@@ -140,7 +140,7 @@ class chromite_cadence_plugin(object):
                 +define+BSV_RESET_FIFO_ARRAY \
                 {4}/sv_top/tb_top.sv \
                 {5}/lib/Verilog/main.v \
-                -y {1} -y {2} -y {3} '                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      .format( \
+                -y {1} -y {2} -y {3} '                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  .format( \
                 self.top_module, self.src_dir[0], self.src_dir[1], \
                 self.src_dir[2], self.plugin_path+self.name+'_plugin', \
                 self.bsc_path)
@@ -172,14 +172,13 @@ class chromite_cadence_plugin(object):
         logger.info("Making ncsim binary")
 
         for test, attr in self.test_list.items():
-          with open('chromite_core_{0}'.format(test), 'w') as f:
-            f.write(
-                'ncsim -64BIT +rtldump -COVOVERWRITE -covtest ' + test + ' -cdslib ./cds.lib -hdlvar ./hdl.var work.main\n'
-            )
-            if self.coverage:
-                f.write('imc -exec imc.cmd\n')
-          logger.info('Renaming Binary')
-          sys_command('chmod +x chromite_core_{0}'.format(test))
+            with open('chromite_core_{0}'.format(test), 'w') as f:
+                f.write('ncsim -64BIT +rtldump -COVOVERWRITE -covtest ' + test +
+                        ' -cdslib ./cds.lib -hdlvar ./hdl.var work.main\n')
+                if self.coverage:
+                    f.write('imc -exec imc.cmd\n')
+            logger.info('Renaming Binary')
+            sys_command('chmod +x chromite_core_{0}'.format(test))
 
         #logger.info('Renaming Binary')
         #sys_command('chmod +x chromite_core')
@@ -233,7 +232,8 @@ class chromite_cadence_plugin(object):
                     'report -overwrite -out coverage_code.rpt -detail -metrics \
                 code -all -aspect both -assertionStatus -allAssertionCounters \
                 -type *\n')
-            sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core_{0} . && '.format(test)
+            sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core_{0} . && '.format(
+                test)
             sim_setup += 'ln -f -s ' + self.sim_path + '/boot.mem . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/cds.lib . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/hdl.var . && '
@@ -276,18 +276,19 @@ class chromite_cadence_plugin(object):
 
         if self.coverage:
             merge_cmd = 'merge -out ' + self.work_dir + '/reports/' + '/final_coverage '
-            rank_cmd = 'rank -out ' + self.work_dir + '/reports/' + '/final_rank -runfile '+ self.work_dir + '/run_list -html'
+            rank_cmd = 'rank -out ' + self.work_dir + '/reports/' + '/final_rank -runfile ' + self.work_dir + '/run_list -html'
             logger.info('Initiating Merging of coverage files')
             for test, attr in self.test_list.items():
                 test_wd = attr['work_dir']
                 merge_cmd += ' ' + test_wd + '/cov_work/scope/' + test + '/'
                 #rank_cmd += ' ' + test_wd + '/cov_work/scope/' + test + '/'
-                with open(self.work_dir + '/run_list' ,'a+') as r:
-                   r.write(test_wd + '/cov_work/scope/' + test + '/ \n')
+                with open(self.work_dir + '/run_list', 'a+') as r:
+                    r.write(test_wd + '/cov_work/scope/' + test + '/ \n')
             with open(self.work_dir + '/merge_imc.cmd', 'w') as f:
                 f.write(merge_cmd + ' \n')
                 f.write('load -run ./reports/final_coverage\n')
-                f.write('report -overwrite -out '+ self.work_dir + 'reports/final_coverage_html -html -detail \
+                f.write('report -overwrite -out ' + self.work_dir +
+                        'reports/final_coverage_html -html -detail \
                 -metrics overall -all -aspect both -assertionStatus \
                 -allAssertionCounters -type *\n')
                 f.write(rank_cmd + '\n')
@@ -316,8 +317,7 @@ class chromite_cadence_plugin(object):
                     try:
                         os.remove(work_dir + '/app_log')
                         os.remove(work_dir + '/code.mem')
-                        os.remove(work_dir + '/cds.lib')
-                        os.remove(work_dir + '/hdl.var')
+                        os.remove(work_dir + '/coverage_code.rpt')
                         os.remove(work_dir + '/dut.disass')
                         os.remove(work_dir + '/dut.dump')
                         os.remove(work_dir + '/signature')
