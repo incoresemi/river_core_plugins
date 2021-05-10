@@ -367,8 +367,7 @@ class chromite_questa_plugin(object):
         sys_command('chmod +x {0}/final_merge_vcover.cmd'.format(output_db))
         sys_command('sh {0}/final_merge_vcover.cmd'.format(output_db))
 
-        # Need to confirm this Jyothi
         final_html = output_db + '/final_html/index.html'
-        final_rank_html = output_db + '/final_html_rank/rank_sub_dir/rank.html'
+        final_rank_html = output_db + '/final_html_rank/rank.html'
         os.chdir(orig_path)
         return final_html, final_rank_html
