@@ -10,11 +10,11 @@ gen_binary_path: /home/vagrant/tools/float/TestFloat-3e/build/Linux-x86_64-GCC/t
 # RMM Round to Nearest, ties to Max Magnitude -> 4
 #
 set_1:
-     inst: [fadd.s, fadd.d] 
+     inst: [fadd.s] 
      dest: 0,31
      reg1: 0,31
      reg2: 0,31
-     rounding-mode: [RNE, RTZ]
+     rounding-mode: [RNE]
      # Needs to be above 46464
      tests_per_instruction: 46464 
      num_tests: 1 
