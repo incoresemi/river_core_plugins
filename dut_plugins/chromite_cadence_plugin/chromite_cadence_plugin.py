@@ -312,12 +312,20 @@ class chromite_cadence_plugin(object):
                 if test_dict[test]['result'] == 'Passed':
                     logger.debug("Removing extra files for Test: " + str(test))
                     work_dir = test_dict[test]['work_dir']
+                    # List of all files deemed uncessary to reduce space usage
                     try:
                         os.remove(work_dir + '/app_log')
                         os.remove(work_dir + '/code.mem')
+                        os.remove(work_dir + '/cds.lib')
+                        os.remove(work_dir + '/hdl.var')
                         os.remove(work_dir + '/dut.disass')
                         os.remove(work_dir + '/dut.dump')
                         os.remove(work_dir + '/signature')
+                        os.remove(work_dir + '/imc.log')
+                        os.remove(work_dir + '/imc.cmd')
+                        os.remove(work_dir + '/imc.key')
+                        os.remove(work_dir + '/mdv.log')
+                        os.remove(work_dir + '/ncsim.log')
                     except:
                         logger.info(
                             "Something went wrong trying to remove the files")
