@@ -3,16 +3,19 @@ ENTRY(rvtest_entry_point)
 
 SECTIONS
 {
-  . = 0x80000000;
+  . = 2147483648;
   .text.init : { *(.text.init) }
-  . = ALIGN(0x1000);
-  .tohost : { *(.tohost) }
-  . = ALIGN(0x1000);
   .text : { *(.text) }
-  . = ALIGN(0x1000);
-  .data : { *(.data) }
-  .data.string : { *(.data.string)}
-  .bss : { *(.bss) }
+
+  /* data segment */
+  . = 0x80090000;
+  .data : { *(begin_rvtest_data*) }
+
+
+  . = ALIGN(0x100000);
+  .tohost : { *(.tohost) }
+  .rodata : { *(rodata) }
+
+  /* End of uninitalized data segement */
   _end = .;
 }
-
