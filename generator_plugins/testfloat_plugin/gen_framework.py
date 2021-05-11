@@ -16,13 +16,13 @@ from envyaml import EnvYAML
 # Output globals.
 # This is done, because writing to file is complicated business
 test_file = []
+run_command = []
 # Parameter list is a list designed to get all useful info while generating things from testfloat
 # It is a nested list.
 # Main = [Sub1, Sub2, Sub3]
 # Sub1 = [Inst, Dest, Reg1, Reg2, Mode]
 # Dest, Reg1, Reg2 are again a list of values to generate the addresses from
 parameter_list = []
-run_command = []
 folder_dir = ''
 # File_ctr is a variable to account for total number of test_cases
 file_ctr = 0
@@ -115,9 +115,9 @@ def create_asm(gen_file):
         # Need to maintain an offset for the values
         offset_ctr = 0
         # TODO: Will change to original file length after testing
-        # for case_index in range(0, len(gen_data)):
         # Is useful to control the number of instructions, we can probably step away from the limits for Testfloat
-        for case_index in range(0, 10):
+        # for case_index in range(0, 10):
+        for case_index in range(0, len(gen_data)):
             # Get alignment values
             align = inst_alignment(asm_inst)
             # Move the selection here to ensure max variety in the tests cases
@@ -162,7 +162,9 @@ def create_asm(gen_file):
         asm_file_pointer.write(data_header)
         for memory in offset_mem:
             asm_file_pointer.write('.word ' + str(memory) + '\n')
-        asm_file_pointer.write('; .global end_rvtest_data; end_rvtest_data:\n')
+        asm_file_pointer.write(
+            '.align {0}; .global end_rvtest_data; end_rvtest_data:\n'.format(
+                align))
 
 
 def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
@@ -179,6 +181,7 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
     inst_yaml_list = utils.load_yaml(gen_config)
 
     # INIT Vars
+
     setup_dir = ''
     testfloat_bin = ''
     global test_file
@@ -201,6 +204,11 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
             inst_list = inst_yaml_list[key]['inst']
             # Using index so as to ensure that we can iterate both
             for inst_list_index in range(0, len(inst_list)):
+
+                if seed == 'random':
+                    gen_seed = random.randint(0, 10000)
+                else:
+                    gen_seed = int(seed)
                 rounding_mode_gen = ''
                 rounding_mode_int = 0
                 param_list = []
@@ -257,42 +265,41 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                         # Get other info
                         param_list.append(rounding_mode_int)
                         num_tests = inst_yaml_list[key]['num_tests']
-                        for num_index in range(int(num_tests)):
-                            if seed == 'random':
-                                gen_seed = random.randint(0, 10000)
-                            else:
-                                gen_seed = int(seed)
 
-                            now = datetime.datetime.now()
-                            gen_prefix = '{0:06}_{1}'.format(
-                                gen_seed, now.strftime('%d%m%y%h%m%s%f'))
-                            test_prefix = 'testfloat_{0}_{1}_{2}_{3}_{4}'.format(
-                                key, inst, rounding_mode_str, num_index,
-                                gen_prefix)
-                            testdir = '{0}/asm/{1}/'.format(
-                                dirname, test_prefix)
+                        for cnt_index in range(int(count)):
+                            for num_index in range(int(num_tests)):
 
-                            try:
-                                os.makedirs(testdir, exist_ok=True)
-                            except:
-                                logger.error(
-                                    "unable to create a directory, exiting Pytest"
-                                )
-                                raise SystemExit
+                                now = datetime.datetime.now()
+                                gen_prefix = '{0:06}_{1}'.format(
+                                    gen_seed, now.strftime('%d%m%y%h%m%s%f'))
+                                test_prefix = 'testfloat_{0}_{1}_{2}_{3}_{4}'.format(
+                                    key, inst, rounding_mode_str, num_index,
+                                    gen_prefix)
+                                testdir = '{0}/asm/{1}/'.format(
+                                    dirname, test_prefix)
 
-                            run_command.append(
-                                '{0} -seed {1} -n {2} {3} {4}'.format(
-                                    testfloat_bin, gen_seed,
-                                    tests_per_instruction, rounding_mode_gen,
-                                    gen_inst))
-                            test_file.append(testdir + test_prefix + '.gen')
-                            parameter_list.append(param_list)
+                                try:
+                                    os.makedirs(testdir, exist_ok=True)
+                                except:
+                                    logger.error(
+                                        "unable to create a directory, exiting Pytest"
+                                    )
+                                    raise SystemExit
+
+                                run_command.append(
+                                    '{0} -seed {1} -n {2} {3} {4}'.format(
+                                        testfloat_bin, gen_seed,
+                                        tests_per_instruction,
+                                        rounding_mode_gen, gen_inst))
+                                test_file.append(testdir + test_prefix + '.gen')
+                                parameter_list.append(param_list)
 
     return run_command
 
 
 def idfnc(val):
-    return val
+    val = val.split(' ')
+    return 'Generating for inst {0}'.format(val[-1])
 
 
 def pytest_generate_tests(metafunc):
@@ -306,7 +313,7 @@ def pytest_generate_tests(metafunc):
 
 
 @pytest.fixture
-def test_input(request):
+def test_input(request, autouse=True):
     # compile tests
     global file_ctr
     logger.debug('Generating commands from test_input fixture')

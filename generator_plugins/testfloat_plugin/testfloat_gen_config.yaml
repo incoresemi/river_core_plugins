@@ -16,7 +16,7 @@ set_1:
      reg2: 0,31
      rounding-mode: [RNE]
      # Needs to be above 46464
-     tests_per_instruction: 46464 
+     tests_per_instruction: 100000 
      num_tests: 1 
 
 # set_2:
