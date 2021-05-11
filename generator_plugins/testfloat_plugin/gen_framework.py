@@ -96,6 +96,9 @@ def create_asm(gen_file):
 
     # Parsing from parameters
     asm_inst = parameter_list[file_ctr][0]
+
+    # Get alignment values
+    align = inst_alignment(asm_inst)
     # TODO check if this needs to change
     # Can come from the inst as well
     # Create test.S
@@ -115,12 +118,11 @@ def create_asm(gen_file):
 
         # Need to maintain an offset for the values
         offset_ctr = 0
+
         # TODO: Will change to original file length after testing
         # Is useful to control the number of instructions, we can probably step away from the limits for Testfloat
         # for case_index in range(0, 10):
         for case_index in range(0, len(gen_data)):
-            # Get alignment values
-            align = inst_alignment(asm_inst)
             # Move the selection here to ensure max variety in the tests cases
             dest = random.randint(int(parameter_list[file_ctr][1][0]),
                                   int(parameter_list[file_ctr][1][1]))
