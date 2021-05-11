@@ -16,6 +16,7 @@ from envyaml import EnvYAML
 # Output globals.
 # This is done, because writing to file is complicated business
 test_file = []
+test_dir = []
 run_command = []
 # Parameter list is a list designed to get all useful info while generating things from testfloat
 # It is a nested list.
@@ -205,10 +206,6 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
             # Using index so as to ensure that we can iterate both
             for inst_list_index in range(0, len(inst_list)):
 
-                if seed == 'random':
-                    gen_seed = random.randint(0, 10000)
-                else:
-                    gen_seed = int(seed)
                 rounding_mode_gen = ''
                 rounding_mode_int = 0
                 param_list = []
@@ -267,24 +264,20 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                         num_tests = inst_yaml_list[key]['num_tests']
 
                         for cnt_index in range(int(count)):
+                            if seed == 'random':
+                                gen_seed = random.randint(0, 10000)
+                            else:
+                                gen_seed = int(seed)
                             for num_index in range(int(num_tests)):
 
                                 now = datetime.datetime.now()
                                 gen_prefix = '{0:06}_{1}'.format(
-                                    gen_seed, now.strftime('%d%m%y%h%m%s%f'))
+                                    gen_seed, now.strftime('%d%m_%H%M%S'))
                                 test_prefix = 'testfloat_{0}_{1}_{2}_{3}_{4}'.format(
                                     key, inst, rounding_mode_str, num_index,
                                     gen_prefix)
                                 testdir = '{0}/asm/{1}/'.format(
                                     dirname, test_prefix)
-
-                                try:
-                                    os.makedirs(testdir, exist_ok=True)
-                                except:
-                                    logger.error(
-                                        "unable to create a directory, exiting Pytest"
-                                    )
-                                    raise SystemExit
 
                                 run_command.append(
                                     '{0} -seed {1} -n {2} {3} {4}'.format(
@@ -292,6 +285,7 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                                         tests_per_instruction,
                                         rounding_mode_gen, gen_inst))
                                 test_file.append(testdir + test_prefix + '.gen')
+                                test_dir.append(testdir)
                                 parameter_list.append(param_list)
 
     return run_command
@@ -318,6 +312,8 @@ def test_input(request, autouse=True):
     global file_ctr
     logger.debug('Generating commands from test_input fixture')
     program = request.param
+    # This part needs to be done here as the file processing part can't be done inside gen_cmd
+    os.makedirs(test_dir[file_ctr], exist_ok=True)
     (ret, out, err) = utils.sys_command_file(program, test_file[file_ctr])
     create_asm(test_file[file_ctr])
     file_ctr = file_ctr + 1
