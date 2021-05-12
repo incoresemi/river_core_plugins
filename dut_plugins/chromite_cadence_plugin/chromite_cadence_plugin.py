@@ -318,6 +318,7 @@ class chromite_cadence_plugin(object):
                         os.remove(work_dir + '/app_log')
                         os.remove(work_dir + '/code.mem')
                         os.remove(work_dir + '/coverage_code.rpt')
+                        os.remove(work_dir + '/coverage_code.html')
                         os.remove(work_dir + '/dut.disass')
                         os.remove(work_dir + '/dut.dump')
                         os.remove(work_dir + '/signature')
