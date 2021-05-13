@@ -332,10 +332,14 @@ class chromite_questa_plugin(object):
                         os.remove(work_dir + '/dut.dump')
                         os.remove(work_dir + '/signature')
                         # Remove the HTML parts as well.
-                        for coverage_file in glob.glob(work_dir + '/coverage'):
+                        for coverage_file in glob.glob(work_dir + '/coverage/*'):
                             if not coverage_file.endswith('.ucdb'):
-                                logger.debug('Removing {0}'.format(coverage_file))
-                                os.remove(coverage_file)
+                                if os.path.isfile(coverage_file):
+                                    logger.debug('File Detected here {0}'.format(coverage_file))
+                                    os.remove(coverage_file)
+                                elif os.path.isdir(coverage_file):
+                                    logger.debug('Folder Detected here {0}'.format(coverage_file))
+                                    shutil.rmtree(coverage_file)
                     except:
                         logger.info(
                             "Something went wrong trying to remove the files")
