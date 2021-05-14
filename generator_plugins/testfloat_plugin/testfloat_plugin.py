@@ -136,8 +136,7 @@ class testfloat_plugin(object):
                 'linker_file'] = output_dir + '/testfloat/asm/' + base_key + '/' + base_key + '.ld'
             test_list[base_key][
                 'asm_file'] = output_dir + '/testfloat/asm/' + base_key + '/' + base_key + '.S'
-            test_list[base_key][
-                'include'] = module_dir + '/testfloat_plugin/asm'
+            test_list[base_key]['include'] = [module_dir + '/testfloat_plugin/asm']
             test_list[base_key]['extra_compile'] = []
             # TODO:DOC Add info possible results for the below variable
             test_list[base_key]['result'] = 'Unavailable'
