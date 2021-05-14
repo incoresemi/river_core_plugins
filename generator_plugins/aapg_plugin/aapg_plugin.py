@@ -81,14 +81,13 @@ class aapg_plugin(object):
         logger.debug(pytest_file)
 
         output_dir = os.path.abspath(output_dir)
-        gen_config_str = str(dict(gen_config))
 
         report_file_name = '{0}/{1}_{2}'.format(
             self.json_dir, self.name,
             datetime.datetime.now().strftime("%Y%m%d-%H%M"))
         pytest.main([
             pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(
-                self.filter), '--configlist={0}'.format(gen_config_str), '-v',
+                self.filter), '--configlist={0}'.format(gen_config), '-v',
             '--seed={0}'.format(self.seed), '--count={0}'.format(self.count),
             '--html={0}/reports/aapg.html'.format(output_dir),
             '--report-log={0}.json'.format(report_file_name),
@@ -138,7 +137,7 @@ class aapg_plugin(object):
             # NOTE: Here we expect the developers to probably have the proper GCC and the args, objdump as well
             base_key = os.path.basename(test)[:-2]
             test_list[base_key] = {}
-            test_list[base_key]['generator'] = self.name 
+            test_list[base_key]['generator'] = self.name
             test_list[base_key][
                 'work_dir'] = output_dir + '/aapg/asm/' + base_key
             test_list[base_key]['isa'] = self.isa
