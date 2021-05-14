@@ -81,13 +81,14 @@ class aapg_plugin(object):
         logger.debug(pytest_file)
 
         output_dir = os.path.abspath(output_dir)
+        gen_config_str = str(dict(gen_config))
 
         report_file_name = '{0}/{1}_{2}'.format(
             self.json_dir, self.name,
             datetime.datetime.now().strftime("%Y%m%d-%H%M"))
         pytest.main([
             pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(
-                self.filter), '--configlist={0}'.format(gen_config), '-v',
+                self.filter), '--configlist={0}'.format(gen_config_str), '-v',
             '--seed={0}'.format(self.seed), '--count={0}'.format(self.count),
             '--html={0}/reports/aapg.html'.format(output_dir),
             '--report-log={0}.json'.format(report_file_name),
@@ -198,4 +199,3 @@ class aapg_plugin(object):
         rgfile = open(regressfile, 'w')
 
         utils.yaml.dump(test_dict, rgfile)
-
