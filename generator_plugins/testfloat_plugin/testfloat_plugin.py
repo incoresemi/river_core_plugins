@@ -55,6 +55,9 @@ class testfloat_plugin(object):
         # Eventually add support for riscv_config
         self.isa = spec_config['isa']
 
+        # Load plugin YAML
+        self.gen_config = spec_config['config_yaml']
+
         self.json_dir = output_dir + '/../.json/'
         logger.debug(self.json_dir)
         # Check if dir exists
@@ -64,7 +67,7 @@ class testfloat_plugin(object):
             os.makedirs(self.json_dir)
 
     @gen_hookimpl
-    def gen(self, gen_config, module_dir, output_dir):
+    def gen(self, module_dir, output_dir):
 
         logger.debug('TestFloat Plugin gen phase')
         logger.debug(module_dir)
@@ -78,7 +81,7 @@ class testfloat_plugin(object):
             datetime.datetime.now().strftime("%Y%m%d-%H%M"))
         pytest.main([
             pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(
-                self.filter), '--configlist={0}'.format(gen_config), '-v',
+                self.filter), '--configlist={0}'.format(self.gen_config), '-v',
             '--seed={0}'.format(self.seed), '--count={0}'.format(self.count),
             '--html={0}/reports/testfloat.html'.format(output_dir),
             '--report-log={0}.json'.format(report_file_name),
@@ -133,7 +136,7 @@ class testfloat_plugin(object):
             test_list[base_key][
                 'asm_file'] = output_dir + '/testfloat/asm/' + base_key + '/' + base_key + '.S'
             test_list[base_key]['include'] = [
-                    module_dir + '/testfloat_plugin/asm'
+                module_dir + '/testfloat_plugin/asm'
             ]
             test_list[base_key]['extra_compile'] = []
             # TODO:DOC Add info possible results for the below variable
@@ -143,5 +146,5 @@ class testfloat_plugin(object):
 
     # generates the regress list from the generation
     @gen_hookimpl
-    def post_gen(self, output_dir, regressfile):
+    def post_gen(self, output_dir):
         pass
