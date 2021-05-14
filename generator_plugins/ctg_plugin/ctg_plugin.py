@@ -60,7 +60,7 @@ class ctg_plugin(object):
         os.makedirs(asm_path)
         # ctg("debug",os.path.join(output_dir,asm_path), self.randomize, self.xlen, self.cgf_files, self.jobs, self.base_isa)
         ctg_command = 'riscv_ctg -v info -bi {0} -d {1} -p {2}'.format(self.base_isa, asm_path, self.jobs)+('' if not self.randomize else ' -r ') + '-cf ' + ' -cf '.join(self.cgf_files)
-        print(shellCommand(ctg_command).run(cwd=os.path.join(output_dir,"ctg/")))
+        shellCommand(ctg_command).run(cwd=os.path.join(output_dir,"ctg/"))
         work_dir = os.path.join(output_dir,"ctg/riscof_work/")
         includes = os.path.join(output_dir,"ctg/asm/env/")
         riscof_command = "riscof testlist --config {0} --suite {1}".format(self.config_file,asm_path)
