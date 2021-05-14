@@ -161,41 +161,6 @@ class aapg_plugin(object):
 
         return test_list
 
-    # generates the regress list from the generation
     @gen_hookimpl
-    def post_gen(self, output_dir, regressfile):
-        test_dict = dict()
-        test_files = []
-        test_file = ''
-        ld_file = ''
-        test_dict['aapg'] = {}
-        """
-        Overwrites the aapg entries in the regressfile with the latest present in the gendir
-        """
-
-        output_dir = os.path.abspath(output_dir)
-        remove_list = dict()
-        test_dict['aapg']['aapg_global_testpath'] = output_dir
-        if os.path.isdir(output_dir):
-            output_dir_list = []
-            for dirname in os.listdir(output_dir):
-                if re.match('^aapg_.*', dirname):
-                    test_dict['aapg'][dirname] = {
-                        'testname': '',
-                        'ld': '',
-                        'template': ''
-                    }
-                    test_dict['aapg'][dirname]['testname'] = dirname + '.S'
-                    test_dict['aapg'][dirname]['ld'] = dirname + '.ld'
-                    test_dict['aapg'][dirname][
-                        'template'] = dirname + '_template.S'
-
-        if os.path.isfile(regressfile):
-            with open(regressfile, 'r') as rgfile:
-                testlist = utils.load_yaml(rgfile)
-                testlist['aapg'].update(test_dict)
-            rgfile.close()
-
-        rgfile = open(regressfile, 'w')
-
-        utils.yaml.dump(test_dict, rgfile)
+    def post_gen(self, output_dir):
+        pass
