@@ -138,6 +138,7 @@ class aapg_plugin(object):
             # NOTE: Here we expect the developers to probably have the proper GCC and the args, objdump as well
             base_key = os.path.basename(test)[:-2]
             test_list[base_key] = {}
+            test_list[base_key]['generator'] = self.name 
             test_list[base_key][
                 'work_dir'] = output_dir + '/aapg/asm/' + base_key
             test_list[base_key]['isa'] = self.isa
