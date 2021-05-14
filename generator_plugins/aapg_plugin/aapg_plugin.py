@@ -63,6 +63,9 @@ class aapg_plugin(object):
         # Eventually add support for riscv_config
         self.isa = spec_config['isa']
 
+        # Load the plugin YAML
+        self.gen_config = spec_config['config_yaml']
+
         self.json_dir = output_dir + '/../.json/'
         logger.debug(self.json_dir)
         # Check if dir exists
@@ -73,7 +76,7 @@ class aapg_plugin(object):
 
     # gets the yaml file with list of configs; test count; parallel
     @gen_hookimpl
-    def gen(self, gen_config, module_dir, output_dir):
+    def gen(self, module_dir, output_dir):
 
         logger.debug('AAPG Plugin gen phase')
         logger.debug(module_dir)
@@ -87,7 +90,7 @@ class aapg_plugin(object):
             datetime.datetime.now().strftime("%Y%m%d-%H%M"))
         pytest.main([
             pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(
-                self.filter), '--configlist={0}'.format(gen_config), '-v',
+                self.filter), '--configlist={0}'.format(self.gen_config), '-v',
             '--seed={0}'.format(self.seed), '--count={0}'.format(self.count),
             '--html={0}/reports/aapg.html'.format(output_dir),
             '--report-log={0}.json'.format(report_file_name),
