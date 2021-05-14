@@ -88,9 +88,13 @@ def create_asm(gen_file):
     logger.info('Copying Header files')
     shutil.copy(local_folder_dir + 'link.ld',
                 os.path.splitext(gen_file)[0] + '.ld')
+    # shutil.copy(local_folder_dir + 'model.h',
+    #             os.path.splitext(gen_file)[0] + '-model.h')
+    # shutil.copy(local_folder_dir + 'test.h',
+    #             os.path.splitext(gen_file)[0] + '.h')
 
     # Substitute header files
-    header = '#include "{0}.h"\n#include "{0}-model.h"\n'.format(
+    header = '#include "test.h"\n#include "model.h"\n'.format(
         os.path.splitext(os.path.basename(gen_file))[0])
     header += mid_header
 
@@ -273,11 +277,12 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                             for num_index in range(int(num_tests)):
 
                                 now = datetime.datetime.now()
+                                output_inst = inst.replace('.', '_')
                                 gen_prefix = '{0:06}_{1}'.format(
                                     gen_seed, now.strftime('%d%m_%H%M%S'))
                                 test_prefix = 'testfloat_{0}_{1}_{2}_{3}_{4}'.format(
-                                    key, inst, rounding_mode_str, num_index,
-                                    gen_prefix)
+                                    key, output_inst, rounding_mode_str,
+                                    num_index, gen_prefix)
                                 testdir = '{0}/asm/{1}/'.format(
                                     dirname, test_prefix)
 
