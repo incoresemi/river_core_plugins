@@ -111,12 +111,13 @@ class testfloat_plugin(object):
             canonical_order = {'i': 0, 'm': 1, 'a': 2, 'f': 3, 'd': 4, 'c': 5}
             canonical_isa = sorted(list(isa), key=lambda d: canonical_order[d])
 
-            march_str = 'rv' + str(xlen) + "".join(canonical_order)
+            march_str = 'rv' + str(xlen) + "".join(canonical_isa)
             if xlen == 64:
                 mabi_str = 'lp64'
             elif 'd' not in march_str:
                 mabi_str = 'ilp32d'
 
+            breakpoint()
             # Create the base key for the test i.e. the main file under which everything is stored
             # NOTE: Here we expect the developers to probably have the proper GCC and the args, objdump as well
             base_key = os.path.basename(test)[:-2]
@@ -136,7 +137,9 @@ class testfloat_plugin(object):
                 'linker_file'] = output_dir + '/testfloat/asm/' + base_key + '/' + base_key + '.ld'
             test_list[base_key][
                 'asm_file'] = output_dir + '/testfloat/asm/' + base_key + '/' + base_key + '.S'
-            test_list[base_key]['include'] = [module_dir + '/testfloat_plugin/asm']
+            test_list[base_key]['include'] = [
+                module_dir + '/testfloat_plugin/asm'
+            ]
             test_list[base_key]['extra_compile'] = []
             # TODO:DOC Add info possible results for the below variable
             test_list[base_key]['result'] = 'Unavailable'

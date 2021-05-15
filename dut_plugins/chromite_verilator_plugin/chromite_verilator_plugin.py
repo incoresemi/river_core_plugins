@@ -192,7 +192,7 @@ class chromite_verilator_plugin(object):
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
             for x in attr['include']:
-                compile_cmd += ' -I'+str(x)
+                compile_cmd += ' -I '+str(x)
             compile_cmd += ' -o dut.elf && '
             sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/boot.mem . && '

@@ -22,7 +22,7 @@
     LREG freg1, offset1(x1); \
     LREG freg2, offset2(x1); \
     inst destreg, freg1, freg2;\
-    csrrs x1, fflags, x0;   \
+    csrrs x2, fflags, x0;   \
 
 #define TEST_CVT_OP(inst, destreg, reg1, rm, correctval, correctflags, val1) \
     li x1, val1;  \
