@@ -103,6 +103,8 @@ def create_asm(gen_file):
 
     # Get alignment values
     align = inst_alignment(asm_inst)
+    # Add check for 2048 limitation
+    max_offset = int(((2048 / align) - 1) * align)
     # TODO check if this needs to change
     # Can come from the inst as well
     # Create test.S
@@ -153,9 +155,17 @@ def create_asm(gen_file):
                 generated_asm_inst = '\ninst_{0}:\nTEST_RR_OP({1}, {2}, {3}, {4}, {5}, {6}, {7})\n'.format(
                     case_index, asm_inst, dest_reg, reg_1_str, reg_2_str, mode,
                     offset_ctr, offset_ctr + align)
-                # Ensure that the offset generated is twice the amount
-                offset_ctr += 2 * align
+
                 asm_file_pointer.write(generated_asm_inst)
+                # Add check for 2048 limitation
+                if (offset_ctr + align) >= max_offset:
+                    update_asm_inst = '\naddi x2, x2, {0}\n'.format(max_offset)
+                    asm_file_pointer.write(update_asm_inst)
+                    offset_ctr = 0
+                else:
+                # Ensure that the offset generated is twice the amount
+                    offset_ctr += 2 * align
+
 
             else:
                 logger.warning(
