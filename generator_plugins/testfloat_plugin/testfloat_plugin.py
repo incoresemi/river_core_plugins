@@ -117,7 +117,7 @@ class testfloat_plugin(object):
             elif 'd' not in march_str:
                 mabi_str = 'ilp32d'
 
-            breakpoint()
+#            breakpoint()
             # Create the base key for the test i.e. the main file under which everything is stored
             # NOTE: Here we expect the developers to probably have the proper GCC and the args, objdump as well
             base_key = os.path.basename(test)[:-2]
