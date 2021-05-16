@@ -20,6 +20,7 @@ class chromite_cadence_plugin(object):
     '''
         Plugin to set chromite as the target
     '''
+
     @dut_hookimpl
     def init(self, ini_config, test_list, work_dir, coverage_config,
              plugin_path):
@@ -29,20 +30,37 @@ class chromite_cadence_plugin(object):
         # TODO: These 2 variables need to be set by user
         self.src_dir = [
             # Verilog Dir
-            '/scratch/git-repo/incoresemi/chromite/build/hw/verilog/',
+            '/Projects/incorecpu/jyothi.g/chromite/build/hw/verilog',
             # BSC Path
-            '/hw_tools/bluespec/open_bsc/lib/Verilog',
+            '/Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog',
             # Wrapper path
-            '/scratch/git-repo/incoresemi//chromite/bsvwrappers/common_lib'
+            '/Projects/incorecpu/jyothi.g/chromite/bsvwrappers/common_lib'
         ]
-        self.top_module = 'mkTbSoc'
+        self.top_module = 'tb_top'
 
         self.plugin_path = plugin_path + '/'
 
-        if coverage_config:
+        self.test_list_name = test_list.split('/')[-1].split('.')[0]
+
+        if coverage_config is not None:
             self.coverage = True
+            self.coverage_func = bool(
+                distutils.util.strtobool((coverage_config['functional'])))
+            self.coverage_struct = bool(
+                distutils.util.strtobool((coverage_config['code'])))
+
         else:
             self.coverage = False
+            self.coverage_func = bool(
+                distutils.util.strtobool((coverage_config['functional'])))
+            self.coverage_struct = bool(
+                distutils.util.strtobool((coverage_config['code'])))
+
+        if shutil.which('bsc') is None:
+            logger.error('bsc not available in $PATH')
+            raise SystemExit
+        else:
+            self.bsc_path = shutil.which("bsc")[:-7]
 
         # Get plugin specific configs from ini
         self.jobs = ini_config['jobs']
@@ -79,11 +97,10 @@ class chromite_cadence_plugin(object):
             os.makedirs(self.json_dir)
 
         if not os.path.exists(self.sim_path):
-            logger.error('Sim binary Path ' + self.sim_path +
-                         ' does not exist')
+            logger.error('Sim binary Path ' + self.sim_path + ' does not exist')
             raise SystemExit
 
-        check_utils = ['elf2hex','ncvlog','ncelab','ncvlog','imc']
+        check_utils = ['elf2hex', 'ncvlog', 'ncelab', 'ncvlog', 'imc']
 
         for exe in check_utils:
             if shutil.which(exe) is None:
@@ -95,6 +112,18 @@ class chromite_cadence_plugin(object):
                 logger.error('Source code ' + path + ' does not exist')
                 raise SystemExit
 
+        logger.debug('fix path in tb_top')
+        tbfile = open(self.plugin_path + self.name + '_plugin/sv_top/tb_top.sv',
+                      'r')
+        tbfile_read = tbfile.read()
+        tbfile_read = tbfile_read.replace(
+            'plugin_path', self.plugin_path + self.name + '_plugin/')
+        tbfile.close()
+        tbfile = open(self.plugin_path + self.name + '_plugin/sv_top/tb_top.sv',
+                      'w')
+        tbfile.write(tbfile_read)
+        tbfile.close()
+
         orig_path = os.getcwd()
         logger.info("Build using NCVLOG")
         os.chdir(self.sim_path)
@@ -102,35 +131,57 @@ class chromite_cadence_plugin(object):
                 self.sim_path)
         shutil.copy(self.plugin_path+self.name+'_plugin/cds.lib', \
                 self.sim_path)
-        os.makedirs(self.sim_path+'/work', exist_ok=True)
+        os.makedirs(self.sim_path + '/work', exist_ok=True)
         # header_generate = 'mkdir -p bin obj_dir + echo "#define TOPMODULE V{0}" > sim_main.h + echo "#include "V{0}.h"" >> sim_main.h'.format(
         #     self.top_module)
         # sys_command(header_generate)
-        ncvlog_cmd = 'ncvlog -64BIT -cdslib ./cds.lib -hdlvar ./hdl.var \
+        ncvlog_cmd = 'ncvlog -64BIT -sv -cdslib ./cds.lib -hdlvar ./hdl.var \
                 +define+TOP={0} +define+BSV_RESET_FIFO_HEAD  \
                 +define+BSV_RESET_FIFO_ARRAY \
-                /hw_tools/bluespec/open_bsc/lib/Verilog/main.v \
-                -y {1} -y {2} -y {3}'.format( \
+                {4}/sv_top/tb_top.sv \
+                {5}/lib/Verilog/main.v \
+                -y {1} -y {2} -y {3} '                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              .format( \
                 self.top_module, self.src_dir[0], self.src_dir[1], \
-                self.src_dir[2] )
-        ncelab_cmd = 'ncelab -64BIT -cdslib ./cds.lib -hdlvar ./hdl.var work.main \
+                self.src_dir[2], self.plugin_path+self.name+'_plugin', \
+                self.bsc_path)
+        ncelab_cmd = 'ncelab -64BIT {0} -cdslib ./cds.lib -hdlvar ./hdl.var work.main \
                 -timescale 1ns/1ps '
-        if coverage_config:
-            logger.info(
-                "Coverage is enabled, compiling the chromite with coverage")
-            ncelab_cmd = ncelab_cmd + ' -coverage ALL -covdut mkccore_axi4'
 
+        if self.coverage:
+            ncelab_cmd = ncelab_cmd.format('+access+rw')
+        else:
+            ncelab_cmd = ncelab_cmd.format('')
 
-        sys_command(ncvlog_cmd,500)
-        sys_command(ncelab_cmd,500)
+        if self.coverage_struct and self.coverage_func:
+            logger.info("Structural and functional coverage are enabled")
+            ncelab_cmd = ncelab_cmd + ' -coverage ALL '
+        elif self.coverage_struct and not self.coverage_func:
+            logger.info("Structural coverage is enabled")
+            ncelab_cmd = ncelab_cmd + ' -coverage ALL  ' + ' -covdut mkccore_axi4 '
+        elif self.coverage_func and not self.coverage_struct:
+            logger.info("functional coverage is enabled")
+            ncelab_cmd = ncelab_cmd + ' -coverage functional '
+        else:
+            logger.info("coverage is disabled")
+            ncelab_cmd = ncelab_cmd.format('')
+            #if not self.coverage_func:
+            #ncelab_cmd = ncelab_cmd + ' -covdut mkccore_axi4 '
+
+        sys_command(ncvlog_cmd, 500)
+        sys_command(ncelab_cmd, 500)
         logger.info("Making ncsim binary")
-        with open('chromite_core','w') as f:
-            f.write('ncsim -64BIT +rtldump -cdslib ./cds.lib -hdlvar ./hdl.var work.main\n')
-            if self.coverage:
-                f.write('imc -exec imc.cmd\n')
 
-        logger.info('Renaming Binary')
-        sys_command('chmod +x chromite_core')
+        for test, attr in self.test_list.items():
+            with open('chromite_core_{0}'.format(test), 'w') as f:
+                f.write('ncsim -64BIT +rtldump -COVOVERWRITE -covtest ' + test +
+                        ' -cdslib ./cds.lib -hdlvar ./hdl.var work.main\n')
+                if self.coverage:
+                    f.write('imc -exec imc.cmd\n')
+            logger.info('Renaming Binary')
+            sys_command('chmod +x chromite_core_{0}'.format(test))
+
+        #logger.info('Renaming Binary')
+        #sys_command('chmod +x chromite_core')
 
         logger.info('Creating boot-files')
         sys_command('make -C {0} XLEN={1}'.format(
@@ -171,22 +222,25 @@ class chromite_cadence_plugin(object):
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
             compile_cmd += ' -o dut.elf && '
-            with open(work_dir+'/imc.cmd','w') as f:
-                f.write('load '+work_dir+'/cov_work/scope/test \n')
-                f.write('report -overwrite -out coverage_code.html -html -detail \
+            with open(work_dir + '/imc.cmd', 'w') as f:
+                f.write('load ' + work_dir + '/cov_work/scope/' + test + '\n')
+                f.write(
+                    'report -overwrite -out coverage_code.html -html -detail \
                 -metrics overall -all -aspect both -assertionStatus \
                 -allAssertionCounters -type *\n')
-                f.write('report -overwrite -out coverage_code.rpt -detail -metrics \
+                f.write(
+                    'report -overwrite -out coverage_code.rpt -detail -metrics \
                 code -all -aspect both -assertionStatus -allAssertionCounters \
                 -type *\n')
-            sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core . && '
+            sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core_{0} . && '.format(
+                test)
             sim_setup += 'ln -f -s ' + self.sim_path + '/boot.mem . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/cds.lib . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/hdl.var . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/work . && '
             post_process_cmd = 'head -n -4 rtl.dump > dut.dump && rm -f rtl.dump'
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
-                    self.elf2hex_cmd + sim_setup + self.sim_cmd + ' ' + \
+                    self.elf2hex_cmd + sim_setup + self.sim_cmd + '_' + test + ' ' + \
                     self.sim_args +' && '+ post_process_cmd
             make.add_target(target_cmd, test)
             self.test_names.append(test)
@@ -221,20 +275,23 @@ class chromite_cadence_plugin(object):
         # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
 
         if self.coverage:
-            merge_cmd = 'merge -out '+self.work_dir+'/final_coverage '
-            rank_cmd = 'rank -out '+self.work_dir+'final_rank -html'
+            merge_cmd = 'merge -out ' + self.work_dir + '/reports/' + '/final_coverage '
+            rank_cmd = 'rank -out ' + self.work_dir + '/reports/' + '/final_rank -runfile ' + self.work_dir + '/run_list -html'
             logger.info('Initiating Merging of coverage files')
             for test, attr in self.test_list.items():
                 test_wd = attr['work_dir']
-                merge_cmd += ' ' + test_wd + '/cov_work/scope/test/'
-                rank_cmd += ' ' + test_wd + '/cov_work/scope/test/'
-            with open(self.work_dir+'/merge_imc.cmd','w') as f:
+                merge_cmd += ' ' + test_wd + '/cov_work/scope/' + test + '/'
+                #rank_cmd += ' ' + test_wd + '/cov_work/scope/' + test + '/'
+                with open(self.work_dir + '/run_list', 'a+') as r:
+                    r.write(test_wd + '/cov_work/scope/' + test + '/ \n')
+            with open(self.work_dir + '/merge_imc.cmd', 'w') as f:
                 f.write(merge_cmd + ' \n')
-                f.write('load -run ./final_coverage\n')
-                f.write('report -overwrite -out final_coverage_html -html -detail \
+                f.write('load -run ./reports/final_coverage\n')
+                f.write('report -overwrite -out ' + self.work_dir +
+                        'reports/final_coverage_html -html -detail \
                 -metrics overall -all -aspect both -assertionStatus \
                 -allAssertionCounters -type *\n')
-                f.write(rank_cmd +'\n')
+                f.write(rank_cmd + '\n')
 
             orig_path = os.getcwd()
             os.chdir(self.work_dir)
@@ -242,9 +299,10 @@ class chromite_cadence_plugin(object):
             os.chdir(orig_path)
 
             logger.info(
-                'Final coverage file is at: {0}'.format(self.work_dir+'/final_coverage_html'))
-            logger.info(
-                'Final rank file is at: {0}'.format(self.work_dir+'/final_rank'))
+                'Final coverage file is at: {0}'.format(self.work_dir +
+                                                        '/final_coverage_html'))
+            logger.info('Final rank file is at: {0}'.format(self.work_dir +
+                                                            '/final_rank'))
         return report_file_name
 
     @dut_hookimpl
@@ -252,16 +310,57 @@ class chromite_cadence_plugin(object):
         if str_2_bool(config['river_core']['space_saver']):
             logger.debug("Going to remove stuff now")
             for test in test_dict:
-                if test_dict[test]['result'] and not test_dict[test][
-                        'result'] == 'Unavailable':
-                    logger.debug("Removing extra files for Test: "+str(test))
+                if test_dict[test]['result'] == 'Passed':
+                    logger.debug("Removing extra files for Test: " + str(test))
                     work_dir = test_dict[test]['work_dir']
+                    # List of all files deemed uncessary to reduce space usage
                     try:
                         os.remove(work_dir + '/app_log')
                         os.remove(work_dir + '/code.mem')
+                        os.remove(work_dir + '/coverage_code.rpt')
+                        shutil.rmtree(work_dir + '/coverage_code.html')
                         os.remove(work_dir + '/dut.disass')
                         os.remove(work_dir + '/dut.dump')
                         os.remove(work_dir + '/signature')
+                        os.remove(work_dir + '/imc.log')
+                        os.remove(work_dir + '/imc.cmd')
+                        os.remove(work_dir + '/imc.key')
+                        os.remove(work_dir + '/mdv.log')
+                        os.remove(work_dir + '/ncsim.log')
                     except:
                         logger.info(
                             "Something went wrong trying to remove the files")
+
+    @dut_hookimpl
+    def merge_db(self, db_files, output_db, config):
+
+        # Add commands to run here :)
+        # TODO: DOC: Ensure plugin developers understand the reason for using final_coverage  and other hardcoded values
+        logger.info('Initiating Merging of coverage files')
+        merge_cmd = 'merge -overwrite -out ' + str(
+            output_db) + '/final_coverage/ '
+        rank_cmd = 'rank -overwrite -out ' + str(
+            output_db) + '/final_html_rank/ -html '
+        for db_file in db_files:
+            merge_cmd += ' ' + os.path.dirname(db_file)
+            rank_cmd += ' ' + os.path.dirname(db_file)
+        with open(output_db + '/final_coverage/final_merge_imc.cmd', 'w') as f:
+            f.write(merge_cmd + ' \n')
+            f.write('load -run ' + str(output_db) + '/final_coverage/' + '\n')
+            f.write('report -overwrite -out ' + str(output_db) + '/final_html/'
+                    ' -html -detail \
+            -metrics overall -all -aspect both -assertionStatus \
+            -allAssertionCounters -type *\n')
+            f.write(rank_cmd + ' ' + str(output_db) + '/final_coverage' + '\n')
+
+        orig_path = os.getcwd()
+        os.chdir(output_db + '/final_coverage')
+
+        (ret, out, error) = sys_command('imc -exec final_merge_imc.cmd')
+
+        # HTML Web pages
+        final_html = output_db + '/final_html/index.html'
+        final_rank_html = output_db + '/final_html_rank/rank_sub_dir/rank.html'
+        os.chdir(orig_path)
+
+        return final_html, final_rank_html

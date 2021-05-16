@@ -63,6 +63,9 @@ class aapg_plugin(object):
         # Eventually add support for riscv_config
         self.isa = spec_config['isa']
 
+        # Load the plugin YAML
+        self.gen_config = spec_config['config_yaml']
+
         self.json_dir = output_dir + '/../.json/'
         logger.debug(self.json_dir)
         # Check if dir exists
@@ -73,7 +76,7 @@ class aapg_plugin(object):
 
     # gets the yaml file with list of configs; test count; parallel
     @gen_hookimpl
-    def gen(self, gen_config, module_dir, output_dir):
+    def gen(self, module_dir, output_dir):
 
         logger.debug('AAPG Plugin gen phase')
         logger.debug(module_dir)
@@ -87,7 +90,7 @@ class aapg_plugin(object):
             datetime.datetime.now().strftime("%Y%m%d-%H%M"))
         pytest.main([
             pytest_file, '-n={0}'.format(self.jobs), '-k={0}'.format(
-                self.filter), '--configlist={0}'.format(gen_config), '-v',
+                self.filter), '--configlist={0}'.format(self.gen_config), '-v',
             '--seed={0}'.format(self.seed), '--count={0}'.format(self.count),
             '--html={0}/reports/aapg.html'.format(output_dir),
             '--report-log={0}.json'.format(report_file_name),
@@ -137,6 +140,7 @@ class aapg_plugin(object):
             # NOTE: Here we expect the developers to probably have the proper GCC and the args, objdump as well
             base_key = os.path.basename(test)[:-2]
             test_list[base_key] = {}
+            test_list[base_key]['generator'] = self.name
             test_list[base_key][
                 'work_dir'] = output_dir + '/aapg/asm/' + base_key
             test_list[base_key]['isa'] = self.isa
@@ -161,42 +165,6 @@ class aapg_plugin(object):
 
         return test_list
 
-    # generates the regress list from the generation
     @gen_hookimpl
-    def post_gen(self, output_dir, regressfile):
-        test_dict = dict()
-        test_files = []
-        test_file = ''
-        ld_file = ''
-        test_dict['aapg'] = {}
-        """
-        Overwrites the aapg entries in the regressfile with the latest present in the gendir
-        """
-
-        output_dir = os.path.abspath(output_dir)
-        remove_list = dict()
-        test_dict['aapg']['aapg_global_testpath'] = output_dir
-        if os.path.isdir(output_dir):
-            output_dir_list = []
-            for dirname in os.listdir(output_dir):
-                if re.match('^aapg_.*', dirname):
-                    test_dict['aapg'][dirname] = {
-                        'testname': '',
-                        'ld': '',
-                        'template': ''
-                    }
-                    test_dict['aapg'][dirname]['testname'] = dirname + '.S'
-                    test_dict['aapg'][dirname]['ld'] = dirname + '.ld'
-                    test_dict['aapg'][dirname][
-                        'template'] = dirname + '_template.S'
-
-        if os.path.isfile(regressfile):
-            with open(regressfile, 'r') as rgfile:
-                testlist = utils.load_yaml(rgfile)
-                testlist['aapg'].update(test_dict)
-            rgfile.close()
-
-        rgfile = open(regressfile, 'w')
-
-        utils.yaml.dump(test_dict, rgfile)
-
+    def post_gen(self, output_dir):
+        pass
