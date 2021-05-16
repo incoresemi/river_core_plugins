@@ -8,7 +8,6 @@ SECTIONS
   .text : { *(.text) }
 
   /* data segment */
-  . = 0x80090000;
   .data : { *(begin_rvtest_data*) }
 
 
