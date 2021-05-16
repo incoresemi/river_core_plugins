@@ -271,10 +271,9 @@ class chromite_verilator_plugin(object):
     @dut_hookimpl
     def post_run(self, test_dict, config):
         if str_2_bool(config['river_core']['space_saver']):
-            logger.debug("Going to remove stuff now")
+            logger.debug("Removing artifacts for Chromite")
             for test in test_dict:
-                if test_dict[test]['result'] and not test_dict[test][
-                        'result'] == 'Unavailable':
+                if test_dict[test]['result'] == 'Passed':
                     logger.debug("Removing extra files for Test: " + str(test))
                     work_dir = test_dict[test]['work_dir']
                     try:
