@@ -89,6 +89,8 @@ class spike_plugin(object):
                     cc, cc_args, arch, abi, link_args, link_file, asm_file)
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
+            for x in attr['include']:
+                compile_cmd += ' -I '+str(x)
             compile_cmd += ' -o ref.elf && '
             post_process_cmd = 'mv spike.dump ref.dump'
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
