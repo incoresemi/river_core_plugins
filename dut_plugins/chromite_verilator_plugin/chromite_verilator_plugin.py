@@ -102,9 +102,14 @@ class chromite_verilator_plugin(object):
         if shutil.which('bsc') is None:
             logger.error('bsc toolchain not found in $PATH')
             raise SystemExit
+        
+        if shutil.which('riscv64-unknown-elf-gcc') is None and \
+                shutil.which('riscv32-unknown-elf-gcc') is None:
+            logger.error('riscv-* toolchain not found in $PATH')
+            raise SystemExit
         # Build verilator again
 
-        self.verilator_speed = ''#OPT_SLOW="-O3" OPT_FAST="-O3"'
+        self.verilator_speed = 'OPT_SLOW="-O3" OPT_FAST="-O3"'
 
         orig_path = os.getcwd()
         logger.info("Build verilator")
@@ -202,7 +207,6 @@ class chromite_verilator_plugin(object):
                     self.sim_args +' && '+ post_process_cmd
             make.add_target(target_cmd, test)
             self.test_names.append(test)
-        raise SystemExit
 
     @dut_hookimpl
     def run(self, module_dir):
