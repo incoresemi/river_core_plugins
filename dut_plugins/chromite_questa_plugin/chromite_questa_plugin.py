@@ -27,15 +27,9 @@ class chromite_questa_plugin(object):
         self.name = 'chromite_questa'
         logger.info('Pre Compile Stage')
 
-        # TODO: These 2 variables need to be set by user
-        self.src_dir = [
-            # Verilog Dir
-            '/Projects/incorecpu/jyothi.g/chromite/build/hw/verilog',
-            # BSC Path
-            '/Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog',
-            # Wrapper path
-            '/Projects/incorecpu/jyothi.g/chromite/bsvwrappers/common_lib'
-        ]
+
+        self.src_dir = ini_config['src_dir'].split(',')
+
         self.top_module = 'tb_top'
 
         self.plugin_path = plugin_path + '/'

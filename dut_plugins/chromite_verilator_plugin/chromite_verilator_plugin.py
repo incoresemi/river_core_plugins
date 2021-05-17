@@ -27,15 +27,8 @@ class chromite_verilator_plugin(object):
         self.name = 'chromite_verilator'
         logger.info('Pre Compile Stage')
 
-        # TODO: These 2 variables need to be set by user
-        self.src_dir = [
-            # Verilog Dir
-            '/scratch/git-repo/incoresemi/core-generators/chromite/build/hw/verilog/',
-            # BSC Path
-            '/software/open-bsc/lib/Verilog',
-            # Wrapper path
-            '/scratch/git-repo/incoresemi/core-generators/chromite/bsvwrappers/common_lib'
-        ]
+        self.src_dir = ini_config['src_dir'].split(',')
+
         self.top_module = 'mkTbSoc'
 
         self.plugin_path = plugin_path + '/'
@@ -102,7 +95,7 @@ class chromite_verilator_plugin(object):
         if shutil.which('bsc') is None:
             logger.error('bsc toolchain not found in $PATH')
             raise SystemExit
-        
+
         if shutil.which('riscv64-unknown-elf-gcc') is None and \
                 shutil.which('riscv32-unknown-elf-gcc') is None:
             logger.error('riscv-* toolchain not found in $PATH')
@@ -124,7 +117,7 @@ class chromite_verilator_plugin(object):
                 -Wno-INITIALDLY  --autoflush   --threads 1 \
                 -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY \
                 --output-split 20000  --output-split-ctrace 10000 \
-                --cc '                                                                                                                                                                                 + self.top_module + '.v  -y ' + self.src_dir[0] + \
+                --cc '                                                                                                                                                                                                                                                                                                                                                                 + self.top_module + '.v  -y ' + self.src_dir[0] + \
                 ' -y ' + self.src_dir[1] + ' -y ' + self.src_dir[2] + \
                 ' --exe'
         if coverage_config:
@@ -197,7 +190,7 @@ class chromite_verilator_plugin(object):
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
             for x in attr['include']:
-                compile_cmd += ' -I '+str(x)
+                compile_cmd += ' -I ' + str(x)
             compile_cmd += ' -o dut.elf && '
             sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/boot.mem . && '
