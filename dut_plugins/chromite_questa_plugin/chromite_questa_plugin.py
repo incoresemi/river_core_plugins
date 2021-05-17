@@ -30,7 +30,7 @@ class chromite_questa_plugin(object):
 
         self.src_dir = ini_config['src_dir'].split(',')
 
-        self.top_module = 'tb_top'
+        self.top_module = ini_config['top_module']
 
         self.plugin_path = plugin_path + '/'
 
