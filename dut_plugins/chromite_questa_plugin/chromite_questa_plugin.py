@@ -279,9 +279,9 @@ class chromite_questa_plugin(object):
             #os.makedirs(self.work_dir + '/final_coverage/merged_ucdb')
             #os.makedirs(work_dir + '/coverage/testcase_ucdb/')
             #shutil.move(work_dir+'/test_cov.ucdb', work_dir +'/coverage/testcase_ucdb/')
-            os.makedirs(self.work_dir + '/final_coverage/rank')
-            os.makedirs(self.work_dir + '/final_coverage/cov_html')
-            os.makedirs(self.work_dir + 'final_coverage/rank_html/')
+            os.makedirs(self.work_dir + '/rank')
+            os.makedirs(self.work_dir + '/cov_html')
+            os.makedirs(self.work_dir + '/rank_html/')
             merge_cmd = 'vcover merge -testassociated -outputstore ' + self.work_dir + 'final_coverage/' + ' -out ' + self.work_dir + '/final_coverage/' + 'merged_ucdb.ucdb'
             logger.info('Initiating Merging of coverage files')
             for test, attr in self.test_list.items():
@@ -297,24 +297,24 @@ class chromite_questa_plugin(object):
             with open(self.work_dir + '/merge.cmd', 'w') as f:
                 f.write(merge_cmd + ' \n')
                 f.write('vcover report -cvg -assert -code bcefst -details -html -htmldir ' +
-                        self.work_dir + '/final_coverage/cov_html -verbose ' +
+                        self.work_dir + '/cov_html -verbose ' +
                         self.work_dir + '/final_coverage/merged_ucdb.ucdb ' +
                         '\n')
                 f.write(
                     'vcover ranktest -64 -assertion -codeAll -cvg  -directive -rankfile '
-                    + self.work_dir + '/final_coverage/rank/out.rank ' +
+                    + self.work_dir + '/rank/out.rank ' +
                     self.work_dir + '/final_coverage/merged_ucdb.ucdb ' + '\n')
                 f.write('vcover report -html -rank ' + self.work_dir +
-                        '/final_coverage/rank/out.rank ' +
+                        '/rank/out.rank ' +
                         '-details=abcdefgpst -htmldir ' + self.work_dir +
-                        '/final_coverage/rank_html ')
+                        '/rank_html ')
             sys_command('chmod +x {0}/merge.cmd'.format(self.work_dir))
             os.system('sh {0}/merge.cmd'.format(self.work_dir))
             logger.info(
                 'Final coverage file is at: {0}'.format(self.work_dir +
                                                         '/final_coverage/'))
             logger.info('Final rank file is at: {0}'.format(
-                self.work_dir + '/final_coverage/rank_html'))
+                self.work_dir + '/rank_html'))
         return report_file_name
 
     @dut_hookimpl
@@ -332,10 +332,14 @@ class chromite_questa_plugin(object):
                         os.remove(work_dir + '/dut.dump')
                         os.remove(work_dir + '/signature')
                         # Remove the HTML parts as well.
-                        for coverage_file in glob.glob(work_dir + '/coverage'):
+                        for coverage_file in glob.glob(work_dir + '/coverage/*'):
                             if not coverage_file.endswith('.ucdb'):
-                                logger.debug('Removing {0}'.format(coverage_file))
-                                os.remove(coverage_file)
+                                if os.path.isfile(coverage_file):
+                                    logger.debug('File Detected here {0}'.format(coverage_file))
+                                    os.remove(coverage_file)
+                                elif os.path.isdir(coverage_file):
+                                    logger.debug('Folder Detected here {0}'.format(coverage_file))
+                                    shutil.rmtree(coverage_file)
                     except:
                         logger.info(
                             "Something went wrong trying to remove the files")
@@ -347,7 +351,7 @@ class chromite_questa_plugin(object):
         # Create RANK folder
         os.makedirs(str(output_db) + '/final_rank/')
         os.makedirs(str(output_db) + '/final_html_rank/')
-        os.makedirs(str(output_db) + '/final_html/')
+        os.makedirs(str(output_db) + '/cov_html/')
         logger.info('Initiating Merging of coverage files')
         merge_cmd = 'vcover merge -testassociated -outputstore ' + str(
             output_db) + '/final_coverage/' + ' -out ' + str(
@@ -361,7 +365,7 @@ class chromite_questa_plugin(object):
         with open(str(output_db) + '/final_merge_vcover.cmd', 'w') as f:
             f.write(merge_cmd + ' \n')
             f.write('vcover report -cvg -assert -code bcefst -details -html -htmldir ' +
-                    str(output_db) + '/final_html -verbose ' + str(output_db) +
+                    str(output_db) + '/cov_html -verbose ' + str(output_db) +
                     '/final_coverage/merged_ucdb.ucdb ' + '\n')
             f.write(rank_cmd + '\n')
             f.write('vcover report -html -rank ' + str(output_db) +
@@ -372,7 +376,7 @@ class chromite_questa_plugin(object):
         sys_command('chmod +x {0}/final_merge_vcover.cmd'.format(output_db))
         sys_command('sh {0}/final_merge_vcover.cmd'.format(output_db))
 
-        final_html = output_db + '/final_html/index.html'
+        final_html = output_db + '/cov_html/index.html'
         final_rank_html = output_db + '/final_html_rank/rank.html'
         os.chdir(orig_path)
         return final_html, final_rank_html
