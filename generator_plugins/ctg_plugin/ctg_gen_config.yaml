@@ -1,0 +1,202 @@
+rv32e:
+  bisa: rv32e
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+
+rv32em:
+  bisa: rv32e
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+    - cgfs/rv32im.cgf
+
+rv32emc:
+  bisa: rv32e
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+    - cgfs/rv32im.cgf
+    - cgfs/rv32imc.cgf
+
+rv32ec:
+  bisa: rv32e
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+    - cgfs/rv32ic.cgf
+
+rv32e_priv:
+  bisa: rv32e
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+    - cgfs/rv32i_priv.cgf
+
+rv32em_priv:
+  bisa: rv32e
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+    - cgfs/rv32i_priv.cgf
+    - cgfs/rv32im.cgf
+
+rv32emc_priv:
+  bisa: rv32e
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+    - cgfs/rv32i_priv.cgf
+    - cgfs/rv32im.cgf
+    - cgfs/rv32imc.cgf
+
+rv32ec_priv:
+  bisa: rv32e
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+    - cgfs/rv32i_priv.cgf
+    - cgfs/rv32ic.cgf
+rv32i:
+  bisa: rv32i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+
+rv32im:
+  bisa: rv32i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+    - cgfs/rv32im.cgf
+
+rv32imc:
+  bisa: rv32i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+    - cgfs/rv32im.cgf
+    - cgfs/rv32imc.cgf
+
+rv32ic:
+  bisa: rv32i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+    - cgfs/rv32ic.cgf
+
+rv32i_priv:
+  bisa: rv32i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+    - cgfs/rv32i_priv.cgf
+
+rv32im_priv:
+  bisa: rv32i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+    - cgfs/rv32i_priv.cgf
+    - cgfs/rv32im.cgf
+
+rv32imc_priv:
+  bisa: rv32i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+    - cgfs/rv32i_priv.cgf
+    - cgfs/rv32im.cgf
+    - cgfs/rv32imc.cgf
+
+rv32ic_priv:
+  bisa: rv32i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv32i.cgf
+    - cgfs/rv32i_priv.cgf
+    - cgfs/rv32ic.cgf
+
+rv64i:
+  bisa: rv64i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv64i.cgf
+
+rv64im:
+  bisa: rv64i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv64i.cgf
+    - cgfs/rv64im.cgf
+
+rv64imc:
+  bisa: rv64i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv64i.cgf
+    - cgfs/rv64im.cgf
+    - cgfs/rv64imc.cgf
+
+rv64ic:
+  bisa: rv64i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv64i.cgf
+    - cgfs/rv64ic.cgf
+
+rv64i_priv:
+  bisa: rv64i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv64i.cgf
+    - cgfs/rv64i_priv.cgf
+
+rv64im_priv:
+  bisa: rv64i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv64i.cgf
+    - cgfs/rv64i_priv.cgf
+    - cgfs/rv64im.cgf
+
+rv64imc_priv:
+  bisa: rv64i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv64i.cgf
+    - cgfs/rv64i_priv.cgf
+    - cgfs/rv64im.cgf
+    - cgfs/rv64imc.cgf
+
+rv64ic_priv:
+  bisa: rv64i
+  absolute: false
+  cgfs:
+    - cgfs/dataset.cgf
+    - cgfs/rv64i.cgf
+    - cgfs/rv64i_priv.cgf
+    - cgfs/rv64ic.cgf

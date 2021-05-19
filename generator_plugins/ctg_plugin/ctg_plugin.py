@@ -41,15 +41,10 @@ class ctg_plugin(object):
             logger.debug('Output Directory exists. Removing Contents.')
             shutil.rmtree(output_dir, ignore_errors=True)
         os.makedirs(output_dir)
-        self.cgf_files = [os.path.abspath(x.strip()) for x in re.split('\n|,',spec_config['cgf_files'])]
-        for entry in self.cgf_files:
-            if not os.path.exists(entry):
-                logger.error(entry + " path does not exist.")
-                raise SystemExit
-        self.xlen = int(spec_config['xlen'])
         self.jobs = int(spec_config['jobs'])
         self.randomize = bool(spec_config['randomize'])
-        self.base_isa = str(spec_config['base_isa'])
+        self.isa = str(spec_config['isa'])
+        self.gen_config = os.path.abspath(spec_config['ctg_gen_config'])
         self.config_file = os.path.abspath(spec_config['riscof_config'])
 
     @gen_hookimpl
@@ -57,10 +52,22 @@ class ctg_plugin(object):
         output_dir = os.path.abspath(output_dir)
         logger.debug("CTG Gen phase.")
         asm_path = os.path.join(output_dir,"ctg/asm/")
+        pytest_file = os.path.join(this,'gen_framework.py')
         os.makedirs(asm_path)
         # ctg("debug",os.path.join(output_dir,asm_path), self.randomize, self.xlen, self.cgf_files, self.jobs, self.base_isa)
-        ctg_command = 'riscv_ctg -v info -bi {0} -d {1} -p {2}'.format(self.base_isa, asm_path, self.jobs)+('' if not self.randomize else ' -r ') + '-cf ' + ' -cf '.join(self.cgf_files)
-        shellCommand(ctg_command).run(cwd=os.path.join(output_dir,"ctg/"))
+        # ctg_command = 'riscv_ctg -v info -bi {0} -d {1} -p {2}'.format(self.base_isa, asm_path, self.jobs)+('' if not self.randomize else ' -r ') + '-cf ' + ' -cf '.join(self.cgf_files)
+        # shellCommand(ctg_command).run(cwd=os.path.join(output_dir,"ctg/"))
+        report_file_name = '{0}/{1}_{2}'.format(
+            os.path.join(output_dir,".json/"), self.name,
+            datetime.datetime.now().strftime("%Y%m%d-%H%M"))
+        pytest.main([
+            pytest_file, '-n={0}'.format(self.jobs), '--configfile={0}'.format(self.gen_config), '-v',
+            '--isa={0}'.format(self.isa), '--jobs={0}'.format(self.jobs),
+            '--html={0}/reports/ctg.html'.format(output_dir),
+            '--report-log={0}.json'.format(report_file_name),
+            '--self-contained-html', '--output_dir={0}'.format(asm_path),
+            '--module_dir={0}'.format(this),('' if not self.randomize else '--randomize')
+        ])
         work_dir = os.path.join(output_dir,"ctg/riscof_work/")
         includes = os.path.join(output_dir,"ctg/asm/env/")
         riscof_command = "riscof testlist --config {0} --suite {1}".format(self.config_file,asm_path)
@@ -82,6 +89,7 @@ class ctg_plugin(object):
             new_entry['linker_args'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
             new_entry['linker_file'] = ''
             new_entry['mabi'] = ''
+            new_entry['macros'] = riscof_test_list[entry]['macros']
             new_entry['march'] = new_entry['isa']
             test_list[key] = new_entry
         return test_list
