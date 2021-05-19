@@ -29,8 +29,8 @@ class ctg_plugin(object):
             Spec Config Fields and their meanings.
             cgf_files: a list of comma or newline separated file paths which point to the list of cgf files for ctg.
             jobs: number of parallel processes to spawn for ctg
-            xlen: xlen of the tests
-            base_isa: The base isa for the tests. One of [rv32e,rv32i,rv64i]
+            isa: The isa for the tests. The key should exist in the ctg configuration file.
+            ctg_gen_config: A yaml file where the nodes are accessed using the isa and the node supplies details pertaining to base isa and cgf files for CTG.
             riscof_config: config file for riscof
             randomize: Specify the SAT solver to use in ctg.
         '''
