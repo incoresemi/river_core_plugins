@@ -175,6 +175,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
             arthematic_inst = ['fadd.', 'fsub.', 'fmul.', 'fdiv.']
             mul_add_inst = ['fmadd']
             convert_inst = ['fcvt']
+            compare_inst = ['feq.', 'flt.', 'fle.']
 
             # TODO: Improve, nested list parsing, regex is a good alt, but need to be pefomant heavy
             if any(element in asm_inst for element in arthematic_inst):
@@ -255,7 +256,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                     reg_prefix = 'x'
                 elif 'f' in suffix:
                     reg_prefix = 'f'
-                dest_reg = (reg_prefix) + str(dest)
+                dest_reg = str(reg_prefix) + str(dest)
 
                 reg_1 = random.randint(int(parameter_list[2][0]),
                                        int(parameter_list[2][1]))
@@ -284,6 +285,41 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                 else:
                     # Ensure that the offset generated is twice the amount
                     offset_ctr += align
+
+            elif any(element in asm_inst for element in compare_inst):
+                # Move the selection here to ensure max variety in the tests cases
+                dest = random.randint(int(parameter_list[1][0]),
+                                      int(parameter_list[1][1]))
+                dest_reg = 'x' + str(dest)
+                reg_1 = random.randint(int(parameter_list[2][0]),
+                                       int(parameter_list[2][1]))
+                reg_1_str = 'f' + str(reg_1)
+                reg_2 = random.randint(int(parameter_list[3][0]),
+                                       int(parameter_list[3][1]))
+                reg_2_str = 'f' + str(reg_2)
+                if 'eq' in asm_inst:
+                    mode = "010"
+                elif 'lt' in asm_inst:
+                    mode = "001"
+                elif 'le' in asm_inst:
+                    mode = "000"
+                case_data = gen_data[case_index].split(' ')
+                offset_mem.append('0x' + str(case_data[0]))
+                offset_mem.append('0x' + str(case_data[1]))
+                generated_asm_inst = '\ninst_{0}:\nTEST_RR_OP({1}, {2}, {3}, {4}, {5}, {6}, {7})\n'.format(
+                    case_index, asm_inst, dest_reg, reg_1_str, reg_2_str, mode,
+                    offset_ctr, offset_ctr + align)
+
+                asm_file_pointer.write(generated_asm_inst)
+
+                # Add check for 2048 limitation
+                if (offset_ctr + align) >= max_offset:
+                    update_asm_inst = '\naddi x2, x2, {0}\n'.format(max_offset)
+                    asm_file_pointer.write(update_asm_inst)
+                    offset_ctr = 0
+                else:
+                    # Ensure that the offset generated is twice the amount
+                    offset_ctr += 2 * align
 
             else:
                 logger.warning(
@@ -359,11 +395,13 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                 arthematic_inst = ['fadd.', 'fsub.', 'fmul.', 'fdiv.']
                 mul_add_inst = ['fmadd']
                 convert_inst = ['cvt']
+                compare_inst = ['feq.', 'flt.', 'fle.']
                 gen_inst = ''
                 inst_prefix = ''
 
                 # TODO: Improve, nested list parsing, regex is a good alt, but need to be pefomant heavy
-                if any(element in inst for element in arthematic_inst):
+                if any(element in inst for element in arthematic_inst) or any(
+                        element in inst for element in compare_inst):
                     # Register 2
                     reg2 = inst_yaml_list[key]['reg2'].split(',')
                     param_list.append(reg2)
@@ -379,6 +417,13 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                     # Register 3
                     reg3 = inst_yaml_list[key]['reg3'].split(',')
                     param_list.append(reg3)
+
+                # elif any(element in inst for element in compare_inst):
+                #     gen_inst = inst[1:-2]
+                #     inst_prefix = inst_precision(inst)
+                #     # Register 2
+                #     reg2 = inst_yaml_list[key]['reg2'].split(',')
+                #     param_list.append(reg2)
 
                 gen_inst = str(inst_prefix) + '_' + gen_inst
 
