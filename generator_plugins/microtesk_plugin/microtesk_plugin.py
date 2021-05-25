@@ -127,6 +127,8 @@ class microtesk_plugin(object):
             base_key = os.path.basename(test)[:-2]
             test_list[base_key] = {}
             test_list[base_key]['generator'] = self.name
+            test_list[base_key]['extra_compile'] = []
+            test_list[base_key]['include'] = []
             test_list[base_key]['isa'] = self.isa
             test_list[base_key]['march'] = march_str
             test_list[base_key]['mabi'] = mabi_str
