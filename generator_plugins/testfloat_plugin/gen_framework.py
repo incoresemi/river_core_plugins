@@ -174,7 +174,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
 
             arthematic_inst = ['fadd.', 'fsub.', 'fmul.', 'fdiv.']
             compare_inst = ['feq.', 'flt.', 'fle.']
-            mul_add_inst = 'fmadd'
+            fused_inst = ['fmadd', 'fmsub', 'fnmsub', 'fnmadd']
             convert_inst = 'cvt'
             sqrt_inst = 'sqrt'
 
@@ -225,8 +225,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                 # expected_result = '0x' + str(case_data[2])
                 # exception_flag = '0x' + str(case_data[3])
                 generated_asm_inst = '\ninst_{0}:\nTEST_R_OP({1}, {2}, {3}, {4}, {5})\n'.format(
-                    case_index, asm_inst, dest_reg, reg_1_str, mode,
-                    offset_ctr )
+                    case_index, asm_inst, dest_reg, reg_1_str, mode, offset_ctr)
 
                 asm_file_pointer.write(generated_asm_inst)
 
@@ -239,7 +238,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                     # Ensure that the offset generated is twice the amount
                     offset_ctr += align
 
-            elif mul_add_inst in asm_inst:
+            elif any(element in asm_inst for element in fused_inst):
                 # Move the selection here to ensure max variety in the tests cases
                 dest = random.randint(int(parameter_list[1][0]),
                                       int(parameter_list[1][1]))
@@ -351,9 +350,10 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                     offset_ctr += 2 * align
 
             else:
-                logger.warning(
-                    'Failed to detect any instructions \n empty ASM file will be generated'
+                logger.error(
+                    'Failed to detect any instructions \nEmpty ASM file will be generated\nExiting the framework'
                 )
+                raise SystemError
 
         # Finish the code section
         asm_file_pointer.write(code_footer + '\n\n')
@@ -423,7 +423,7 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                 # Get inst info
                 arthematic_inst = ['fadd.', 'fsub.', 'fmul.', 'fdiv.']
                 compare_inst = ['feq.', 'flt.', 'fle.']
-                mul_add_inst = 'fmadd'
+                fused_inst = ['fmadd', 'fmsub', 'fnmsub', 'fnmadd']
                 convert_inst = 'cvt'
                 sqrt_inst = 'sqrt'
                 gen_inst = ''
@@ -437,8 +437,9 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                     param_list.append(reg2)
                     gen_inst = inst[1:-2]
                     inst_prefix = inst_precision(inst)
+                    gen_inst = str(inst_prefix) + '_' + gen_inst
 
-                elif mul_add_inst in inst:
+                elif any(element in inst for element in fused_inst):
                     gen_inst = 'mulAdd'
                     inst_prefix = inst_precision(inst)
                     # Register 2
@@ -447,18 +448,23 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                     # Register 3
                     reg3 = inst_yaml_list[key]['reg3'].split(',')
                     param_list.append(reg3)
+                    gen_inst = str(inst_prefix) + '_' + gen_inst
 
-                elif sqrt_inst in inst: 
+                elif sqrt_inst in inst:
                     gen_inst = inst[1:-2]
                     inst_prefix = inst_precision(inst)
-
-                gen_inst = str(inst_prefix) + '_' + gen_inst
+                    gen_inst = str(inst_prefix) + '_' + gen_inst
 
                 # This should be last, as the generation instruction is different for convert.
-                if convert_inst in inst:
+                elif convert_inst in inst:
                     gen_inst = 'to'
                     prefix, suffix = convert_inst_precision(inst)
                     gen_inst = str(prefix) + '_' + gen_inst + '_' + str(suffix)
+
+                else:
+                    logger.error(
+                        'No valid instruction found, exiting framework')
+                    raise SystemError
 
                 # Check for all suported inst using rounding-mode
                 rounding_mode = inst_yaml_list[key].get('rounding-mode')
@@ -521,7 +527,7 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
 
 
 def idfnc(val):
-    instance = val[0].split(' ')[-1]
+    instance = val[1][0]
     return 'Generating for inst {0}'.format(instance)
 
 
