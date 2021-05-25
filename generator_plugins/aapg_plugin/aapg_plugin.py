@@ -157,6 +157,7 @@ class aapg_plugin(object):
             test_list[base_key][
                 'asm_file'] = output_dir + '/aapg/asm/' + base_key + '/' + base_key + '.S'
             test_list[base_key]['include']=[]
+            test_list[base_key]['compile_macros'] = []
             test_list[base_key]['extra_compile'] = [
                 output_dir + '/aapg/common/crt.S'
             ]

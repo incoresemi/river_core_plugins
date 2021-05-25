@@ -91,6 +91,7 @@ class spike_plugin(object):
                 compile_cmd += ' ' + x
             for x in attr['include']:
                 compile_cmd += ' -I '+str(x)
+            compile_cmd += ' '.join(map(' -D{0}'.format, attr['compile_macros']))
             compile_cmd += ' -o ref.elf && '
             post_process_cmd = 'mv spike.dump ref.dump'
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\

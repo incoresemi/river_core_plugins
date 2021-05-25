@@ -215,6 +215,7 @@ class chromite_cadence_plugin(object):
                     cc, cc_args, arch, abi, link_args, link_file, asm_file)
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
+            compile_cmd += ' '.join(map(' -D{0}'.format, attr['compile_macros']))
             compile_cmd += ' -o dut.elf && '
             with open(work_dir + '/imc.cmd', 'w') as f:
                 f.write('load ' + work_dir + '/cov_work/scope/' + test + '\n')

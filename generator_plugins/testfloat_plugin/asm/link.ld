@@ -3,7 +3,7 @@ ENTRY(rvtest_entry_point)
 
 SECTIONS
 {
-  . = 2147483648;
+  . = 0x80000000;
   .text.init : { *(.text.init) }
   .text : { *(.text) }
 
@@ -11,7 +11,7 @@ SECTIONS
   .data : { *(begin_rvtest_data*) }
 
 
-  . = ALIGN(0x100000);
+  . = ALIGN(0x100);
   .tohost : { *(.tohost) }
   .rodata : { *(rodata) }
 

@@ -225,6 +225,7 @@ class chromite_questa_plugin(object):
 
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
+            compile_cmd += ' '.join(map(' -D{0}'.format, attr['compile_macros']))
             compile_cmd += ' -o dut.elf && '
             sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core_{0} . && '.format(
                 test)

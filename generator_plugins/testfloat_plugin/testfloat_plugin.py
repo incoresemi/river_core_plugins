@@ -117,10 +117,10 @@ class testfloat_plugin(object):
             elif 'd' not in march_str:
                 mabi_str = 'ilp32d'
 
+            # split the test-file name to extract the instruction
+            instr = test.split('_')[3:-5]
+            fsize = 64 if 'd' in instr else 32 # if d n name then fxlen=64
 
-#            breakpoint()
-# Create the base key for the test i.e. the main file under which everything is stored
-# NOTE: Here we expect the developers to probably have the proper GCC and the args, objdump as well
             base_key = os.path.basename(test)[:-2]
             test_list[base_key] = {}
             test_list[base_key][
@@ -142,7 +142,7 @@ class testfloat_plugin(object):
                 module_dir + '/testfloat_plugin/asm'
             ]
             test_list[base_key]['extra_compile'] = []
-            # TODO:DOC Add info possible results for the below variable
+            test_list[base_key]['compile_macros'] = ['FSZ='+str(fsize)]
             test_list[base_key]['result'] = 'Unavailable'
 
         return test_list

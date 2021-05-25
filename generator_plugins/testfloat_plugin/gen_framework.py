@@ -111,10 +111,10 @@ def inst_precision(inst):
 
 def inst_alignment(inst):
     inst_align = 0
-    if '.s' in inst:
-        inst_align = 4
-    elif '.d' in inst:
+    if '.d' in inst:
         inst_align = 8
+    elif '.s' in inst:
+        inst_align = 4
     # TODO Could be possibly wrong, can remove Q parts for now as well
     elif '.q' in inst:
         inst_align = 16
@@ -362,7 +362,10 @@ def create_asm(gen_file, parameter_list, gen_cmd):
             align)
         asm_file_pointer.write(data_header)
         for memory in offset_mem:
-            asm_file_pointer.write('.word ' + str(memory) + '\n')
+            if align==8:
+                asm_file_pointer.write('.dword ' + str(memory) + '\n')
+            else:
+                asm_file_pointer.write('.word ' + str(memory) + '\n')
         asm_file_pointer.write(
             '.align {0}; .global end_rvtest_data; end_rvtest_data:\n'.format(
                 align))

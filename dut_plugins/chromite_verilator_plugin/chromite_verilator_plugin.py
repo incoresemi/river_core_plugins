@@ -117,7 +117,7 @@ class chromite_verilator_plugin(object):
                 -Wno-INITIALDLY  --autoflush   --threads 1 \
                 -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY \
                 --output-split 20000  --output-split-ctrace 10000 \
-                --cc '                                                                                                                                                                                                                                                                                                                                                                                       + self.top_module + '.v  -y ' + self.src_dir[0] + \
+                --cc '+ self.top_module + '.v  -y ' + self.src_dir[0] + \
                 ' -y ' + self.src_dir[1] + ' -y ' + self.src_dir[2] + \
                 ' --exe'
         if coverage_config:
@@ -191,6 +191,7 @@ class chromite_verilator_plugin(object):
                 compile_cmd += ' ' + x
             for x in attr['include']:
                 compile_cmd += ' -I ' + str(x)
+            compile_cmd += ' '.join(map(' -D{0}'.format, attr['compile_macros']))
             compile_cmd += ' -o dut.elf && '
             sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/boot.mem . && '
