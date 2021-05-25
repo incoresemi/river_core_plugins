@@ -4,9 +4,8 @@ import os
 import sys
 import pluggy
 import shutil
-import yaml
 from river_core.log import logger
-from river_core.utils import *
+import river_core.utils as utils
 from river_core.constants import *
 import random
 import re
@@ -22,12 +21,13 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
     try:
         env_gen_list = EnvYAML(gen_config)
     except:
-        logger.error("Is your plugin YAML file properly configured?")
+        logger.error(
+            "It seems that the MICROTESK_HOME is not exported\nPlease export for the current session of the shell"
+        )
         raise SystemExit
 
-    with open(gen_config) as fh:
-        gen_list = yaml.safe_load(fh)
-        gen_list['global_home'] = env_gen_list['global_home']
+    gen_list = utils.load_yaml(gen_config)
+    gen_list['global_home'] = env_gen_list['global_home']
     ## schema validator should be here
     out = ''
     command = ''
@@ -59,8 +59,8 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                     gen_seed = int(seed)
 
                 now = datetime.datetime.now()
-                gen_prefix = '{0:06}_{1}'.format(
-                    gen_seed, now.strftime('%d%m%Y%H%M%S%f'))
+                gen_prefix = '{0:06}_{1}'.format(gen_seed,
+                                                 now.strftime('%d%m%Y%H%M%S%f'))
                 test_prefix = 'microtesk_{0}_{1}_{2:05}'.format(
                     template_name.replace('.rb', ''), gen_prefix, i)
                 testdir = '{0}/asm/{1}'.format(dirname, test_prefix)
@@ -97,7 +97,7 @@ def test_input(request, autouse=True):
     program = request.param
     template_match = re.search('riscv (.*).rb', program)
     if os.path.isfile('{0}.rb'.format(template_match.group(1))):
-        (ret, out, err) = sys_command(program)
+        (ret, out, err) = utils.sys_command(program)
         return ret
     else:
         logger.error('File not found {0}'.format(template_match.group(1)))
