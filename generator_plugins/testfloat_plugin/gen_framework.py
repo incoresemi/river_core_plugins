@@ -167,15 +167,16 @@ def create_asm(gen_file, parameter_list, gen_cmd):
 
         # TODO: Will change to original file length after testing
         # Is useful to control the number of instructions, we can probably step away from the limits for Testfloat
-        for case_index in range(0, 10):
+        for case_index in range(0, len(gen_data)):
             # for case_index in range(0, len(gen_data)):
 
             # Instruction types
 
             arthematic_inst = ['fadd.', 'fsub.', 'fmul.', 'fdiv.']
-            mul_add_inst = ['fmadd']
-            convert_inst = ['fcvt']
             compare_inst = ['feq.', 'flt.', 'fle.']
+            mul_add_inst = 'fmadd'
+            convert_inst = 'cvt'
+            sqrt_inst = 'sqrt'
 
             # TODO: Improve, nested list parsing, regex is a good alt, but need to be pefomant heavy
             if any(element in asm_inst for element in arthematic_inst):
@@ -210,7 +211,35 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                     # Ensure that the offset generated is twice the amount
                     offset_ctr += 2 * align
 
-            elif any(element in asm_inst for element in mul_add_inst):
+            elif sqrt_inst in asm_inst:
+                # Move the selection here to ensure max variety in the tests cases
+                dest = random.randint(int(parameter_list[1][0]),
+                                      int(parameter_list[1][1]))
+                dest_reg = 'f' + str(dest)
+                reg_1 = random.randint(int(parameter_list[2][0]),
+                                       int(parameter_list[2][1]))
+                reg_1_str = 'f' + str(reg_1)
+                mode = parameter_list[3]
+                case_data = gen_data[case_index].split(' ')
+                offset_mem.append('0x' + str(case_data[0]))
+                # expected_result = '0x' + str(case_data[2])
+                # exception_flag = '0x' + str(case_data[3])
+                generated_asm_inst = '\ninst_{0}:\nTEST_R_OP({1}, {2}, {3}, {4}, {5})\n'.format(
+                    case_index, asm_inst, dest_reg, reg_1_str, mode,
+                    offset_ctr )
+
+                asm_file_pointer.write(generated_asm_inst)
+
+                # Add check for 2048 limitation
+                if (offset_ctr) >= max_offset:
+                    update_asm_inst = '\naddi x2, x2, {0}\n'.format(max_offset)
+                    asm_file_pointer.write(update_asm_inst)
+                    offset_ctr = 0
+                else:
+                    # Ensure that the offset generated is twice the amount
+                    offset_ctr += align
+
+            elif mul_add_inst in asm_inst:
                 # Move the selection here to ensure max variety in the tests cases
                 dest = random.randint(int(parameter_list[1][0]),
                                       int(parameter_list[1][1]))
@@ -247,7 +276,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                     # Ensure that the offset generated is twice the amount
                     offset_ctr += 3 * align
 
-            elif any(element in asm_inst for element in convert_inst):
+            elif convert_inst in asm_inst:
                 # Move the selection here to ensure max variety in the tests cases
                 prefix, suffix = convert_inst_precision(asm_inst)
                 dest = random.randint(int(parameter_list[1][0]),
@@ -393,9 +422,10 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
 
                 # Get inst info
                 arthematic_inst = ['fadd.', 'fsub.', 'fmul.', 'fdiv.']
-                mul_add_inst = ['fmadd']
-                convert_inst = ['cvt']
                 compare_inst = ['feq.', 'flt.', 'fle.']
+                mul_add_inst = 'fmadd'
+                convert_inst = 'cvt'
+                sqrt_inst = 'sqrt'
                 gen_inst = ''
                 inst_prefix = ''
 
@@ -408,7 +438,7 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                     gen_inst = inst[1:-2]
                     inst_prefix = inst_precision(inst)
 
-                elif any(element in inst for element in mul_add_inst):
+                elif mul_add_inst in inst:
                     gen_inst = 'mulAdd'
                     inst_prefix = inst_precision(inst)
                     # Register 2
@@ -418,17 +448,14 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                     reg3 = inst_yaml_list[key]['reg3'].split(',')
                     param_list.append(reg3)
 
-                # elif any(element in inst for element in compare_inst):
-                #     gen_inst = inst[1:-2]
-                #     inst_prefix = inst_precision(inst)
-                #     # Register 2
-                #     reg2 = inst_yaml_list[key]['reg2'].split(',')
-                #     param_list.append(reg2)
+                elif sqrt_inst in inst: 
+                    gen_inst = inst[1:-2]
+                    inst_prefix = inst_precision(inst)
 
                 gen_inst = str(inst_prefix) + '_' + gen_inst
 
                 # This should be last, as the generation instruction is different for convert.
-                if any(element in inst for element in convert_inst):
+                if convert_inst in inst:
                     gen_inst = 'to'
                     prefix, suffix = convert_inst_precision(inst)
                     gen_inst = str(prefix) + '_' + gen_inst + '_' + str(suffix)
