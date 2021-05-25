@@ -173,7 +173,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
             # Instruction types
 
             arthematic_inst = ['fadd.', 'fsub.', 'fmul.', 'fdiv.']
-            compare_inst = ['feq.', 'flt.', 'fle.']
+            compare_inst = ['feq.', 'flt.', 'fle.', 'fmin.', 'fmax.']
             fused_inst = ['fmadd', 'fmsub', 'fnmsub', 'fnmadd']
             convert_inst = 'cvt'
             sqrt_inst = 'sqrt'
@@ -327,9 +327,9 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                 reg_2_str = 'f' + str(reg_2)
                 if 'eq' in asm_inst:
                     mode = "010"
-                elif 'lt' in asm_inst:
+                elif ('lt' in asm_inst) or ('max' in asm_inst):
                     mode = "001"
-                elif 'le' in asm_inst:
+                elif ('le' in asm_inst) or ('min' in asm_inst):
                     mode = "000"
                 case_data = gen_data[case_index].split(' ')
                 offset_mem.append('0x' + str(case_data[0]))
@@ -422,7 +422,7 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
 
                 # Get inst info
                 arthematic_inst = ['fadd.', 'fsub.', 'fmul.', 'fdiv.']
-                compare_inst = ['feq.', 'flt.', 'fle.']
+                compare_inst = ['feq.', 'flt.', 'fle.', 'fmin.', 'fmax.']
                 fused_inst = ['fmadd', 'fmsub', 'fnmsub', 'fnmadd']
                 convert_inst = 'cvt'
                 sqrt_inst = 'sqrt'
@@ -438,6 +438,9 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                     gen_inst = inst[1:-2]
                     inst_prefix = inst_precision(inst)
                     gen_inst = str(inst_prefix) + '_' + gen_inst
+                    # if min/max is given assume eq and generate values
+                    if ('fmin' in inst) or ('fmax' in inst):
+                        gen_inst = str(inst_prefix) + '_eq'
 
                 elif any(element in inst for element in fused_inst):
                     gen_inst = 'mulAdd'
@@ -522,6 +525,10 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
                                     testdir
                                 ]
                                 run_command.append(combine)
+
+                else:
+                    logger.warning('Rounding mode not found')
+                    raise SystemError
 
     return run_command
 
