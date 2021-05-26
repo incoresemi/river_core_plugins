@@ -16,7 +16,7 @@ from river_core.utils import *
 dut_hookimpl = pluggy.HookimplMarker('dut')
 
 
-class spike_plugin(object):
+class modspike_plugin(object):
     '''
         Plugin to set Spike as ref
     '''
@@ -40,7 +40,7 @@ class spike_plugin(object):
         self.objdump_cmd = 'riscv{0}-unknown-elf-objdump -D ref.elf > ref.disass && '.format(
             self.xlen)
         self.sim_cmd = 'spike'
-        self.sim_args = '--log ref.dump --log-commits --isa={0} {1}'
+        self.sim_args = '-c --isa={0} {1}'
 
         self.work_dir = os.path.abspath(work_dir) + '/'
         self.test_list = load_yaml(test_list)
@@ -93,10 +93,11 @@ class spike_plugin(object):
                 compile_cmd += ' -I '+str(x)
             compile_cmd += ' '.join(map(' -D{0}'.format, attr['compile_macros']))
             compile_cmd += ' -o ref.elf && '
-            post_process_cmd = ''
+            post_process_cmd = 'mv spike.dump ref.dump'
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
                     self.sim_cmd + ' ' + \
-                    self.sim_args.format(spike_isa, self.elf)
+                    self.sim_args.format(spike_isa, self.elf) + \
+                    ' && '+ post_process_cmd
             make.add_target(target_cmd, test)
             self.test_names.append(test)
 
@@ -104,7 +105,7 @@ class spike_plugin(object):
     def run(self, module_dir):
         logger.debug('Run Hook')
         logger.debug('Module dir: {0}'.format(module_dir))
-        pytest_file = module_dir + '/spike_plugin/gen_framework.py'
+        pytest_file = module_dir + '/modspike_plugin/gen_framework.py'
         logger.debug('Pytest file: {0}'.format(pytest_file))
 
         report_file_name = '{0}/{1}_{2}'.format(
