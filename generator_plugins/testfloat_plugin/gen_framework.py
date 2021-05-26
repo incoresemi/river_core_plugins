@@ -143,8 +143,6 @@ def create_asm(gen_file, parameter_list, gen_cmd):
 
     # Get alignment values
     align = inst_alignment(asm_inst)
-    # Add check for 2048 limitation
-    max_offset = int(((2048 / align) - 1) * align)
     # TODO check if this needs to change
     # Can come from the inst as well
     # Create test.S
@@ -184,7 +182,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                 dest = random.randint(int(parameter_list[1][0]),
                                       int(parameter_list[1][1]))
                 if dest == 1:
-                    dest = random.randint(4, 31)
+                    dest = random.randint(4,31)
                 dest_reg = 'f' + str(dest)
                 reg_1 = random.randint(int(parameter_list[2][0]),
                                        int(parameter_list[2][1]))
@@ -203,14 +201,15 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                     offset_ctr, offset_ctr + align)
 
                 asm_file_pointer.write(generated_asm_inst)
+                # Ensure that the offset generated is twice the amount
+                max_offset = 2048 - (2*align)
 
                 # Add check for 2048 limitation
-                if (offset_ctr + 2 * align) >= max_offset:
-                    update_asm_inst = '\naddi x1, x1, 2048\n'
+                if offset_ctr == max_offset:
+                    update_asm_inst = '\naddi x1, x1, {0}\n'.format(max_offset)
                     asm_file_pointer.write(update_asm_inst)
-                    offset_ctr = 0
+                    offset_ctr = 2 * align
                 else:
-                    # Ensure that the offset generated is twice the amount
                     offset_ctr += 2 * align
 
             elif sqrt_inst in asm_inst:
@@ -218,7 +217,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                 dest = random.randint(int(parameter_list[1][0]),
                                       int(parameter_list[1][1]))
                 if dest == 1:
-                    dest = random.randint(4, 31)
+                    dest = random.randint(4,31)
                 dest_reg = 'f' + str(dest)
                 reg_1 = random.randint(int(parameter_list[2][0]),
                                        int(parameter_list[2][1]))
@@ -232,22 +231,22 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                     case_index, asm_inst, dest_reg, reg_1_str, mode, offset_ctr)
 
                 asm_file_pointer.write(generated_asm_inst)
+                max_offset = 2048 - (1*align)
 
                 # Add check for 2048 limitation
-                if (offset_ctr + align) >= max_offset:
-                    update_asm_inst = '\naddi x1, x1, 2048\n'
+                if offset_ctr == max_offset:
+                    update_asm_inst = '\naddi x1, x1, {0}\n'.format(max_offset)
                     asm_file_pointer.write(update_asm_inst)
-                    offset_ctr = 0
+                    offset_ctr = 1 * align
                 else:
-                    # Ensure that the offset generated is twice the amount
-                    offset_ctr += align
+                    offset_ctr += 1 * align
 
             elif any(element in asm_inst for element in fused_inst):
                 # Move the selection here to ensure max variety in the tests cases
                 dest = random.randint(int(parameter_list[1][0]),
                                       int(parameter_list[1][1]))
                 if dest == 1:
-                    dest = random.randint(4, 31)
+                    dest = random.randint(4,31)
                 dest_reg = 'f' + str(dest)
                 reg_1 = random.randint(int(parameter_list[2][0]),
                                        int(parameter_list[2][1]))
@@ -271,17 +270,15 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                     offset_ctr + 2 * align)
 
                 asm_file_pointer.write(generated_asm_inst)
+                max_offset = int(2048/(3*align))*(3*align) - (3*align)
 
                 # Add check for 2048 limitation
-                # This is a special case
-                if (offset_ctr + (4 * align)) >= max_offset:
-                    update_asm_inst = '\naddi x1, x1, {0}\n'.format(offset_ctr +
-                                                                    (3 * align))
+                if offset_ctr == max_offset:
+                    update_asm_inst = '\naddi x1, x1, {0}\n'.format(max_offset)
                     asm_file_pointer.write(update_asm_inst)
-                    offset_ctr = 0
+                    offset_ctr = 3 * align
                 else:
-                    # Ensure that the offset generated is thrice the amount
-                    offset_ctr += (3 * align)
+                    offset_ctr += 3 * align
 
             elif convert_inst in asm_inst:
                 # Move the selection here to ensure max variety in the tests cases
@@ -290,7 +287,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                                       int(parameter_list[1][1]))
                 # can't select x1 as destination register
                 if dest == 1:
-                    dest = random.randint(4, 31)
+                    dest = random.randint(4,31)
                 if 'i' in suffix:
                     reg_prefix = 'x'
                 elif 'f' in suffix:
@@ -315,15 +312,15 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                     case_index, asm_inst, dest_reg, reg_1_str, mode, offset_ctr)
 
                 asm_file_pointer.write(generated_asm_inst)
+                max_offset = 2048 - (1*align)
 
                 # Add check for 2048 limitation
-                if (offset_ctr) >= max_offset:
-                    update_asm_inst = '\naddi x1, x1, 2048\n'
+                if offset_ctr == max_offset:
+                    update_asm_inst = '\naddi x1, x1, {0}\n'.format(max_offset)
                     asm_file_pointer.write(update_asm_inst)
-                    offset_ctr = 0
+                    offset_ctr = 1 * align
                 else:
-                    # Ensure that the offset generated is twice the amount
-                    offset_ctr += align
+                    offset_ctr += 1 * align
 
             elif any(element in asm_inst for element in compare_inst):
                 # Move the selection here to ensure max variety in the tests cases
@@ -350,14 +347,14 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                     offset_ctr, offset_ctr + align)
 
                 asm_file_pointer.write(generated_asm_inst)
+                max_offset = 2048 - (2*align)
 
                 # Add check for 2048 limitation
-                if (offset_ctr + align) >= max_offset:
-                    update_asm_inst = '\naddi x1, x1, 2048\n'
+                if offset_ctr == max_offset:
+                    update_asm_inst = '\naddi x1, x1, {0}\n'.format(max_offset)
                     asm_file_pointer.write(update_asm_inst)
-                    offset_ctr = 0
+                    offset_ctr = 2 * align
                 else:
-                    # Ensure that the offset generated is twice the amount
                     offset_ctr += 2 * align
 
             else:
@@ -373,7 +370,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
             align)
         asm_file_pointer.write(data_header)
         for memory in offset_mem:
-            if align == 8:
+            if align==8:
                 asm_file_pointer.write('.dword ' + str(memory) + '\n')
             else:
                 asm_file_pointer.write('.word ' + str(memory) + '\n')
