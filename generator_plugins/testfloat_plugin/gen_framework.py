@@ -206,7 +206,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
 
                 # Add check for 2048 limitation
                 if (offset_ctr + align) >= max_offset:
-                    update_asm_inst = '\naddi x2, x2, {0}\n'.format(max_offset)
+                    update_asm_inst = '\naddi x1, x1, {0}\n'.format(max_offset)
                     asm_file_pointer.write(update_asm_inst)
                     offset_ctr = 0
                 else:
@@ -235,7 +235,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
 
                 # Add check for 2048 limitation
                 if (offset_ctr) >= max_offset:
-                    update_asm_inst = '\naddi x2, x2, {0}\n'.format(max_offset)
+                    update_asm_inst = '\naddi x1, x1, {0}\n'.format(max_offset)
                     asm_file_pointer.write(update_asm_inst)
                     offset_ctr = 0
                 else:
@@ -275,7 +275,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                 # Add check for 2048 limitation
                 # This is a special case
                 if (offset_ctr + 4 * align) >= max_offset:
-                    update_asm_inst = '\naddi x2, x2, 2036\n'
+                    update_asm_inst = '\naddi x1, x1, 2036\n'
                     asm_file_pointer.write(update_asm_inst)
                     offset_ctr = 0
                 else:
@@ -317,7 +317,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
 
                 # Add check for 2048 limitation
                 if (offset_ctr) >= max_offset:
-                    update_asm_inst = '\naddi x2, x2, {0}\n'.format(max_offset)
+                    update_asm_inst = '\naddi x1, x1, {0}\n'.format(max_offset)
                     asm_file_pointer.write(update_asm_inst)
                     offset_ctr = 0
                 else:
@@ -352,7 +352,7 @@ def create_asm(gen_file, parameter_list, gen_cmd):
 
                 # Add check for 2048 limitation
                 if (offset_ctr + align) >= max_offset:
-                    update_asm_inst = '\naddi x2, x2, {0}\n'.format(max_offset)
+                    update_asm_inst = '\naddi x1, x1, {0}\n'.format(max_offset)
                     asm_file_pointer.write(update_asm_inst)
                     offset_ctr = 0
                 else:
