@@ -52,42 +52,46 @@ def convert_inst_precision(inst):
     '''
     Get the instruction precision value for convert operations
     '''
+    src = re.search(r'fcvt\.(?P<dst>.*?)\.(?P<src>.*?)$',inst,re.M|re.S)['src']
+    dst = re.search(r'fcvt\.(?P<dst>.*?)\.(?P<src>.*?)$',inst,re.M|re.S)['dst']
     inst_prefix = ''
     dest_prefix = ''
-    if inst[-1] == 'w':
-        inst_prefix = 'i32'
-    elif inst[-1] == 'wu':
+    if src == 'wu':
         inst_prefix = 'ui32'
-    elif inst[-1] == 'l':
-        inst_prefix = 'i64'
-    elif inst[-1] == 'lu':
+    elif src == 'w':
+        inst_prefix = 'i32'
+    elif src == 'lu':
         inst_prefix = 'ui64'
-    elif inst[-1] == 's':
+    elif src == 'l':
+        inst_prefix = 'i64'
+    elif src == 's':
         inst_prefix = 'f32'
-    elif inst[-1] == 'd':
+    elif src == 'd':
         inst_prefix = 'f64'
-    elif inst[-1] == 'q':
+    elif src == 'q':
         inst_prefix = 'f128'
     else:
         logger.error('Failed to detect a valid source instruction precision')
+        raise SystemError
 
-    if inst[-3] == 'w':
-        dest_prefix = 'i32'
-    elif inst[-3] == 'wu':
+    if dst == 'wu':
         dest_prefix = 'ui32'
-    elif inst[-3] == 'l':
-        dest_prefix = 'i64'
-    elif inst[-3] == 'lu':
+    elif dst == 'w':
+        dest_prefix = 'i32'
+    elif dst == 'lu':
         dest_prefix = 'ui64'
-    elif inst[-3] == 's':
+    elif dst == 'l':
+        dest_prefix = 'i64'
+    elif dst == 's':
         dest_prefix = 'f32'
-    elif inst[-3] == 'd':
+    elif dst == 'd':
         dest_prefix = 'f64'
-    elif inst[-3] == 'q':
+    elif dst == 'q':
         dest_prefix = 'f128'
     else:
         logger.error(
             'Failed to detect a valid destination instruction precision')
+        raise SystemError
 
     return inst_prefix, dest_prefix
 
