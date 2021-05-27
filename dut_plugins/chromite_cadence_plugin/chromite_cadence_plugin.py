@@ -295,9 +295,9 @@ class chromite_cadence_plugin(object):
 
             logger.info(
                 'Final coverage file is at: {0}'.format(self.work_dir +
-                                                        '/final_coverage_html'))
+                                                        '/reports/final_coverage_html'))
             logger.info('Final rank file is at: {0}'.format(self.work_dir +
-                                                            '/final_rank'))
+                                                            '/reports/final_rank'))
         return report_file_name
 
     @dut_hookimpl
@@ -333,20 +333,20 @@ class chromite_cadence_plugin(object):
         # TODO: DOC: Ensure plugin developers understand the reason for using final_coverage  and other hardcoded values
         logger.info('Initiating Merging of coverage files')
         merge_cmd = 'merge -overwrite -out ' + str(
-            output_db) + '/final_coverage/ '
+            output_db) + '/reports/final_coverage/ '
         rank_cmd = 'rank -overwrite -out ' + str(
-            output_db) + '/final_html_rank/ -html '
+            output_db) + '/reports/final_rank/ ' + str(output_db) + '/asm/*/cov_work/scope/* -html '
         for db_file in db_files:
             merge_cmd += ' ' + os.path.dirname(db_file)
-            rank_cmd += ' ' + os.path.dirname(db_file)
+            #rank_cmd += ' ' + os.path.dirname(db_file)
         with open(output_db + '/final_coverage/final_merge_imc.cmd', 'w') as f:
             f.write(merge_cmd + ' \n')
-            f.write('load -run ' + str(output_db) + '/final_coverage/' + '\n')
-            f.write('report -overwrite -out ' + str(output_db) + '/final_html/'
+            f.write('load -run ' + str(output_db) + '/reports/final_coverage/' + '\n')
+            f.write('report -overwrite -out ' + str(output_db) + '/reports/final_coverage_html/'
                     ' -html -detail \
             -metrics overall -all -aspect both -assertionStatus \
             -allAssertionCounters -type *\n')
-            f.write(rank_cmd + ' ' + str(output_db) + '/final_coverage' + '\n')
+            f.write(rank_cmd + '\n')
 
         orig_path = os.getcwd()
         os.chdir(output_db + '/final_coverage')
@@ -354,8 +354,8 @@ class chromite_cadence_plugin(object):
         (ret, out, error) = sys_command('imc -exec final_merge_imc.cmd')
 
         # HTML Web pages
-        final_html = output_db + '/final_html/index.html'
-        final_rank_html = output_db + '/final_html_rank/rank_sub_dir/rank.html'
+        final_html = output_db + '/reports/final_coverage_html/index.html'
+        final_rank_html = output_db + '/reports/final_rank/rank_sub_dir/rank.html'
         os.chdir(orig_path)
 
         return final_html, final_rank_html
