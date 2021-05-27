@@ -1,10 +1,6 @@
 #if FSZ==64
-  #define FTOX fmv.x.d
-  #define XTOF fmv.d.x
   #define LREG fld
 #else
-  #define FTOX fmv.x.w
-  #define XTOF fmv.w.x
   #define LREG flw
 #endif
 
