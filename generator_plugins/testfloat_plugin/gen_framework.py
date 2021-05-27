@@ -54,46 +54,46 @@ def convert_inst_precision(inst):
     '''
     src = re.search(r'fcvt\.(?P<dst>.*?)\.(?P<src>.*?)$',inst,re.M|re.S)['src']
     dst = re.search(r'fcvt\.(?P<dst>.*?)\.(?P<src>.*?)$',inst,re.M|re.S)['dst']
-    inst_prefix = ''
-    dest_prefix = ''
+    src_type = ''
+    dst_type = ''
     if src == 'wu':
-        inst_prefix = 'ui32'
+        src_type = 'ui32'
     elif src == 'w':
-        inst_prefix = 'i32'
+        src_type = 'i32'
     elif src == 'lu':
-        inst_prefix = 'ui64'
+        src_type = 'ui64'
     elif src == 'l':
-        inst_prefix = 'i64'
+        src_type = 'i64'
     elif src == 's':
-        inst_prefix = 'f32'
+        src_type = 'f32'
     elif src == 'd':
-        inst_prefix = 'f64'
+        src_type = 'f64'
     elif src == 'q':
-        inst_prefix = 'f128'
+        src_type = 'f128'
     else:
         logger.error('Failed to detect a valid source instruction precision')
         raise SystemError
 
     if dst == 'wu':
-        dest_prefix = 'ui32'
+        dst_type = 'ui32'
     elif dst == 'w':
-        dest_prefix = 'i32'
+        dst_type = 'i32'
     elif dst == 'lu':
-        dest_prefix = 'ui64'
+        dst_type = 'ui64'
     elif dst == 'l':
-        dest_prefix = 'i64'
+        dst_type = 'i64'
     elif dst == 's':
-        dest_prefix = 'f32'
+        dst_type = 'f32'
     elif dst == 'd':
-        dest_prefix = 'f64'
+        dst_type = 'f64'
     elif dst == 'q':
-        dest_prefix = 'f128'
+        dst_type = 'f128'
     else:
         logger.error(
             'Failed to detect a valid destination instruction precision')
         raise SystemError
 
-    return inst_prefix, dest_prefix
+    return src_type, dst_type
 
 
 def inst_precision(inst):
@@ -286,25 +286,23 @@ def create_asm(gen_file, parameter_list, gen_cmd):
 
             elif convert_inst in asm_inst:
                 # Move the selection here to ensure max variety in the tests cases
-                prefix, suffix = convert_inst_precision(asm_inst)
+                src_type, dest_type = convert_inst_precision(asm_inst)
                 dest = random.randint(int(parameter_list[1][0]),
                                       int(parameter_list[1][1]))
                 # can't select x1 as destination register
                 if dest == 1:
                     dest = random.randint(4,31)
-                if 'i' in suffix:
-                    reg_prefix = 'x'
-                elif 'f' in suffix:
-                    reg_prefix = 'f'
-                dest_reg = str(reg_prefix) + str(dest)
+                if 'i' in dest_type:
+                    dest_reg = 'x' + str(dest)
+                elif 'f' in dest_type:
+                    dest_reg = 'f' + str(dest)
 
                 reg_1 = random.randint(int(parameter_list[2][0]),
                                        int(parameter_list[2][1]))
-                if 'i' in prefix:
-                    reg_suffix = 'x'
-                elif 'f' in prefix:
-                    reg_suffix = 'f'
-                reg_1_str = str(reg_suffix) + str(reg_1)
+                if 'i' in src_type:
+                    reg_1_str = 'x' + str(reg_1)
+                elif 'f' in src_type:
+                    reg_1_str = 'f' + str(reg_1)
 
                 mode = parameter_list[3]
                 case_data = gen_data[case_index].split(' ')
@@ -312,8 +310,12 @@ def create_asm(gen_file, parameter_list, gen_cmd):
                 offset_mem.append('0x' + str(case_data[1]))
                 # expected_result = '0x' + str(case_data[2])
                 # exception_flag = '0x' + str(case_data[3])
-                generated_asm_inst = '\ninst_{0}:\nTEST_R_OP({1}, {2}, {3}, {4}, {5})\n'.format(
-                    case_index, asm_inst, dest_reg, reg_1_str, mode, offset_ctr)
+                if reg_1_str[0] == 'x':
+                    generated_asm_inst = '\ninst_{0}:\nTEST_R2_OP({1}, {2}, {3}, {4}, {5})\n'.format(
+                        case_index, asm_inst, dest_reg, reg_1_str, mode, offset_ctr)
+                else:
+                    generated_asm_inst = '\ninst_{0}:\nTEST_R_OP({1}, {2}, {3}, {4}, {5})\n'.format(
+                        case_index, asm_inst, dest_reg, reg_1_str, mode, offset_ctr)
 
                 asm_file_pointer.write(generated_asm_inst)
                 max_offset = 2048 - (1*align)
