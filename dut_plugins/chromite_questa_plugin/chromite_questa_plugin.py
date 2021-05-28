@@ -256,6 +256,7 @@ class chromite_questa_plugin(object):
         # breakpoint()
         pytest.main([
             pytest_file,
+            '-x',  # Stop on first failure 
             '-n={0}'.format(self.jobs),
             '-k={0}'.format(self.filter),
             '--html={0}.html'.format(self.work_dir + '/reports/' + self.name),
