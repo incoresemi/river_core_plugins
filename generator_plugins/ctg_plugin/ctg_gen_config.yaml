@@ -102,7 +102,6 @@ rv32i_priv:
   absolute: false
   cgfs:
     - cgfs/dataset.cgf
-    - cgfs/rv32i.cgf
     - cgfs/rv32i_priv.cgf
 
 rv32im_priv:
@@ -145,7 +144,6 @@ rv64im:
   absolute: false
   cgfs:
     - cgfs/dataset.cgf
-    - cgfs/rv64i.cgf
     - cgfs/rv64im.cgf
 
 rv64imc:
