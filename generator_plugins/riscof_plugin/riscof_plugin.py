@@ -28,7 +28,6 @@ class riscof_plugin(object):
             Spec Config Fields and their meanings.
             jobs: number of parallel processes to spawn for riscof
             riscof_config: config file for riscof
-            randomize: Specify the SAT solver to use in riscof.
         '''
         logger.debug("RISCV-CTG Pre Gen.")
         self.name = 'riscof'
@@ -38,7 +37,6 @@ class riscof_plugin(object):
             shutil.rmtree(output_dir, ignore_errors=True)
         os.makedirs(output_dir)
         self.jobs = int(spec_config['jobs'])
-        self.randomize = bool(spec_config['randomize'])
         self.config_file = os.path.abspath(spec_config['riscof_config'])
 
     @gen_hookimpl
@@ -60,8 +58,7 @@ class riscof_plugin(object):
             '--html={0}/reports/riscof.html'.format(output_dir),
             '--report-log={0}.json'.format(report_file_name),
             '--self-contained-html', '--output_dir={0}'.format(asm_path),
-            '--module_dir={0}'.format(this),('' if not self.randomize else '--randomize')
-        ])
+            '--module_dir={0}'.format(this)])
         work_dir = os.path.join(output_dir,"riscof/riscof_work/")
         includes = os.path.dirname(riscof.__file__)+'/suite/env'
         model_include = riscof_config['RISCOF']['DUTPluginPath']+'/env/'
