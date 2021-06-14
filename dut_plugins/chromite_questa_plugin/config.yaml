@@ -1,0 +1,20 @@
+objdump:
+  command: riscv64-unknown-elf-objdump
+  args: -D 
+elf2hex:
+  command: elf2hex
+  args: [8, 4194304, 2147483648]
+  out_file: code.mem
+sim:
+  command: chromite_core
+  path: /Projects/incorecpu/vinay.kariyanna/chromite/bin/
+  args: +rtldump
+questa:
+  bs_verilog_lib: /Projects/incorecpu/common/bsc_23.02.2021/bsc/inst/lib/Verilog/
+  bsv_wrapper_path: /Projects/incorecpu/vinay.kariyanna/chromite/bsvwrappers/common_lib/
+  verilogdir: /Projects/incorecpu/vinay.kariyanna/chromite/build/hw/verilog/
+
+sv_tb_top:
+  path: /Projects/incorecpu/vinay.kariyanna/rc_new/river_core_plugins/dut_plugins/sv_top
+
+
