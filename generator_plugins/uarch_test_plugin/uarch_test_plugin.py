@@ -1,0 +1,131 @@
+# See LICENSE for details
+
+import os
+import sys
+import pluggy
+from shutil import rmtree
+import subprocess
+import random
+import re
+import datetime
+import pytest
+import glob
+import re
+import configparser
+import uarch_test
+
+from river_core.log import logger
+import river_core.utils as utils
+from river_core.constants import *
+
+gen_hookimpl = pluggy.HookimplMarker("generator")
+
+class uarch_test_plugin(object):
+
+    @gen_hookimpl
+    def pre_gen(self, spec_config, output_dir):
+        """
+           Spec Config will send in the yaml file as a 
+           dictionary for the uarch_test generator to use
+           uarch_test has not been configured to run mulitple jobs, YET
+           as uarch test is ISA agnostic, we do not need those either
+        """
+
+        logger.debug("uArch test generator, Pre-Gen.")
+        self.name = 'uarch_test'
+        output_dir = os.path.abspath(output_dir)
+        if os.path.isdir(output_dir) and os.path.exists(output_dir):
+            logger.debug('Output Directory exists. Removing Contents.')
+            rmtree(output_dir)
+        os.mkdir(output_dir)
+        self.jobs = int(spec_config['jobs'])
+        self.seed = spec_config['seed']
+        self.count = int(spec_config['count'])
+        self.uarch_dir = os.path.dirname(uarch_test.__file__)
+        if spec_config['test_dir']:
+            self.test_dir = spec_config['test_dir']
+        else:
+            self.test_dir = os.path.join(self.uarch_dir,
+                                         "modules/branch_predictor/tests/")
+        logger.debug("test dir is {0}".format(self.test_dir))
+        # the DUT config YAML file
+        self.dut_config_file = spec_config['dut_config_yaml']
+        logger.debug("uArch test generator, Completed Pre-Gen Phase")
+
+    @gen_hookimpl
+    def gen(self, module_dir, output_dir):
+        """
+          gen phase for the test generator
+        """
+
+        output_dir = os.path.abspath(output_dir)
+        logger.debug("uArch test generator, Gen. phase")
+        #temp_dir = os.path.dirname(uarch_test.__file__)
+        asm_dir = self.test_dir
+        #asm_dir = os.path.join(output_dir,"uarch_test/asm/")
+        module_dir = os.path.join(module_dir, "uarch_test_plugin/")
+        logger.debug('Module dir is {0}'.format(module_dir))
+        logger.debug('Output dir is {0}'.format(output_dir))
+        logger.debug('Test dir is {0}'.format(self.test_dir))
+        pytest_file = os.path.join(module_dir, 'gen_framework.py')
+        os.makedirs(asm_dir, exist_ok=True)
+
+        # report file
+        report_file_name = '{0}/{1}_{2}'.format(
+            os.path.join(output_dir, ".json/"), self.name,
+            datetime.datetime.now().strftime("%Y%m%d-%H%M"))
+
+        # pytest for test generation
+        pytest.main([
+            pytest_file, '-n=1',
+            '--configfile={0}'.format(self.dut_config_file), '-v',
+            '--html={0}/reports/uarch_test.html'.format(output_dir),
+            '--report-log={0}.json'.format(report_file_name),
+            '--self-contained-html', '--output_dir={0}'.format(output_dir),
+            '--module_dir={0}'.format(module_dir),
+            '--test_dir={0}'.format(self.test_dir)
+        ])
+
+        #work_dir = os.path.join(output_dir,"uarch_test/work/")
+        #includes = os.path.dirname(uarch_test.__file__)+'/env'
+        #model_include
+
+        test_list = {}
+        asm_test_list = glob.glob(asm_dir + '**/*[!_template].S')
+        env_dir = os.path.join(self.uarch_dir, "env/")
+        target_dir = os.path.join(self.uarch_dir, "target/")
+        #env_dir = output_dir
+        #target_dir = output_dir
+
+        for test in asm_test_list:
+            logger.debug("Current test is {0}".format(test))
+            base_key = os.path.basename(test)[:-2]
+            test_list[base_key] = {}
+            test_list[base_key]['generator'] = self.name
+            test_list[base_key]['work_dir'] = asm_dir + base_key
+            test_list[base_key]['isa'] = 'rv64imafdc'
+            test_list[base_key]['march'] = 'rv64imafdc'
+            test_list[base_key]['mabi'] = 'lp64'
+            test_list[base_key]['cc'] = 'riscv64-unknown-elf-gcc'
+            test_list[base_key][
+                'cc_args'] = ' -mcmodel=medany -static -std=gnu99 -O2 -fno-common -fno-builtin-printf -fvisibility=hidden '
+            test_list[base_key][
+                'linker_args'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
+            test_list[base_key]['linker_file'] = target_dir + 'link.ld'
+            test_list[base_key][
+                'asm_file'] = asm_dir + base_key + '/' + base_key + '.S'
+
+            #            test_list[base_key][
+            #                'linker_file'] = output_dir + '/uarch_test/asm/' + base_key + '/' + base_key + '.ld'
+            #            test_list[base_key][
+            #                'asm_file'] = output_dir + '/uarch_test/asm/' + base_key + '/' + base_key + '.S'
+            test_list[base_key]['include'] = [env_dir, target_dir]
+            test_list[base_key]['compile_macros'] = ['XLEN=64']
+            test_list[base_key]['extra_compile'] = []
+            test_list[base_key]['result'] = 'Unavailable'
+
+        return test_list
+
+    @gen_hookimpl
+    def post_gen(self, output_dir):
+        pass
