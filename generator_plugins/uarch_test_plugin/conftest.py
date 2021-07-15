@@ -12,4 +12,4 @@ def pytest_addoption(parser):
 
     parser.addoption("--module_dir", action="store")
 
-    parser.addoption("--test_dir", action="store")
+    parser.addoption("--work_dir", action="store")
