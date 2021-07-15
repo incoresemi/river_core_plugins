@@ -13,13 +13,13 @@ import datetime
 import pytest
 
 
-def gen_cmd_list(dut_config_file, output_dir, module_dir):
+def gen_cmd_list(dut_config_file, work_dir, output_dir, module_dir):
 
     logger.debug('Generating commands for gen plugin')
     run_command = []
     ## To-Do update for other commands
     run_command.append(
-        "uarch_test -v debug -cf {0} -gt".format(dut_config_file))
+        "uarch_test -v debug -cf {0} -gt -wd {0}".format(dut_config_file, work_dir))
     logger.debug(run_command)
     return run_command
 
@@ -31,6 +31,7 @@ def idfnc(val):
 def pytest_generate_tests(metafunc):
     if 'test_input' in metafunc.fixturenames:
         test_list = gen_cmd_list(metafunc.config.getoption("configfile"),
+                                 metafunc.config.getoption("work_dir"),
                                  metafunc.config.getoption("output_dir"),
                                  metafunc.config.getoption("module_dir"))
         metafunc.parametrize('test_input', test_list, ids=idfnc, indirect=True)
