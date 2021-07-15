@@ -19,7 +19,8 @@ def gen_cmd_list(dut_config_file, work_dir, output_dir, module_dir):
     run_command = []
     ## To-Do update for other commands
     run_command.append(
-        "uarch_test -v debug -cf {0} -gt -wd {0}".format(dut_config_file, work_dir))
+        "uarch_test --verbose debug --config_file {0} --gen_test \
+                --work_dir {1} --module all ".format(dut_config_file, work_dir))
     logger.debug(run_command)
     return run_command
 
