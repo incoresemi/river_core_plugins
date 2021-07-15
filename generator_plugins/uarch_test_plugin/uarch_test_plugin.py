@@ -30,7 +30,7 @@ class uarch_test_plugin(object):
            uarch_test has not been configured to run mulitple jobs, YET
            as uarch test is ISA agnostic, we do not need those either
         """
-
+        ## Add support for modules and link file generation
         logger.debug("uArch test generator, Pre-Gen.")
         self.name = 'uarch_test'
         output_dir = os.path.abspath(output_dir)
@@ -42,12 +42,15 @@ class uarch_test_plugin(object):
         self.seed = spec_config['seed']
         self.count = int(spec_config['count'])
         self.uarch_dir = os.path.dirname(uarch_test.__file__)
-        if spec_config['test_dir']:
-            self.test_dir = spec_config['test_dir']
+        ##_temp = '../work'
+        _temp = "modules/branch_predictor/tests/"
+        logger.warn('uarch_dir is {0}'.format(self.uarch_dir))
+        if spec_config['work_dir']:
+            self.work_dir = spec_config['work_dir']
         else:
-            self.test_dir = os.path.join(self.uarch_dir,
-                                         "modules/branch_predictor/tests/")
-        logger.debug("test dir is {0}".format(self.test_dir))
+            self.work_dir = os.path.join(self.uarch_dir,_temp)
+            logger.warn('Defaulting to {0} as work_dir'.format(self.work_dir))
+        logger.debug("test dir is {0}".format(self.work_dir))
         # the DUT config YAML file
         self.dut_config_file = spec_config['dut_config_yaml']
         logger.debug("uArch test generator, Completed Pre-Gen Phase")
@@ -61,12 +64,12 @@ class uarch_test_plugin(object):
         output_dir = os.path.abspath(output_dir)
         logger.debug("uArch test generator, Gen. phase")
         #temp_dir = os.path.dirname(uarch_test.__file__)
-        asm_dir = self.test_dir
+        asm_dir = self.work_dir
         #asm_dir = os.path.join(output_dir,"uarch_test/asm/")
         module_dir = os.path.join(module_dir, "uarch_test_plugin/")
         logger.debug('Module dir is {0}'.format(module_dir))
         logger.debug('Output dir is {0}'.format(output_dir))
-        logger.debug('Test dir is {0}'.format(self.test_dir))
+        logger.debug('Test dir is {0}'.format(self.work_dir))
         pytest_file = os.path.join(module_dir, 'gen_framework.py')
         os.makedirs(asm_dir, exist_ok=True)
 
@@ -83,7 +86,7 @@ class uarch_test_plugin(object):
             '--report-log={0}.json'.format(report_file_name),
             '--self-contained-html', '--output_dir={0}'.format(output_dir),
             '--module_dir={0}'.format(module_dir),
-            '--test_dir={0}'.format(self.test_dir)
+            '--work_dir={0}'.format(self.work_dir)
         ])
 
         #work_dir = os.path.join(output_dir,"uarch_test/work/")
