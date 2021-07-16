@@ -13,3 +13,7 @@ def pytest_addoption(parser):
     parser.addoption("--module_dir", action="store")
 
     parser.addoption("--work_dir", action="store")
+
+    parser.addoption("--linker_dir", action="store")
+
+    parser.addoption("--module", action="store")
