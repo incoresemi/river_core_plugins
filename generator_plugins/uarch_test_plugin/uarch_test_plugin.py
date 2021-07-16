@@ -44,7 +44,7 @@ class uarch_test_plugin(object):
         self.count = int(spec_config['count'])
         self.uarch_dir = os.path.dirname(uarch_test.__file__)
         default_work_dir = os.path.abspath(
-            os.path.join(self.uarch_dir, 'modules/branch_predictor/tests/'))
+            os.path.join(self.uarch_dir, '../work/'))
         logger.warn('uarch_dir is {0}'.format(self.uarch_dir))
         logger.warn('output_dir is {0}'.format(output_dir))
         # reading work dir fromthe config file
@@ -124,37 +124,34 @@ class uarch_test_plugin(object):
         #model_include
 
         test_list = {}
-        asm_test_list = glob.glob(asm_dir + '/**/*[!_template].S')
-        # To-Do The Asm dir and target dir will be udated
-        env_dir = os.path.join(self.uarch_dir, "env/")
-        target_dir = os.path.join(self.uarch_dir, "target/")
+        for module in self.modules:
+            asm_dir = asm_dir+'/'+module
+            asm_test_list = glob.glob(asm_dir + '/**/*[!_template].S')
+            # To-Do The Asm dir and target dir will be udated
+            env_dir = os.path.join(self.uarch_dir, "env/")
+            target_dir = self.work_dir
 
-        for test in asm_test_list:
-            logger.debug("Current test is {0}".format(test))
-            base_key = os.path.basename(test)[:-2]
-            test_list[base_key] = {}
-            test_list[base_key]['generator'] = self.name
-            test_list[base_key]['work_dir'] = asm_dir + '/' + base_key
-            test_list[base_key]['isa'] = 'rv64imafdc'
-            test_list[base_key]['march'] = 'rv64imafdc'
-            test_list[base_key]['mabi'] = 'lp64'
-            test_list[base_key]['cc'] = 'riscv64-unknown-elf-gcc'
-            test_list[base_key][
-                'cc_args'] = ' -mcmodel=medany -static -std=gnu99 -O2 -fno-common -fno-builtin-printf -fvisibility=hidden '
-            test_list[base_key][
-                'linker_args'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
-            test_list[base_key]['linker_file'] = target_dir + 'link.ld'
-            test_list[base_key][
-                'asm_file'] = asm_dir + '/' + base_key + '/' + base_key + '.S'
-
-            #            test_list[base_key][
-            #                'linker_file'] = output_dir + '/uarch_test/asm/' + base_key + '/' + base_key + '.ld'
-            #            test_list[base_key][
-            #                'asm_file'] = output_dir + '/uarch_test/asm/' + base_key + '/' + base_key + '.S'
-            test_list[base_key]['include'] = [env_dir, target_dir]
-            test_list[base_key]['compile_macros'] = ['XLEN=64']
-            test_list[base_key]['extra_compile'] = []
-            test_list[base_key]['result'] = 'Unavailable'
+            for test in asm_test_list:
+                logger.debug("Current test is {0}".format(test))
+                base_key = os.path.basename(test)[:-2]
+                test_list[base_key] = {}
+                test_list[base_key]['generator'] = self.name
+                test_list[base_key]['work_dir'] = asm_dir + '/' + base_key
+                test_list[base_key]['isa'] = 'rv64imafdc'
+                test_list[base_key]['march'] = 'rv64imafdc'
+                test_list[base_key]['mabi'] = 'lp64'
+                test_list[base_key]['cc'] = 'riscv64-unknown-elf-gcc'
+                test_list[base_key][
+                    'cc_args'] = ' -mcmodel=medany -static -std=gnu99 -O2 -fno-common -fno-builtin-printf -fvisibility=hidden '
+                test_list[base_key][
+                    'linker_args'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
+                test_list[base_key]['linker_file'] = target_dir + '/'+ 'link.ld'
+                test_list[base_key][
+                    'asm_file'] = asm_dir + '/' + base_key + '/' + base_key + '.S'
+                test_list[base_key]['include'] = [env_dir, target_dir]
+                test_list[base_key]['compile_macros'] = ['XLEN=64']
+                test_list[base_key]['extra_compile'] = []
+                test_list[base_key]['result'] = 'Unavailable'
 
         return test_list
 
