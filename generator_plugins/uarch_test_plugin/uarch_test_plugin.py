@@ -42,15 +42,30 @@ class uarch_test_plugin(object):
         self.seed = spec_config['seed']
         self.count = int(spec_config['count'])
         self.uarch_dir = os.path.dirname(uarch_test.__file__)
-        ##_temp = '../work'
-        _temp = "modules/branch_predictor/tests/"
+        default_work_dir = os.path.abspath(os.path.join(self.uarch_dir,'modules/branch_predictor/tests/'))
         logger.warn('uarch_dir is {0}'.format(self.uarch_dir))
-        if spec_config['work_dir']:
-            self.work_dir = spec_config['work_dir']
+        logger.warn('output_dir is {0}'.format(output_dir))
+        # reading work dir fromthe config file
+        self.work_dir = spec_config['work_dir']
+        if self.work_dir:
+            if (self.work_dir == 'work'):
+                self.work_dir = output_dir
+            else:
+                self.work_dir = spec_config['work_dir']
         else:
-            self.work_dir = os.path.join(self.uarch_dir,_temp)
+            self.work_dir = default_work_dir#os.path.join(self.uarch_dir,_temp)
             logger.warn('Defaulting to {0} as work_dir'.format(self.work_dir))
-        logger.debug("test dir is {0}".format(self.work_dir))
+        logger.debug("work dir is {0}".format(self.work_dir))
+        # reading the path to linker file from the ini file
+        self.linker_dir = spec_config['linker_dir']
+        if self.linker_dir:
+            self.linker_dir = spec_config['linker_dir']
+        else:
+            self.linker_dir = self.work_dir
+            logger.warn('Default linker is used, uarch_test will generate the linker')
+        logger.debug('linker_dir is {0}'.format(self.linker_dir))
+        # reading the modules form the config file 
+        self.modules = spec_config['modules']
         # the DUT config YAML file
         self.dut_config_file = spec_config['dut_config_yaml']
         logger.debug("uArch test generator, Completed Pre-Gen Phase")
@@ -60,7 +75,10 @@ class uarch_test_plugin(object):
         """
           gen phase for the test generator
         """
-
+        if (self.modules == 'all'):
+            logger.debug('Checking {0} for modules'.format(os.path.join(self.uarch_dir,'modules')))
+            self.modules = [f.name for f in os.scandir(os.path.join(self.uarch_dir,'modules')) if f.is_dir()]
+        logger.debug('the modules are {0}'.format(self.modules))
         output_dir = os.path.abspath(output_dir)
         logger.debug("uArch test generator, Gen. phase")
         #temp_dir = os.path.dirname(uarch_test.__file__)
@@ -69,7 +87,7 @@ class uarch_test_plugin(object):
         module_dir = os.path.join(module_dir, "uarch_test_plugin/")
         logger.debug('Module dir is {0}'.format(module_dir))
         logger.debug('Output dir is {0}'.format(output_dir))
-        logger.debug('Test dir is {0}'.format(self.work_dir))
+        logger.debug('work_dir is {0}'.format(self.work_dir))
         pytest_file = os.path.join(module_dir, 'gen_framework.py')
         os.makedirs(asm_dir, exist_ok=True)
 
@@ -86,7 +104,9 @@ class uarch_test_plugin(object):
             '--report-log={0}.json'.format(report_file_name),
             '--self-contained-html', '--output_dir={0}'.format(output_dir),
             '--module_dir={0}'.format(module_dir),
-            '--work_dir={0}'.format(self.work_dir)
+            '--work_dir={0}'.format(self.work_dir),
+            '--linker_dir={0}'.format(self.linker_dir),
+            '--module={0}'.format(self.modules)
         ])
 
         #work_dir = os.path.join(output_dir,"uarch_test/work/")
@@ -94,18 +114,17 @@ class uarch_test_plugin(object):
         #model_include
 
         test_list = {}
-        asm_test_list = glob.glob(asm_dir + '**/*[!_template].S')
+        asm_test_list = glob.glob(asm_dir + '/**/*[!_template].S')
+        # To-Do The Asm dir and target dir will be udated
         env_dir = os.path.join(self.uarch_dir, "env/")
         target_dir = os.path.join(self.uarch_dir, "target/")
-        #env_dir = output_dir
-        #target_dir = output_dir
-
+        
         for test in asm_test_list:
             logger.debug("Current test is {0}".format(test))
             base_key = os.path.basename(test)[:-2]
             test_list[base_key] = {}
             test_list[base_key]['generator'] = self.name
-            test_list[base_key]['work_dir'] = asm_dir + base_key
+            test_list[base_key]['work_dir'] = asm_dir + '/' + base_key
             test_list[base_key]['isa'] = 'rv64imafdc'
             test_list[base_key]['march'] = 'rv64imafdc'
             test_list[base_key]['mabi'] = 'lp64'
@@ -116,7 +135,7 @@ class uarch_test_plugin(object):
                 'linker_args'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
             test_list[base_key]['linker_file'] = target_dir + 'link.ld'
             test_list[base_key][
-                'asm_file'] = asm_dir + base_key + '/' + base_key + '.S'
+                'asm_file'] = asm_dir +'/'+ base_key + '/' + base_key + '.S'
 
             #            test_list[base_key][
             #                'linker_file'] = output_dir + '/uarch_test/asm/' + base_key + '/' + base_key + '.ld'
