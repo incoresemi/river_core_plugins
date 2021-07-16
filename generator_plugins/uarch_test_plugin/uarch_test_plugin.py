@@ -86,7 +86,10 @@ class uarch_test_plugin(object):
                 for f in os.scandir(os.path.join(self.uarch_dir, 'modules'))
                 if f.is_dir()
             ]
+        # uarch_test requires the modules to be specified in a comma separated string
+        modules_str = ','.join(self.modules)
         logger.debug('the modules are {0}'.format(self.modules))
+        logger.debug('the module string {0}'.format(modules_str))
         output_dir = os.path.abspath(output_dir)
         logger.debug("uArch test generator, Gen. phase")
         #temp_dir = os.path.dirname(uarch_test.__file__)
@@ -113,7 +116,7 @@ class uarch_test_plugin(object):
             '--self-contained-html', '--output_dir={0}'.format(output_dir),
             '--module_dir={0}'.format(module_dir), '--work_dir={0}'.format(
                 self.work_dir), '--linker_dir={0}'.format(self.linker_dir),
-            '--module={0}'.format(self.modules)
+            '--module={0}'.format(modules_str)
         ])
 
         #work_dir = os.path.join(output_dir,"uarch_test/work/")
