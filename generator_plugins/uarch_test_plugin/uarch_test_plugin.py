@@ -20,6 +20,7 @@ from river_core.constants import *
 
 gen_hookimpl = pluggy.HookimplMarker("generator")
 
+
 class uarch_test_plugin(object):
 
     @gen_hookimpl
@@ -42,7 +43,8 @@ class uarch_test_plugin(object):
         self.seed = spec_config['seed']
         self.count = int(spec_config['count'])
         self.uarch_dir = os.path.dirname(uarch_test.__file__)
-        default_work_dir = os.path.abspath(os.path.join(self.uarch_dir,'modules/branch_predictor/tests/'))
+        default_work_dir = os.path.abspath(
+            os.path.join(self.uarch_dir, 'modules/branch_predictor/tests/'))
         logger.warn('uarch_dir is {0}'.format(self.uarch_dir))
         logger.warn('output_dir is {0}'.format(output_dir))
         # reading work dir fromthe config file
@@ -53,7 +55,7 @@ class uarch_test_plugin(object):
             else:
                 self.work_dir = spec_config['work_dir']
         else:
-            self.work_dir = default_work_dir#os.path.join(self.uarch_dir,_temp)
+            self.work_dir = default_work_dir  #os.path.join(self.uarch_dir,_temp)
             logger.warn('Defaulting to {0} as work_dir'.format(self.work_dir))
         logger.debug("work dir is {0}".format(self.work_dir))
         # reading the path to linker file from the ini file
@@ -62,9 +64,10 @@ class uarch_test_plugin(object):
             self.linker_dir = spec_config['linker_dir']
         else:
             self.linker_dir = self.work_dir
-            logger.warn('Default linker is used, uarch_test will generate the linker')
+            logger.warn(
+                'Default linker is used, uarch_test will generate the linker')
         logger.debug('linker_dir is {0}'.format(self.linker_dir))
-        # reading the modules form the config file 
+        # reading the modules form the config file
         self.modules = spec_config['modules']
         # the DUT config YAML file
         self.dut_config_file = spec_config['dut_config_yaml']
@@ -76,8 +79,13 @@ class uarch_test_plugin(object):
           gen phase for the test generator
         """
         if (self.modules == 'all'):
-            logger.debug('Checking {0} for modules'.format(os.path.join(self.uarch_dir,'modules')))
-            self.modules = [f.name for f in os.scandir(os.path.join(self.uarch_dir,'modules')) if f.is_dir()]
+            logger.debug('Checking {0} for modules'.format(
+                os.path.join(self.uarch_dir, 'modules')))
+            self.modules = [
+                f.name
+                for f in os.scandir(os.path.join(self.uarch_dir, 'modules'))
+                if f.is_dir()
+            ]
         logger.debug('the modules are {0}'.format(self.modules))
         output_dir = os.path.abspath(output_dir)
         logger.debug("uArch test generator, Gen. phase")
@@ -103,9 +111,8 @@ class uarch_test_plugin(object):
             '--html={0}/reports/uarch_test.html'.format(output_dir),
             '--report-log={0}.json'.format(report_file_name),
             '--self-contained-html', '--output_dir={0}'.format(output_dir),
-            '--module_dir={0}'.format(module_dir),
-            '--work_dir={0}'.format(self.work_dir),
-            '--linker_dir={0}'.format(self.linker_dir),
+            '--module_dir={0}'.format(module_dir), '--work_dir={0}'.format(
+                self.work_dir), '--linker_dir={0}'.format(self.linker_dir),
             '--module={0}'.format(self.modules)
         ])
 
@@ -118,7 +125,7 @@ class uarch_test_plugin(object):
         # To-Do The Asm dir and target dir will be udated
         env_dir = os.path.join(self.uarch_dir, "env/")
         target_dir = os.path.join(self.uarch_dir, "target/")
-        
+
         for test in asm_test_list:
             logger.debug("Current test is {0}".format(test))
             base_key = os.path.basename(test)[:-2]
@@ -135,7 +142,7 @@ class uarch_test_plugin(object):
                 'linker_args'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
             test_list[base_key]['linker_file'] = target_dir + 'link.ld'
             test_list[base_key][
-                'asm_file'] = asm_dir +'/'+ base_key + '/' + base_key + '.S'
+                'asm_file'] = asm_dir + '/' + base_key + '/' + base_key + '.S'
 
             #            test_list[base_key][
             #                'linker_file'] = output_dir + '/uarch_test/asm/' + base_key + '/' + base_key + '.ld'

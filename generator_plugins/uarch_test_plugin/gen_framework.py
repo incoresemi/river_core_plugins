@@ -13,14 +13,15 @@ import datetime
 import pytest
 
 
-def gen_cmd_list(dut_config_file, work_dir, linker_dir, module, output_dir, module_dir):
+def gen_cmd_list(dut_config_file, work_dir, linker_dir, module, output_dir,
+                 module_dir):
 
     logger.debug('Generating commands for gen plugin')
     run_command = []
     ## To-Do update for other commands
     run_command.append(
         "uarch_test --verbose debug --config_file {0} --gen_test \
-                --work_dir {1} --module {2} ".format(dut_config_file, work_dir,\
+                --work_dir {1} --module {2} "                                             .format(dut_config_file, work_dir,\
                 module))
     logger.debug(run_command)
     return run_command
