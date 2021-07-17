@@ -31,7 +31,6 @@ class uarch_test_plugin(object):
            uarch_test has not been configured to run mulitple jobs, YET
            as uarch test is ISA agnostic, we do not need those either
         """
-        ## Add support for modules and link file generation
         logger.debug("uArch test generator, Pre-Gen.")
         self.name = 'uarch_test'
         output_dir = os.path.abspath(output_dir)
@@ -47,7 +46,6 @@ class uarch_test_plugin(object):
             os.path.join(self.uarch_dir, '../work/'))
         logger.warn('uarch_dir is {0}'.format(self.uarch_dir))
         logger.warn('output_dir is {0}'.format(output_dir))
-        # reading work dir fromthe config file
         self.work_dir = spec_config['work_dir']
         if self.work_dir:
             if (self.work_dir == 'work'):
@@ -55,10 +53,9 @@ class uarch_test_plugin(object):
             else:
                 self.work_dir = spec_config['work_dir']
         else:
-            self.work_dir = default_work_dir  #os.path.join(self.uarch_dir,_temp)
+            self.work_dir = default_work_dir
             logger.warn('Defaulting to {0} as work_dir'.format(self.work_dir))
         logger.debug("work dir is {0}".format(self.work_dir))
-        # reading the path to linker file from the ini file
         self.linker_dir = spec_config['linker_dir']
         if self.linker_dir:
             self.linker_dir = spec_config['linker_dir']
@@ -67,9 +64,11 @@ class uarch_test_plugin(object):
             logger.warn(
                 'Default linker is used, uarch_test will generate the linker')
         logger.debug('linker_dir is {0}'.format(self.linker_dir))
-        # reading the modules form the config file
         self.modules = spec_config['modules']
-        # the DUT config YAML file
+        # uarch_test requires the modules to be specified as a string and not a list
+        self.modules_str = self.modules
+        # converting self.modules into a list from string
+        self.modules = [x.strip() for x in self.modules.split(',')]
         self.dut_config_file = spec_config['dut_config_yaml']
         logger.debug("uArch test generator, Completed Pre-Gen Phase")
 
@@ -78,7 +77,7 @@ class uarch_test_plugin(object):
         """
           gen phase for the test generator
         """
-        if (self.modules == 'all'):
+        if ('all' in self.modules):
             logger.debug('Checking {0} for modules'.format(
                 os.path.join(self.uarch_dir, 'modules')))
             self.modules = [
@@ -86,21 +85,16 @@ class uarch_test_plugin(object):
                 for f in os.scandir(os.path.join(self.uarch_dir, 'modules'))
                 if f.is_dir()
             ]
-        # uarch_test requires the modules to be specified in a comma separated string
-        modules_str = ','.join(self.modules)
+
         logger.debug('the modules are {0}'.format(self.modules))
-        logger.debug('the module string {0}'.format(modules_str))
         output_dir = os.path.abspath(output_dir)
         logger.debug("uArch test generator, Gen. phase")
-        #temp_dir = os.path.dirname(uarch_test.__file__)
-        asm_dir = self.work_dir
-        #asm_dir = os.path.join(output_dir,"uarch_test/asm/")
         module_dir = os.path.join(module_dir, "uarch_test_plugin/")
         logger.debug('Module dir is {0}'.format(module_dir))
         logger.debug('Output dir is {0}'.format(output_dir))
-        logger.debug('work_dir is {0}'.format(self.work_dir))
+        logger.debug('Work_dir is {0}'.format(self.work_dir))
         pytest_file = os.path.join(module_dir, 'gen_framework.py')
-        os.makedirs(asm_dir, exist_ok=True)
+        os.makedirs(self.work_dir, exist_ok=True)
 
         # report file
         report_file_name = '{0}/{1}_{2}'.format(
@@ -116,19 +110,14 @@ class uarch_test_plugin(object):
             '--self-contained-html', '--output_dir={0}'.format(output_dir),
             '--module_dir={0}'.format(module_dir), '--work_dir={0}'.format(
                 self.work_dir), '--linker_dir={0}'.format(self.linker_dir),
-            '--module={0}'.format(modules_str)
+            '--module={0}'.format(self.modules_str)
         ])
-
-        #work_dir = os.path.join(output_dir,"uarch_test/work/")
-        #includes = os.path.dirname(uarch_test.__file__)+'/env'
-        #model_include
 
         test_list = {}
         for module in self.modules:
-            asm_dir = asm_dir+'/'+module
+            asm_dir = self.work_dir + '/' + module
             asm_test_list = glob.glob(asm_dir + '/**/*[!_template].S')
-            # To-Do The Asm dir and target dir will be udated
-            env_dir = os.path.join(self.uarch_dir, "env/")
+            env_dir = os.path.join(self.uarch_dir, 'env/')
             target_dir = self.work_dir
 
             for test in asm_test_list:
@@ -145,7 +134,8 @@ class uarch_test_plugin(object):
                     'cc_args'] = ' -mcmodel=medany -static -std=gnu99 -O2 -fno-common -fno-builtin-printf -fvisibility=hidden '
                 test_list[base_key][
                     'linker_args'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
-                test_list[base_key]['linker_file'] = target_dir + '/'+ 'link.ld'
+                test_list[base_key][
+                    'linker_file'] = target_dir + '/' + 'link.ld'
                 test_list[base_key][
                     'asm_file'] = asm_dir + '/' + base_key + '/' + base_key + '.S'
                 test_list[base_key]['include'] = [env_dir, target_dir]
