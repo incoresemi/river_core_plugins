@@ -264,6 +264,16 @@ class chromite_verilator_plugin(object):
 
     @dut_hookimpl
     def post_run(self, test_dict, config):
+
+        if config['river_core']['generator'] == 'uarch_test': 
+            if (config['chromite_verilator']['check_logs']).lower() == 'true':
+                logger.info('Invoking uarch_test for checking logs')
+                config_file = config['uarch_test']['dut_config_yaml']
+                check_log_command = 'uarch_test -cf {0} -vt'.format(config_file)
+                sys_command(check_log_command)
+            else:
+                logger.info('Not checking logs')
+
         if str_2_bool(config['river_core']['space_saver']):
             logger.debug("Removing artifacts for Chromite")
             for test in test_dict:
