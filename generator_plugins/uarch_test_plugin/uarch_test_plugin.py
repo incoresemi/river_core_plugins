@@ -70,6 +70,12 @@ class uarch_test_plugin(object):
         # converting self.modules into a list from string
         self.modules = [x.strip() for x in self.modules.split(',')]
         self.dut_config_file = spec_config['dut_config_yaml']
+        if ((spec_config['generate_covergroups']).lower() == 'true'):
+            self.cvg = '--gen_cvg'
+            logger.debug('Generating covergroups')
+        else:
+            self.cvg = ''
+            logger.debug('Not generating covergroups')
         logger.debug("uArch test generator, Completed Pre-Gen Phase")
 
     @gen_hookimpl
@@ -110,7 +116,8 @@ class uarch_test_plugin(object):
             '--self-contained-html', '--output_dir={0}'.format(output_dir),
             '--module_dir={0}'.format(module_dir), '--work_dir={0}'.format(
                 self.work_dir), '--linker_dir={0}'.format(self.linker_dir),
-            '--module={0}'.format(self.modules_str)
+            '--module={0}'.format(self.modules_str),
+            '--gen_cvg={0}'.format(self.cvg)
         ])
 
         test_list = {}
