@@ -17,3 +17,5 @@ def pytest_addoption(parser):
     parser.addoption("--linker_dir", action="store")
 
     parser.addoption("--module", action="store")
+
+    parser.addoption("--gen_cvg", action="store")
