@@ -5,7 +5,7 @@ Questa Plugin for RiVer_Core
 Checking logs using **uarch_test**:
 -----------------------------------
 
-Add this line to the ``chromite_verilator`` section of you ini file. ::
+Add this line to the ``chromite_questa`` section of you ini file. ::
   
   check_logs = True
 
