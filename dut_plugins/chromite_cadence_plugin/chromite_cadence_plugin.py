@@ -27,7 +27,6 @@ class chromite_cadence_plugin(object):
         self.name = 'chromite_cadence'
         logger.info('Pre Compile Stage')
 
-
         self.src_dir = ini_config['src_dir'].split(',')
 
         self.top_module = ini_config['top_module']
@@ -134,7 +133,7 @@ class chromite_cadence_plugin(object):
                 +define+BSV_RESET_FIFO_ARRAY \
                 {4}/sv_top/tb_top.sv \
                 {5}/lib/Verilog/main.v \
-                -y {1} -y {2} -y {3}'.format( \
+                -y {1} -y {2} -y {3}'                                     .format( \
                 self.top_module, self.src_dir[0], self.src_dir[1], \
                 self.src_dir[2], self.plugin_path+self.name+'_plugin', \
                 self.bsc_path)
@@ -215,7 +214,8 @@ class chromite_cadence_plugin(object):
                     cc, cc_args, arch, abi, link_args, link_file, asm_file)
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
-            compile_cmd += ' '.join(map(' -D{0}'.format, attr['compile_macros']))
+            compile_cmd += ' '.join(map(' -D{0}'.format,
+                                        attr['compile_macros']))
             compile_cmd += ' -o dut.elf && '
             with open(work_dir + '/imc.cmd', 'w') as f:
                 f.write('load ' + work_dir + '/cov_work/scope/' + test + '\n')
@@ -294,15 +294,25 @@ class chromite_cadence_plugin(object):
             (ret, out, error) = sys_command('imc -exec merge_imc.cmd')
             os.chdir(orig_path)
 
+            logger.info('Final coverage file is at: {0}'.format(
+                self.work_dir + '/reports/final_coverage_html'))
             logger.info(
-                'Final coverage file is at: {0}'.format(self.work_dir +
-                                                        '/reports/final_coverage_html'))
-            logger.info('Final rank file is at: {0}'.format(self.work_dir +
-                                                            '/reports/final_rank'))
+                'Final rank file is at: {0}'.format(self.work_dir +
+                                                    '/reports/final_rank'))
         return report_file_name
 
     @dut_hookimpl
     def post_run(self, test_dict, config):
+
+        if config['river_core']['generator'] == 'uarch_test':
+            if (config['chromite_verilator']['check_logs']).lower() == 'true':
+                logger.info('Invoking uarch_test for checking logs')
+                config_file = config['uarch_test']['dut_config_yaml']
+                check_log_command = 'uarch_test -cf {0} -vt'.format(config_file)
+                sys_command(check_log_command)
+            else:
+                logger.info('Not checking logs')
+
         if str_2_bool(config['river_core']['space_saver']):
             logger.debug("Going to remove stuff now")
             for test in test_dict:
@@ -336,14 +346,17 @@ class chromite_cadence_plugin(object):
         merge_cmd = 'merge -overwrite -out ' + str(
             output_db) + '/reports/final_coverage/ '
         rank_cmd = 'rank -overwrite -out ' + str(
-            output_db) + '/reports/final_rank/ ' + str(output_db) + '/asm/*/cov_work/scope/* -html '
+            output_db) + '/reports/final_rank/ ' + str(
+                output_db) + '/asm/*/cov_work/scope/* -html '
         for db_file in db_files:
             merge_cmd += ' ' + os.path.dirname(db_file)
             #rank_cmd += ' ' + os.path.dirname(db_file)
         with open(output_db + '/final_coverage/final_merge_imc.cmd', 'w') as f:
             f.write(merge_cmd + ' \n')
-            f.write('load -run ' + str(output_db) + '/reports/final_coverage/' + '\n')
-            f.write('report -overwrite -out ' + str(output_db) + '/reports/final_coverage_html/'
+            f.write('load -run ' + str(output_db) + '/reports/final_coverage/' +
+                    '\n')
+            f.write('report -overwrite -out ' + str(output_db) +
+                    '/reports/final_coverage_html/'
                     ' -html -detail \
             -metrics overall -all -aspect both -assertionStatus \
             -allAssertionCounters -type *\n')

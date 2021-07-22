@@ -27,7 +27,6 @@ class chromite_questa_plugin(object):
         self.name = 'chromite_questa'
         logger.info('Pre Compile Stage')
 
-
         self.src_dir = ini_config['src_dir'].split(',')
 
         self.top_module = ini_config['top_module']
@@ -222,7 +221,8 @@ class chromite_questa_plugin(object):
 
             for x in attr['extra_compile']:
                 compile_cmd += ' ' + x
-            compile_cmd += ' '.join(map(' -D{0}'.format, attr['compile_macros']))
+            compile_cmd += ' '.join(map(' -D{0}'.format,
+                                        attr['compile_macros']))
             compile_cmd += ' -o dut.elf && '
             sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core_{0} . && '.format(
                 test)
@@ -320,6 +320,16 @@ class chromite_questa_plugin(object):
 
     @dut_hookimpl
     def post_run(self, test_dict, config):
+
+        if config['river_core']['generator'] == 'uarch_test':
+            if (config['chromite_verilator']['check_logs']).lower() == 'true':
+                logger.info('Invoking uarch_test for checking logs')
+                config_file = config['uarch_test']['dut_config_yaml']
+                check_log_command = 'uarch_test -cf {0} -vt'.format(config_file)
+                sys_command(check_log_command)
+            else:
+                logger.info('Not checking logs')
+
         if str_2_bool(config['river_core']['space_saver']):
             logger.debug("Going to remove stuff now")
             for test in test_dict:
@@ -333,7 +343,8 @@ class chromite_questa_plugin(object):
                         os.remove(work_dir + '/dut.dump')
                         os.remove(work_dir + '/signature')
                         # Remove the HTML parts as well.
-                        for coverage_file in glob.glob(work_dir + '/coverage/*'):
+                        for coverage_file in glob.glob(work_dir +
+                                                       '/coverage/*'):
                             if not coverage_file.endswith('.ucdb'):
                                 if os.path.isfile(coverage_file):
                                     logger.debug(
