@@ -151,7 +151,7 @@ class chromite_cadence_plugin(object):
         for key, value in self.test_list.items():
             if self.test_list[key]['generator'] == 'uarch_test':
                 sv_dir = os.path.abspath(
-                    os.path.join(self.test_list[k]['work_dir'], '../..'))
+                    os.path.join(self.test_list[key]['work_dir'], '../..'))
                 break
             else:
                 sv_dir = self.plugin_path + self.name + '_plugin'
