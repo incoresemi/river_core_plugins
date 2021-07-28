@@ -153,7 +153,7 @@ class chromite_questa_plugin(object):
         for key, value in self.test_list.items():
             if self.test_list[key]['generator'] == 'uarch_test':
                 sv_dir = os.path.abspath(
-                    os.path.join(self.test_list[k]['work_dir'], '../..'))
+                    os.path.join(self.test_list[key]['work_dir'], '../..'))
                 break
             else:
                 sv_dir = self.plugin_path + self.name + '_plugin'
@@ -164,7 +164,7 @@ class chromite_questa_plugin(object):
                    +define+TOP={0} {4}/sv_top/tb_top.sv {5}/lib/Verilog/main.v ' \
                    .format(self.top_module, self.src_dir[0], self.src_dir[1], self.src_dir[2], sv_dir, self.bsc_path)
 
-        vsim_cmd = 'vsim -quiet  -novopt  +rtldump -lib work -c main'
+        vsim_cmd = 'vsim -quiet -novopt +rtldump -lib work -c main'
 
         if self.coverage_struct and self.coverage_func:
             logger.info("Structural and functional coverage are enabled")
@@ -180,25 +180,28 @@ class chromite_questa_plugin(object):
         elif self.coverage_struct and not self.coverage_func:
             logger.info("Structural coverage is enabled")
             vlog_cmd = vlog_cmd + ' -cover bcefst'
-            with open('chromite_core_{0}'.format(test), 'w') as f:
-                f.write(vsim_cmd + '-coverage' + '-voptargs="+cover=bcfest"' +
-                        '-do "coverage save -onexit -codeAll ' + test +
-                        '.ucdb;run -all; quit')
+            for test, attr in self.test_list.items():
+             with open('chromite_core_{0}'.format(test), 'w') as f:
+                f.write(vsim_cmd + ' -coverage' + ' -voptargs="+cover=bcfest"' +
+                        ' -do "coverage save -onexit -codeAll ' + test +
+                        '.ucdb;run -all; quit"')
                 #f.write('vcover report -details  -code bcefst -html -htmldir ./coverage/report_html/ test_cov.ucdb')
         elif self.coverage_func and not self.coverage_struct:
             logger.info("functional coverage is enabled")
             vlog_cmd = vlog_cmd.format('')
-            with open('chromite_core_{0}'.format(test), 'w') as f:
-                f.write(vsim_cmd + '-cvgperinstance' + '-assertcover' +
-                        '-do "coverage save -cvg -assert -onexit ' + test +
-                        '.ucdb;run -all; quit')
+            for test, attr in self.test_list.items():
+             with open('chromite_core_{0}'.format(test), 'w') as f:
+                f.write(vsim_cmd + ' -cvgperinstance' + ' -assertcover' +
+                        ' -do "coverage save -cvg -assert -onexit ' + test +
+                        '.ucdb;run -all; quit"')
             # f.write('vcover report -hidecvginsts -details -cvg  -assert -html -htmldir ./coverage/report_html/ test_cov.ucdb')
         else:
             logger.info("coverage is disabled")
             vlog_cmd = vlog_cmd.format('')
-            with open('chromite_core_{0}'.format(test), 'w') as f:
-                f.write(vsim_cmd + '-do "coverage save -onexit ' + test +
-                        '.ucdb;run -all; quit')
+            for test, attr in self.test_list.items():
+             with open('chromite_core_{0}'.format(test), 'w') as f:
+                f.write(vsim_cmd + ' -do "coverage save -onexit ' + test +
+                        '.ucdb;run -all; quit"')
                 #f.write('vcover report -details -html -htmldir ./coverage/report_html/ test_cov.ucdb')
             #if not self.coverage_func:
             #ncelab_cmd = ncelab_cmd + ' -covdut mkccore_axi4 '
@@ -316,7 +319,7 @@ class chromite_questa_plugin(object):
             logger.info('Initiating Merging of coverage files')
             for test, attr in self.test_list.items():
                 test_wd = attr['work_dir']
-                os.makedirs(test_wd + '/coverage')
+                os.makedirs(test_wd + '/coverage',exist_ok=True)
                 shutil.move(test_wd + '/' + test + '.ucdb',
                             test_wd + '/coverage/' + test + '.ucdb')
                 sys_command(

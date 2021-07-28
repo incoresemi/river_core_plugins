@@ -151,7 +151,7 @@ class chromite_cadence_plugin(object):
         for key, value in self.test_list.items():
             if self.test_list[key]['generator'] == 'uarch_test':
                 sv_dir = os.path.abspath(
-                    os.path.join(self.test_list[k]['work_dir'], '../..'))
+                    os.path.join(self.test_list[key]['work_dir'], '../..'))
                 break
             else:
                 sv_dir = self.plugin_path + self.name + '_plugin'
@@ -212,8 +212,8 @@ class chromite_cadence_plugin(object):
                 self.sim_path+'/boot.mem')
 
         os.chdir(orig_path)
-        if not os.path.isfile(self.sim_path + '/' + self.sim_cmd):
-            logger.error(self.sim_cmd + ' binary does not exist in ' +
+        if not os.path.isfile(self.sim_path + '/' + self.sim_cmd+ '_' + test):
+            logger.error(self.sim_cmd + '_' + test + ' binary does not exist in ' +
                          self.sim_path)
             raise SystemExit
 
