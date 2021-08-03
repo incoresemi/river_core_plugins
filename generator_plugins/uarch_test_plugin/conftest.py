@@ -6,6 +6,8 @@ def pytest_html_report_title(report):
 def pytest_addoption(parser):
     parser.addoption("--configfile", action="store")
 
+    parser.addoption("--modules_dir", action="store")
+
     parser.addoption("--jobs", action="store")
 
     parser.addoption("--output_dir", action="store")
