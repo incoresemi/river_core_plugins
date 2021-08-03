@@ -69,6 +69,7 @@ class uarch_test_plugin(object):
         self.modules_str = self.modules
         # converting self.modules into a list from string
         self.modules = [x.strip() for x in self.modules.split(',')]
+        self.modules_dir = spec_config['modules_dir']
         self.dut_config_file = spec_config['dut_config_yaml']
         if ((spec_config['generate_covergroups']).lower() == 'true'):
             self.cvg = '--gen_cvg'
@@ -84,13 +85,14 @@ class uarch_test_plugin(object):
           gen phase for the test generator
         """
         if ('all' in self.modules):
-            logger.debug('Checking {0} for modules'.format(
-                os.path.join(self.uarch_dir, 'modules')))
-            self.modules = [
-                f.name
-                for f in os.scandir(os.path.join(self.uarch_dir, 'modules'))
-                if f.is_dir()
-            ]
+            logger.debug('Checking {0} for modules'.format(self.modules_dir))
+            try:
+                self.modules = [
+                    f.name for f in os.scandir(self.modules_dir) if f.is_dir()
+                ]
+            except FileNotFoundError as e:
+                logger.error("The modules_dir cannot be empty.")
+                exit(0)
 
         logger.debug('the modules are {0}'.format(self.modules))
         output_dir = os.path.abspath(output_dir)
@@ -116,8 +118,8 @@ class uarch_test_plugin(object):
             '--self-contained-html', '--output_dir={0}'.format(output_dir),
             '--module_dir={0}'.format(module_dir), '--work_dir={0}'.format(
                 self.work_dir), '--linker_dir={0}'.format(self.linker_dir),
-            '--module={0}'.format(self.modules_str),
-            '--gen_cvg={0}'.format(self.cvg)
+            '--module={0}'.format(self.modules_str), '--gen_cvg={0}'.format(
+                self.cvg), '--modules_dir={0}'.format(self.modules_dir)
         ])
 
         test_list = {}
