@@ -5,6 +5,7 @@ jobs = 4
 count = 1
 seed = random
 dut_config_yaml = /path/to/config.yaml/file/of/dut
+modules_dir = /path/to/modulesdir
 work_dir = /user's/preferred/workdir
 linker_dir = /the/directory/containing/link.ld/and/model_test.h/files
 modules = all
@@ -12,6 +13,7 @@ generate_covergroups = true
 ```
 Here, 
 - dut_config_yaml should be an absolute path. This is a **required** parameter.
+- modules_dir should be an absolute path, pointing to the path where the python files required for generating assembly tests are present. This is a **required** parameter
 - work_dir should be an absolute path to the work_dir the user prefers, if nothing is specified, uarch_test's default dir will be used.
 - linker_dir should be an absolute path to the directory containing **link.ld** and **model_test.h** files. if nothing is specified, uarch_test will create the files in the work_dir
 - modules should be a comma separated string listing the modules of dut for which the tests are needed. This is a **required** parameter. **all** creates tests for all the modules
