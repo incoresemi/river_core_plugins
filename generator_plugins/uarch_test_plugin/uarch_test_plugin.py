@@ -84,6 +84,14 @@ class uarch_test_plugin(object):
         """
           gen phase for the test generator
         """
+        try:
+            with open(self.dut_config_file) as f:
+                pass
+        except IOError:
+            logger.error(
+                "The DUT Config file does not exist. Check and try again")
+            exit(0)
+
         if ('all' in self.modules):
             logger.debug('Checking {0} for modules'.format(self.modules_dir))
             try:
