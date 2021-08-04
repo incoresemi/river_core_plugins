@@ -117,7 +117,7 @@ class chromite_verilator_plugin(object):
                 -Wno-INITIALDLY  --autoflush   --threads 1 \
                 -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY \
                 --output-split 20000  --output-split-ctrace 10000 \
-                --cc '+ self.top_module + '.v  -y ' + self.src_dir[0] + \
+                --cc '                                            + self.top_module + '.v  -y ' + self.src_dir[0] + \
                 ' -y ' + self.src_dir[1] + ' -y ' + self.src_dir[2] + \
                 ' --exe'
         if coverage_config:
@@ -191,7 +191,8 @@ class chromite_verilator_plugin(object):
                 compile_cmd += ' ' + x
             for x in attr['include']:
                 compile_cmd += ' -I ' + str(x)
-            compile_cmd += ' '.join(map(' -D{0}'.format, attr['compile_macros']))
+            compile_cmd += ' '.join(map(' -D{0}'.format,
+                                        attr['compile_macros']))
             compile_cmd += ' -o dut.elf && '
             sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/boot.mem . && '
@@ -265,11 +266,13 @@ class chromite_verilator_plugin(object):
     @dut_hookimpl
     def post_run(self, test_dict, config):
 
-        if config['river_core']['generator'] == 'uarch_test': 
+        if config['river_core']['generator'] == 'uarch_test':
             if (config['chromite_verilator']['check_logs']).lower() == 'true':
                 logger.info('Invoking uarch_test for checking logs')
                 config_file = config['uarch_test']['dut_config_yaml']
-                check_log_command = 'uarch_test -cf {0} -vt'.format(config_file)
+                modules_dir = config['uarch_test']['modules_dir']
+                check_log_command = 'uarch_test -cf {0} -md {1} -vt'.format(
+                    config_file, modules_dir)
                 sys_command(check_log_command)
             else:
                 logger.info('Not checking logs')

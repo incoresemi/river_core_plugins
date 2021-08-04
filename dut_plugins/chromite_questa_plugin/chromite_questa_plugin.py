@@ -181,28 +181,29 @@ class chromite_questa_plugin(object):
             logger.info("Structural coverage is enabled")
             vlog_cmd = vlog_cmd + ' -cover bcefst'
             for test, attr in self.test_list.items():
-             with open('chromite_core_{0}'.format(test), 'w') as f:
-                f.write(vsim_cmd + ' -coverage' + ' -voptargs="+cover=bcfest"' +
-                        ' -do "coverage save -onexit -codeAll ' + test +
-                        '.ucdb;run -all; quit"')
-                #f.write('vcover report -details  -code bcefst -html -htmldir ./coverage/report_html/ test_cov.ucdb')
+                with open('chromite_core_{0}'.format(test), 'w') as f:
+                    f.write(vsim_cmd + ' -coverage' +
+                            ' -voptargs="+cover=bcfest"' +
+                            ' -do "coverage save -onexit -codeAll ' + test +
+                            '.ucdb;run -all; quit"')
+                    #f.write('vcover report -details  -code bcefst -html -htmldir ./coverage/report_html/ test_cov.ucdb')
         elif self.coverage_func and not self.coverage_struct:
             logger.info("functional coverage is enabled")
             vlog_cmd = vlog_cmd.format('')
             for test, attr in self.test_list.items():
-             with open('chromite_core_{0}'.format(test), 'w') as f:
-                f.write(vsim_cmd + ' -cvgperinstance' + ' -assertcover' +
-                        ' -do "coverage save -cvg -assert -onexit ' + test +
-                        '.ucdb;run -all; quit"')
+                with open('chromite_core_{0}'.format(test), 'w') as f:
+                    f.write(vsim_cmd + ' -cvgperinstance' + ' -assertcover' +
+                            ' -do "coverage save -cvg -assert -onexit ' + test +
+                            '.ucdb;run -all; quit"')
             # f.write('vcover report -hidecvginsts -details -cvg  -assert -html -htmldir ./coverage/report_html/ test_cov.ucdb')
         else:
             logger.info("coverage is disabled")
             vlog_cmd = vlog_cmd.format('')
             for test, attr in self.test_list.items():
-             with open('chromite_core_{0}'.format(test), 'w') as f:
-                f.write(vsim_cmd + ' -do "coverage save -onexit ' + test +
-                        '.ucdb;run -all; quit"')
-                #f.write('vcover report -details -html -htmldir ./coverage/report_html/ test_cov.ucdb')
+                with open('chromite_core_{0}'.format(test), 'w') as f:
+                    f.write(vsim_cmd + ' -do "coverage save -onexit ' + test +
+                            '.ucdb;run -all; quit"')
+                    #f.write('vcover report -details -html -htmldir ./coverage/report_html/ test_cov.ucdb')
             #if not self.coverage_func:
             #ncelab_cmd = ncelab_cmd + ' -covdut mkccore_axi4 '
 
@@ -319,7 +320,7 @@ class chromite_questa_plugin(object):
             logger.info('Initiating Merging of coverage files')
             for test, attr in self.test_list.items():
                 test_wd = attr['work_dir']
-                os.makedirs(test_wd + '/coverage',exist_ok=True)
+                os.makedirs(test_wd + '/coverage', exist_ok=True)
                 shutil.move(test_wd + '/' + test + '.ucdb',
                             test_wd + '/coverage/' + test + '.ucdb')
                 sys_command(
@@ -356,7 +357,9 @@ class chromite_questa_plugin(object):
             if (config['chromite_verilator']['check_logs']).lower() == 'true':
                 logger.info('Invoking uarch_test for checking logs')
                 config_file = config['uarch_test']['dut_config_yaml']
-                check_log_command = 'uarch_test -cf {0} -vt'.format(config_file)
+                modules_dir = config['uarch_test']['modules_dir']
+                check_log_command = 'uarch_test -cf {0} -md {1} -vt'.format(
+                    config_file, modules_dir)
                 sys_command(check_log_command)
             else:
                 logger.info('Not checking logs')

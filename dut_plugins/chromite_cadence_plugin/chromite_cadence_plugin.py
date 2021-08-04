@@ -162,7 +162,7 @@ class chromite_cadence_plugin(object):
                 +define+BSV_RESET_FIFO_ARRAY \
                 {4}/sv_top/tb_top.sv \
                 {5}/lib/Verilog/main.v \
-                -y {1} -y {2} -y {3}'                                     .format( \
+                -y {1} -y {2} -y {3}'                                                                          .format( \
                 self.top_module, self.src_dir[0], self.src_dir[1], \
                 self.src_dir[2], sv_dir, \
                 self.bsc_path)
@@ -212,9 +212,9 @@ class chromite_cadence_plugin(object):
                 self.sim_path+'/boot.mem')
 
         os.chdir(orig_path)
-        if not os.path.isfile(self.sim_path + '/' + self.sim_cmd+ '_' + test):
-            logger.error(self.sim_cmd + '_' + test + ' binary does not exist in ' +
-                         self.sim_path)
+        if not os.path.isfile(self.sim_path + '/' + self.sim_cmd + '_' + test):
+            logger.error(self.sim_cmd + '_' + test +
+                         ' binary does not exist in ' + self.sim_path)
             raise SystemExit
 
     @dut_hookimpl
@@ -337,7 +337,9 @@ class chromite_cadence_plugin(object):
             if (config['chromite_verilator']['check_logs']).lower() == 'true':
                 logger.info('Invoking uarch_test for checking logs')
                 config_file = config['uarch_test']['dut_config_yaml']
-                check_log_command = 'uarch_test -cf {0} -vt'.format(config_file)
+                modules_dir = config['uarch_test']['modules_dir']
+                check_log_command = 'uarch_test -cf {0} -md {1} -vt'.format(
+                    config_file, modules_dir)
                 sys_command(check_log_command)
             else:
                 logger.info('Not checking logs')
