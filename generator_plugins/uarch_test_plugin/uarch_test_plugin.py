@@ -133,7 +133,7 @@ class uarch_test_plugin(object):
         test_list = {}
         for module in self.modules:
             asm_dir = self.work_dir + '/' + module
-            asm_test_list = glob.glob(asm_dir + '/**/*[!_template].S')
+            asm_test_list = glob.glob(asm_dir + '/**/*.S')
             env_dir = os.path.join(self.uarch_dir, 'env/')
             target_dir = self.work_dir
 
