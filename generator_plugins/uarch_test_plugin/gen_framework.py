@@ -14,14 +14,14 @@ import pytest
 
 
 def gen_cmd_list(dut_config_file, work_dir, linker_dir, module, output_dir,
-                 module_dir, gen_cvg, modules_dir):
+                 module_dir, gen_cvg, modules_dir, alias_file):
 
     logger.debug('Generating commands for gen plugin')
     run_command = []
     run_command.append(
-        "uarch_test --verbose debug --config_file {0} --module_dir {1} --gen_test --work_dir {2} --modules {3} --linker_dir {4} {5}"
+        "uarch_test --verbose debug --config_file {0} --module_dir {1} --gen_test --work_dir {2} --modules {3} --linker_dir {4} --alias_file {5} {6}"
         .format(dut_config_file, modules_dir, work_dir, module, linker_dir,
-                gen_cvg))
+                alias_file, gen_cvg))
     logger.debug(run_command)
     return run_command
 
@@ -39,7 +39,8 @@ def pytest_generate_tests(metafunc):
                                  metafunc.config.getoption("output_dir"),
                                  metafunc.config.getoption("module_dir"),
                                  metafunc.config.getoption("gen_cvg"),
-                                 metafunc.config.getoption("modules_dir"))
+                                 metafunc.config.getoption("modules_dir"),
+                                 metafunc.config.getoption("alias_file"))
         metafunc.parametrize('test_input', test_list, ids=idfnc, indirect=True)
 
 

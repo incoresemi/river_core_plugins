@@ -21,3 +21,5 @@ def pytest_addoption(parser):
     parser.addoption("--module", action="store")
 
     parser.addoption("--gen_cvg", action="store")
+
+    parser.addoption("--alias_file", action="store")

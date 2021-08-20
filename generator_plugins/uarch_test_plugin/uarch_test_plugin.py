@@ -71,6 +71,7 @@ class uarch_test_plugin(object):
         self.modules = [x.strip() for x in self.modules.split(',')]
         self.modules_dir = spec_config['modules_dir']
         self.dut_config_file = spec_config['dut_config_yaml']
+        self.alias_file = spec_config['alias_file']
         if ((spec_config['generate_covergroups']).lower() == 'true'):
             self.cvg = '--gen_cvg'
             logger.debug('Generating covergroups')
@@ -127,7 +128,8 @@ class uarch_test_plugin(object):
             '--module_dir={0}'.format(module_dir), '--work_dir={0}'.format(
                 self.work_dir), '--linker_dir={0}'.format(self.linker_dir),
             '--module={0}'.format(self.modules_str), '--gen_cvg={0}'.format(
-                self.cvg), '--modules_dir={0}'.format(self.modules_dir)
+                self.cvg), '--modules_dir={0}'.format(self.modules_dir),
+            '--alias_file={0}'.format(self.alias_file)
         ])
 
         test_list = {}
