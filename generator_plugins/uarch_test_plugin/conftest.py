@@ -4,7 +4,7 @@ def pytest_html_report_title(report):
 
 
 def pytest_addoption(parser):
-    parser.addoption("--configfile", action="store")
+    parser.addoption("--dut_config", action="store")
 
     parser.addoption("--modules_dir", action="store")
 

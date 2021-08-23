@@ -19,7 +19,7 @@ def gen_cmd_list(dut_config_file, work_dir, linker_dir, module, output_dir,
     logger.debug('Generating commands for gen plugin')
     run_command = []
     run_command.append(
-        "uarch_test --verbose debug --config_file {0} --module_dir {1} --gen_test --work_dir {2} --modules {3} --linker_dir {4} --alias_file {5} {6}"
+        "uarch_test --verbose debug --dut_config {0} --module_dir {1} --gen_test --work_dir {2} --modules {3} --linker_dir {4} --alias_file {5} {6}"
         .format(dut_config_file, modules_dir, work_dir, module, linker_dir,
                 alias_file, gen_cvg))
     logger.debug(run_command)
@@ -32,7 +32,7 @@ def idfnc(val):
 
 def pytest_generate_tests(metafunc):
     if 'test_input' in metafunc.fixturenames:
-        test_list = gen_cmd_list(metafunc.config.getoption("configfile"),
+        test_list = gen_cmd_list(metafunc.config.getoption("dut_config"),
                                  metafunc.config.getoption("work_dir"),
                                  metafunc.config.getoption("linker_dir"),
                                  metafunc.config.getoption("module"),
