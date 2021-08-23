@@ -60,7 +60,7 @@ class riscof_plugin(object):
             '--self-contained-html', '--output_dir={0}'.format(asm_path),
             '--module_dir={0}'.format(this)])
         work_dir = os.path.join(output_dir,"riscof/riscof_work/")
-        includes = os.path.dirname(riscof.__file__)+'/suite/env'
+        includes = asm_path+'/riscv-arch-test/riscv-test-suite/env'
         model_include = riscof_config['RISCOF']['DUTPluginPath']+'/env/'
         riscof_test_list = utils.load_yaml(os.path.join(work_dir,"test_list.yaml"))
         if len(riscof_test_list) == 0:

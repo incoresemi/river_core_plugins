@@ -16,8 +16,12 @@ import pytest
 def gen_cmd_list(gen_config, jobs, randomize, output_dir, module_dir):
 
     run_command = []
-    run_command.append("riscof testlist --config {0} --work-dir {1} ".format(\
-            gen_config, output_dir+'/riscof_work'))
+    run_command.append("riscof arch-tests --clone --dir {0}".format( \
+            output_dir+'/riscv-arch-test'))
+    run_command.append("riscof testlist --config {0} --work-dir {1} --suite {2} --env {3} ".format(\
+            gen_config, output_dir+'/riscof_work',
+            output_dir+'/riscv-arch-test/riscv-test-suite/', 
+            output_dir+'/riscv-arch-test/riscv-test-suite/env'))
     print(run_command)
     logger.debug(run_command)
     return run_command
