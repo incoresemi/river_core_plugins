@@ -271,7 +271,7 @@ class chromite_verilator_plugin(object):
                 logger.info('Invoking utg for checking logs')
                 config_file = config['utg']['dut_config_yaml']
                 modules_dir = config['utg']['modules_dir']
-                check_log_command = 'utg -cf {0} -md {1} -vt'.format(
+                check_log_command = 'utg -dc {0} -md {1} -vt'.format(
                     config_file, modules_dir)
                 sys_command(check_log_command)
             else:
