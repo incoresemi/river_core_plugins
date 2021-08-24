@@ -19,7 +19,7 @@ def gen_cmd_list(dut_config_file, work_dir, linker_dir, module, output_dir,
     logger.debug('Generating commands for gen plugin')
     run_command = []
     run_command.append(
-        "uarch_test --verbose debug --dut_config {0} --module_dir {1} --gen_test --work_dir {2} --modules {3} --linker_dir {4} --alias_file {5} {6}"
+        "utg --verbose debug --dut_config {0} --module_dir {1} --gen_test --work_dir {2} --modules {3} --linker_dir {4} --alias_file {5} {6}"
         .format(dut_config_file, modules_dir, work_dir, module, linker_dir,
                 alias_file, gen_cvg))
     logger.debug(run_command)
@@ -27,7 +27,7 @@ def gen_cmd_list(dut_config_file, work_dir, linker_dir, module, output_dir,
 
 
 def idfnc(val):
-    return 'Generating Test-list using uarch_test'
+    return 'Generating Test-list using utg'
 
 
 def pytest_generate_tests(metafunc):

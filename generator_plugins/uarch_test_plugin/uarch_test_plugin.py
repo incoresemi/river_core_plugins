@@ -12,7 +12,7 @@ import pytest
 import glob
 import re
 import configparser
-import uarch_test
+import utg
 
 from river_core.log import logger
 import river_core.utils as utils
@@ -21,18 +21,18 @@ from river_core.constants import *
 gen_hookimpl = pluggy.HookimplMarker("generator")
 
 
-class uarch_test_plugin(object):
+class utg_plugin(object):
 
     @gen_hookimpl
     def pre_gen(self, spec_config, output_dir):
         """
            Spec Config will send in the yaml file as a 
-           dictionary for the uarch_test generator to use
-           uarch_test has not been configured to run mulitple jobs, YET
+           dictionary for the utg generator to use
+           utg has not been configured to run mulitple jobs, YET
            as uarch test is ISA agnostic, we do not need those either
         """
         logger.debug("uArch test generator, Pre-Gen.")
-        self.name = 'uarch_test'
+        self.name = 'utg'
         output_dir = os.path.abspath(output_dir)
         if os.path.isdir(output_dir) and os.path.exists(output_dir):
             logger.debug('Output Directory exists. Removing Contents.')
@@ -41,7 +41,7 @@ class uarch_test_plugin(object):
         self.jobs = int(spec_config['jobs'])
         self.seed = spec_config['seed']
         self.count = int(spec_config['count'])
-        self.uarch_dir = os.path.dirname(uarch_test.__file__)
+        self.uarch_dir = os.path.dirname(utg.__file__)
         default_work_dir = os.path.abspath(
             os.path.join(self.uarch_dir, '../work/'))
         logger.warn('uarch_dir is {0}'.format(self.uarch_dir))
@@ -62,10 +62,10 @@ class uarch_test_plugin(object):
         else:
             self.linker_dir = self.work_dir
             logger.warn(
-                'Default linker is used, uarch_test will generate the linker')
+                'Default linker is used, utg will generate the linker')
         logger.debug('linker_dir is {0}'.format(self.linker_dir))
         self.modules = spec_config['modules']
-        # uarch_test requires the modules to be specified as a string and not a list
+        # utg requires the modules to be specified as a string and not a list
         self.modules_str = self.modules
         # converting self.modules into a list from string
         self.modules = [x.strip() for x in self.modules.split(',')]
@@ -106,7 +106,7 @@ class uarch_test_plugin(object):
         logger.debug('the modules are {0}'.format(self.modules))
         output_dir = os.path.abspath(output_dir)
         logger.debug("uArch test generator, Gen. phase")
-        module_dir = os.path.join(module_dir, "uarch_test_plugin/")
+        module_dir = os.path.join(module_dir, "utg_plugin/")
         logger.debug('Module dir is {0}'.format(module_dir))
         logger.debug('Output dir is {0}'.format(output_dir))
         logger.debug('Work_dir is {0}'.format(self.work_dir))
@@ -122,7 +122,7 @@ class uarch_test_plugin(object):
         pytest.main([
             pytest_file, '-n=1',
             '--dut_config={0}'.format(self.dut_config_file), '-v',
-            '--html={0}/reports/uarch_test.html'.format(output_dir),
+            '--html={0}/reports/utg.html'.format(output_dir),
             '--report-log={0}.json'.format(report_file_name),
             '--self-contained-html', '--output_dir={0}'.format(output_dir),
             '--module_dir={0}'.format(module_dir), '--work_dir={0}'.format(

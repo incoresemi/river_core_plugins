@@ -1,6 +1,6 @@
 # conftest.py
 def pytest_html_report_title(report):
-    report.title = "Generation Report - uarch_test"
+    report.title = "Generation Report - utg"
 
 
 def pytest_addoption(parser):
