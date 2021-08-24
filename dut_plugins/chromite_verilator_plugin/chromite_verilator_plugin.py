@@ -266,12 +266,12 @@ class chromite_verilator_plugin(object):
     @dut_hookimpl
     def post_run(self, test_dict, config):
 
-        if config['river_core']['generator'] == 'uarch_test':
+        if config['river_core']['generator'] == 'utg':
             if (config['chromite_verilator']['check_logs']).lower() == 'true':
-                logger.info('Invoking uarch_test for checking logs')
-                config_file = config['uarch_test']['dut_config_yaml']
-                modules_dir = config['uarch_test']['modules_dir']
-                check_log_command = 'uarch_test -cf {0} -md {1} -vt'.format(
+                logger.info('Invoking utg for checking logs')
+                config_file = config['utg']['dut_config_yaml']
+                modules_dir = config['utg']['modules_dir']
+                check_log_command = 'utg -cf {0} -md {1} -vt'.format(
                     config_file, modules_dir)
                 sys_command(check_log_command)
             else:
