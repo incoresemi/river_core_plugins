@@ -138,7 +138,7 @@ class utg_plugin(object):
             asm_test_list = glob.glob(asm_dir + '/**/*.S')
             env_dir = os.path.join(self.uarch_dir, 'env/')
             target_dir = self.work_dir
-
+            print(asm_test_list)
             for test in asm_test_list:
                 logger.debug("Current test is {0}".format(test))
                 base_key = os.path.basename(test)[:-2]
