@@ -31,7 +31,7 @@ class utg_plugin(object):
            utg has not been configured to run mulitple jobs, YET
            as uarch test is ISA agnostic, we do not need those either
         """
-        logger.debug("uArch test generator, Pre-Gen.")
+        logger.debug("Uarch Test Generator, Pre-Gen.")
         self.name = 'utg'
         output_dir = os.path.abspath(output_dir)
         if os.path.isdir(output_dir) and os.path.exists(output_dir):
@@ -41,20 +41,10 @@ class utg_plugin(object):
         self.jobs = int(spec_config['jobs'])
         self.seed = spec_config['seed']
         self.count = int(spec_config['count'])
-        self.uarch_dir = os.path.dirname(utg.__file__)
-        default_work_dir = os.path.abspath(
-            os.path.join(self.uarch_dir, '../work/'))
+        self.uarch_dir = os.path.dirname(utg.__file__) 
         logger.warn('uarch_dir is {0}'.format(self.uarch_dir))
         logger.warn('output_dir is {0}'.format(output_dir))
         self.work_dir = spec_config['work_dir']
-        if self.work_dir:
-            if (self.work_dir == 'work'):
-                self.work_dir = output_dir
-            else:
-                self.work_dir = spec_config['work_dir']
-        else:
-            self.work_dir = default_work_dir
-            logger.warn('Defaulting to {0} as work_dir'.format(self.work_dir))
         logger.debug("work dir is {0}".format(self.work_dir))
         self.linker_dir = spec_config['linker_dir']
         if self.linker_dir:
@@ -78,7 +68,7 @@ class utg_plugin(object):
         else:
             self.cvg = ''
             logger.debug('Not generating covergroups')
-        logger.debug("uArch test generator, Completed Pre-Gen Phase")
+        logger.debug("Uarch Test Generator, Completed Pre-Gen Phase")
 
     @gen_hookimpl
     def gen(self, module_dir, output_dir):
