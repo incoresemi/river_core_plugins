@@ -85,17 +85,11 @@ class utg_plugin(object):
 
         if ('all' in self.modules):
             logger.debug('Checking {0} for modules'.format(self.modules_dir))
-            try:
-                self.modules = [
-                    f.name for f in os.scandir(self.modules_dir) if f.is_dir()
-                ]
-            except FileNotFoundError as e:
-                logger.error("The modules_dir cannot be empty.")
-                exit(0)
-
+            self.modules = utg.utils.list_of_modules(self.modules_dir, 'error')
+            
         logger.debug('the modules are {0}'.format(self.modules))
         output_dir = os.path.abspath(output_dir)
-        logger.debug("uArch test generator, Gen. phase")
+        logger.debug("Uarch Test Generator, Gen. phase")
         module_dir = os.path.join(module_dir, "utg_plugin/")
         logger.debug('Module dir is {0}'.format(module_dir))
         logger.debug('Output dir is {0}'.format(output_dir))
@@ -156,4 +150,6 @@ class utg_plugin(object):
 
     @gen_hookimpl
     def post_gen(self, output_dir):
+        """Post gen phase for the UTG"""
+        logger.info("Completed Test Generation using UTG")
         pass
