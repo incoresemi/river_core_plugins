@@ -354,12 +354,16 @@ class chromite_questa_plugin(object):
     def post_run(self, test_dict, config):
 
         if config['river_core']['generator'] == 'utg':
-            if (config['chromite_verilator']['check_logs']).lower() == 'true':
+            if (config['utg']['check_logs']).lower() == 'true':
                 logger.info('Invoking utg for checking logs')
                 config_file = config['utg']['dut_config_yaml']
                 modules_dir = config['utg']['modules_dir']
-                check_log_command = 'utg -dc {0} -md {1} -vt'.format(
-                    config_file, modules_dir)
+                work_dir = config['utg']['work_dir']
+                modules = config['utg']['modules']
+                check_log_command = (f"utg validate --verbose debug --modules"
+                                     f" {modules} --work_dir {work_dir} "
+                                     f" --module_dir {modules_dir} --dut_config"
+                                     f" {config_file}")
                 sys_command(check_log_command)
             else:
                 logger.info('Not checking logs')
