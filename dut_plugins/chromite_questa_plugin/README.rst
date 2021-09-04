@@ -1,9 +1,11 @@
-Refer `here <https://river-core.readthedocs.io/en/stable/dut_plugins.html#chromite-dut>`_ for how to setup the chromite verilator plugin
+============================
+Questa Plugin for RiVer_Core
+============================
 
 Checking logs using **utg**:
 -----------------------------------
 
-Add this line to the ``chromite_verilator`` section of you ini file. ::
+Add this line to the ``chromite_questa`` section of you ini file. ::
   
   check_logs = True
 
