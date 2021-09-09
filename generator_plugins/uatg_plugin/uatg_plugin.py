@@ -23,7 +23,7 @@ from river_core.constants import *
 gen_hookimpl = pluggy.HookimplMarker("generator")
 
 
-class utg_plugin(object):
+class uatg_plugin(object):
 
     @gen_hookimpl
     def pre_gen(self, spec_config, output_dir):
@@ -43,7 +43,7 @@ class utg_plugin(object):
         self.jobs = int(spec_config['jobs'])
         self.seed = spec_config['seed']
         self.count = int(spec_config['count'])
-        self.uarch_dir = os.path.dirname(utg.__file__) 
+        self.uarch_dir = os.path.dirname(uatg.__file__) 
         logger.warn('UATG_dir is {0}'.format(self.uarch_dir))
         logger.warn('output_dir is {0}'.format(output_dir))
         self.work_dir = spec_config['work_dir']
