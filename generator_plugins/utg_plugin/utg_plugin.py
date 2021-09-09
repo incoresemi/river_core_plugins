@@ -12,9 +12,9 @@ import pytest
 import glob
 import re
 import configparser
-import utg
+import uatg
 
-from utg.utils import list_of_modules
+from uatg.utils import list_of_modules
 
 from river_core.log import logger
 import river_core.utils as utils
@@ -33,8 +33,8 @@ class utg_plugin(object):
            utg has not been configured to run mulitple jobs, YET
            as uarch test is ISA agnostic, we do not need those either
         """
-        logger.debug("Uarch Test Generator, Pre-Gen.")
-        self.name = 'utg'
+        logger.debug("μArchitectural Test Generator, Pre-Gen.")
+        self.name = 'uatg'
         output_dir = os.path.abspath(output_dir)
         if os.path.isdir(output_dir) and os.path.exists(output_dir):
             logger.debug('Output Directory exists. Removing Contents.')
@@ -44,7 +44,7 @@ class utg_plugin(object):
         self.seed = spec_config['seed']
         self.count = int(spec_config['count'])
         self.uarch_dir = os.path.dirname(utg.__file__) 
-        logger.warn('uarch_dir is {0}'.format(self.uarch_dir))
+        logger.warn('UATG_dir is {0}'.format(self.uarch_dir))
         logger.warn('output_dir is {0}'.format(output_dir))
         self.work_dir = spec_config['work_dir']
         logger.debug("work dir is {0}".format(self.work_dir))
@@ -54,7 +54,7 @@ class utg_plugin(object):
         else:
             self.linker_dir = self.work_dir
             logger.warn(
-                'Default linker is used, utg will generate the linker')
+                'Default linker is used, uatg will generate the linker')
         logger.debug('linker_dir is {0}'.format(self.linker_dir))
         self.modules = spec_config['modules']
         # utg requires the modules to be specified as a string and not a list
@@ -91,8 +91,8 @@ class utg_plugin(object):
             
         logger.debug('the modules are {0}'.format(self.modules))
         output_dir = os.path.abspath(output_dir)
-        logger.debug("Uarch Test Generator, Gen. phase")
-        module_dir = os.path.join(module_dir, "utg_plugin/")
+        logger.debug("μArchitectural Test Generator, Gen. phase")
+        module_dir = os.path.join(module_dir, "uatg_plugin/")
         logger.debug('Module dir is {0}'.format(module_dir))
         logger.debug('Output dir is {0}'.format(output_dir))
         logger.debug('Work_dir is {0}'.format(self.work_dir))
@@ -153,5 +153,5 @@ class utg_plugin(object):
     @gen_hookimpl
     def post_gen(self, output_dir):
         """Post gen phase for the UTG"""
-        logger.info("Completed Test Generation using UTG")
+        logger.info("Completed Test Generation using UATG")
         pass
