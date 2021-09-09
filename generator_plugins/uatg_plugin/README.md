@@ -18,3 +18,4 @@ In addition to this change, update the generator parameter to select uatg as sho
 ```
 generator = uatg
 ```
+You can find documentaion about the changes to be made in the river_core.ini [here](uatg.readthedocs.io)
