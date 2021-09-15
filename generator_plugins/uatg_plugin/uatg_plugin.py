@@ -87,7 +87,7 @@ class uatg_plugin(object):
 
         if ('all' in self.modules):
             logger.debug('Checking {0} for modules'.format(self.modules_dir))
-            self.modules = list_of_modules(self.modules_dir, 'error')
+            self.modules = list_of_modules(self.modules_dir)
             
         logger.debug('the modules are {0}'.format(self.modules))
         output_dir = os.path.abspath(output_dir)
