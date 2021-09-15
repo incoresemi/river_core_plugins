@@ -70,7 +70,7 @@ class uatg_plugin(object):
         else:
             self.cvg = ''
             logger.debug('Not generating covergroups')
-        logger.debug("Uarch Test Generator, Completed Pre-Gen Phase")
+        logger.debug("μArchitectural Test Generator, Completed Pre-Gen Phase")
 
     @gen_hookimpl
     def gen(self, module_dir, output_dir):
@@ -153,5 +153,5 @@ class uatg_plugin(object):
     @gen_hookimpl
     def post_gen(self, output_dir):
         """Post gen phase for the UTG"""
-        logger.info("Completed Test Generation using UATG")
+        logger.info("Completed Test Generation using μArchitectural Test Generator")
         pass
