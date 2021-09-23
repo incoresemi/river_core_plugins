@@ -1,4 +1,7 @@
-# See LICENSE for details
+# See LICENSE.incore for details
+# Author Name: Alenkruth K M
+# Author Email id: alenkruth.km@incoresemi.com
+# Author Company: InCore Semiconductors Pvt. Ltd.
 
 import os
 import sys
@@ -43,7 +46,7 @@ class uatg_plugin(object):
         self.jobs = int(spec_config['jobs'])
         self.seed = spec_config['seed']
         self.count = int(spec_config['count'])
-        self.uarch_dir = os.path.dirname(uatg.__file__) 
+        self.uarch_dir = os.path.dirname(uatg.__file__)
         logger.warn('UATG_dir is {0}'.format(self.uarch_dir))
         logger.warn('output_dir is {0}'.format(output_dir))
         self.work_dir = spec_config['work_dir']
@@ -53,8 +56,7 @@ class uatg_plugin(object):
             self.linker_dir = spec_config['linker_dir']
         else:
             self.linker_dir = self.work_dir
-            logger.warn(
-                'Default linker is used, uatg will generate the linker')
+            logger.warn('Default linker is used, uatg will generate the linker')
         logger.debug('linker_dir is {0}'.format(self.linker_dir))
         self.modules = spec_config['modules']
         # utg requires the modules to be specified as a string and not a list
@@ -62,7 +64,11 @@ class uatg_plugin(object):
         # converting self.modules into a list from string
         self.modules = [x.strip() for x in self.modules.split(',')]
         self.modules_dir = spec_config['modules_dir']
-        self.dut_config_file = spec_config['dut_config_yaml']
+        self.config = []
+        self.config.append(spec_config['isa_config_yaml'])
+        self.config.append(spec_config['core_config_yaml'])
+        self.config.append(spec_config['custom_config_yaml'])
+        self.config.append(spec_config['csr_grouping_yaml'])
         self.alias_file = spec_config['alias_file']
         if ((spec_config['generate_covergroups']).lower() == 'true'):
             self.cvg = '--gen_cvg'
@@ -77,18 +83,19 @@ class uatg_plugin(object):
         """
           gen phase for the test generator
         """
-        try:
-            with open(self.dut_config_file) as f:
-                pass
-        except IOError:
-            logger.error(
-                "The DUT Config file does not exist. Check and try again")
-            exit(0)
+        for yaml_file in self.config:
+            try:
+                with open(yaml_file) as f:
+                    pass
+            except IOError:
+                logger.error(
+                    f"The {yaml_file} file does not exist. Check and try again")
+                exit(0)
 
         if ('all' in self.modules):
             logger.debug('Checking {0} for modules'.format(self.modules_dir))
             self.modules = list_of_modules(self.modules_dir)
-            
+
         logger.debug('the modules are {0}'.format(self.modules))
         output_dir = os.path.abspath(output_dir)
         logger.debug("μArchitectural Test Generator, Gen. phase")
@@ -106,8 +113,7 @@ class uatg_plugin(object):
 
         # pytest for test generation
         pytest.main([
-            pytest_file, '-n=1',
-            '--dut_config={0}'.format(self.dut_config_file), '-v',
+            pytest_file, '-n=1', '--config={0}'.format(self.config), '-v',
             '--html={0}/reports/utg.html'.format(output_dir),
             '--report-log={0}.json'.format(report_file_name),
             '--self-contained-html', '--output_dir={0}'.format(output_dir),
@@ -153,5 +159,6 @@ class uatg_plugin(object):
     @gen_hookimpl
     def post_gen(self, output_dir):
         """Post gen phase for the UTG"""
-        logger.info("Completed Test Generation using μArchitectural Test Generator")
+        logger.info(
+            "Completed Test Generation using μArchitectural Test Generator")
         pass
