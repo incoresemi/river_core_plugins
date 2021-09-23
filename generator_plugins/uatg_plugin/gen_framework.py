@@ -21,10 +21,16 @@ def gen_cmd_list(config, work_dir, linker_dir, module, output_dir, module_dir,
 
     logger.debug('Generating commands for gen plugin')
     run_command = []
-    run_command.append(
-        "uatg generate --verbose debug --configuration {0} --configuration {1} --configuration {2} --configuration {3} --module_dir {4} --work_dir {5} --modules {6} --linker_dir {7} --alias_file {8} {9}"
-        .format(config[0], config[1], config[2], config[3], modules_dir,
-                work_dir, module, linker_dir, alias_file, gen_cvg))
+    run_command.append(f"uatg generate --verbose debug"
+                       f" --configuration {config[0]}"
+                       f" --configuration {config[1]}"
+                       f" --configuration {config[2]}"
+                       f" --configuration {config[3]}"
+                       f" --module_dir {modules_dir}"
+                       f" --work_dir {work_dir}"
+                       f" --modules {module}"
+                       f" --linker_dir {linker_dir}"
+                       f" --alias_file {alias_file} {gen_cvg}")
     logger.debug(run_command)
     return run_command
 
