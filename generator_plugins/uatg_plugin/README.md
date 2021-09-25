@@ -4,7 +4,10 @@
 jobs = 4
 count = 1
 seed = random
-dut_config_yaml = /path/to/config.yaml/file/of/dut
+isa_config_yaml = /path/to//c64/rv64i_isa.yaml
+core_config_yaml = /path/to//c64/core64.yaml
+custom_config_yaml = /path/to/c64/rv64i_custom.yaml
+csr_grouping_yaml = /path/to//c64/csr_grouping64.yaml
 modules_dir = /path/to/modulesdir
 work_dir = /user's/preferred/workdir
 linker_dir = /the/directory/containing/link.ld/and/model_test.h/files
