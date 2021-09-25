@@ -331,9 +331,9 @@ class chromite_cadence_plugin(object):
         return report_file_name
 
     @dut_hookimpl
-    def post_run(self, test_dict, spec_config):
+    def post_run(self, test_dict, config):
 
-        if spec_config['river_core']['generator'] == 'uatg':
+        if config['river_core']['generator'] == 'uatg':
             if (config['uatg']['check_logs']).lower() == 'true':
                 logger.info('Invoking uatg for checking logs')
                 config_list = []
