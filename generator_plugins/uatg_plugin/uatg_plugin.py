@@ -113,7 +113,7 @@ class uatg_plugin(object):
 
         # pytest for test generation
         pytest.main([
-            pytest_file, '-n=1', '--config={0}'.format(self.config), '-v',
+            pytest_file, '-n=1', '--config={0}'.format(str(self.config)[1:-1]), '-v',
             '--html={0}/reports/utg.html'.format(output_dir),
             '--report-log={0}.json'.format(report_file_name),
             '--self-contained-html', '--output_dir={0}'.format(output_dir),
