@@ -151,7 +151,7 @@ class chromite_questa_plugin(object):
 
         sv_dir = ''
         for key, value in self.test_list.items():
-            if self.test_list[key]['generator'] == 'utg':
+            if self.test_list[key]['generator'] == 'uatg':
                 sv_dir = os.path.abspath(
                     os.path.join(self.test_list[key]['work_dir'], '../..'))
                 break
