@@ -266,17 +266,24 @@ class chromite_verilator_plugin(object):
     @dut_hookimpl
     def post_run(self, test_dict, config):
 
-        if config['river_core']['generator'] == 'utg':
-            if (config['utg']['check_logs']).lower() == 'true':
-                logger.info('Invoking utg for checking logs')
-                config_file = config['utg']['dut_config_yaml']
-                modules_dir = config['utg']['modules_dir']
-                work_dir = config['utg']['work_dir']
-                modules = config['utg']['modules']
-                check_log_command = (f"utg validate --verbose debug --modules"
-                                     f" {modules} --work_dir {work_dir} "
-                                     f" --module_dir {modules_dir} --dut_config"
-                                     f" {config_file}")
+        if config['river_core']['generator'] == 'uatg':
+            if (config['uatg']['check_logs']).lower() == 'true':
+                logger.info('Invoking uatg for checking logs')
+                config_list = []
+                config_list.append(config['uatg']['isa_config_yaml'])
+                config_list.append(config['uatg']['core_config_yaml'])
+                config_list.append(config['uatg']['custom_config_yaml'])
+                config_list.append(config['uatg']['csr_grouping_yaml'])
+                modules_dir = config['uatg']['modules_dir']
+                work_dir = config['uatg']['work_dir']
+                modules = config['uatg']['modules']
+                check_log_command = (f"uatg validate --verbose debug --modules"
+                                     f" {modules} --work_dir {work_dir}"
+                                     f" --module_dir {modules_dir}"
+                                     f" --configuration {config_list[0]}"
+                                     f" --configuration {config_list[1]}"
+                                     f" --configuration {config_list[2]}"
+                                     f" --configuration {config_list[3]}")
                 sys_command(check_log_command)
             else:
                 logger.info('Not checking logs')

@@ -1,4 +1,7 @@
-# See LICENSE for details
+# See LICENSE.incore for details
+# Author Name: Alenkruth K M
+# Author Email id: alenkruth.km@incoresemi.com
+# Author Company: InCore Semiconductors Pvt. Ltd.
 
 import os
 import sys
@@ -11,28 +14,38 @@ import random
 import re
 import datetime
 import pytest
+import shlex
+
+def gen_cmd_list(config, work_dir, linker_dir, module, output_dir, module_dir,
+                 gen_cvg, modules_dir, alias_file):
 
 
-def gen_cmd_list(dut_config_file, work_dir, linker_dir, module, output_dir,
-                 module_dir, gen_cvg, modules_dir, alias_file):
-
+    config = config.split(', ')
     logger.debug('Generating commands for gen plugin')
+    
+    uatg_command = (f"uatg generate --verbose debug"
+                    f" --configuration {config[0]}"
+                    f" --configuration {config[1]}"
+                    f" --configuration {config[2]}"
+                    f" --configuration {config[3]}"
+                    f" --module_dir {modules_dir}"
+                    f" --work_dir {work_dir}"
+                    f" --modules {module}"
+                    f" --linker_dir {linker_dir}"
+                    f" --alias_file {alias_file} {gen_cvg}")
     run_command = []
-    run_command.append(
-        "utg generate --verbose debug --dut_config {0} --module_dir {1} --work_dir {2} --modules {3} --linker_dir {4} --alias_file {5} {6}"
-        .format(dut_config_file, modules_dir, work_dir, module, linker_dir,
-                alias_file, gen_cvg))
+    run_command.append(uatg_command)
     logger.debug(run_command)
     return run_command
 
 
 def idfnc(val):
-    return 'Generating Test-list using utg'
+    return 'Generating Test-list using UATG'
 
 
 def pytest_generate_tests(metafunc):
     if 'test_input' in metafunc.fixturenames:
-        test_list = gen_cmd_list(metafunc.config.getoption("dut_config"),
+        test_list = gen_cmd_list(metafunc.config.getoption("config"),
                                  metafunc.config.getoption("work_dir"),
                                  metafunc.config.getoption("linker_dir"),
                                  metafunc.config.getoption("module"),
