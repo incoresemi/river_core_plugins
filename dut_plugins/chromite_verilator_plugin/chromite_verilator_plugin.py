@@ -55,10 +55,10 @@ class chromite_verilator_plugin(object):
 
         self.elf2hex_cmd = 'elf2hex {0} 4194304 dut.elf 2147483648 > code.mem && '.format(
             str(int(self.xlen / 8)))
-        self.objdump_cmd = 'riscv{0}-unknown-elf-objdump -D dut.elf > dut.disass && '.format(
-            self.xlen)
+        self.objdump_cmd = ''#riscv{0}-unknown-elf-objdump -D dut.elf > dut.disass && '.format( self.xlen)
         self.sim_cmd = './chromite_core'
         self.sim_args = '+rtldump > /dev/null'
+        self.clean_up = 'rm -f code.mem app_log signature'
 
         self.work_dir = os.path.abspath(work_dir) + '/'
 
@@ -199,7 +199,8 @@ class chromite_verilator_plugin(object):
             post_process_cmd = 'head -n -4 rtl.dump > dut.dump && rm -f rtl.dump'
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
                     self.elf2hex_cmd + sim_setup + self.sim_cmd + ' ' + \
-                    self.sim_args +' && '+ post_process_cmd
+                    self.sim_args + ' && '+ post_process_cmd + \
+                    ' && ' + self.clean_up
             make.add_target(target_cmd, test)
             self.test_names.append(test)
 
