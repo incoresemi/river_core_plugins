@@ -235,7 +235,6 @@ class chromite_verilator_plugin(object):
                             pytest.ExitCode.TESTS_FAILED):
             logger.error(
                 'DuT Plugin failed to compile tests, exiting river_core')
-            raise SystemExit
 
         if self.coverage:
             final_cov_file = self.work_dir + '/final_coverage.dat'
