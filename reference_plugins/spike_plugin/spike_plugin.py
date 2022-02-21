@@ -37,10 +37,9 @@ class spike_plugin(object):
             self.xlen = 32
         self.elf = 'ref.elf'
 
-        self.objdump_cmd = 'riscv{0}-unknown-elf-objdump -D ref.elf > ref.disass && '.format(
-            self.xlen)
+        self.objdump_cmd = ''#riscv{0}-unknown-elf-objdump -D ref.elf > ref.disass && '.format( self.xlen)
         self.sim_cmd = 'spike'
-        self.sim_args = '--log ref.dump --log-commits --isa={0} {1}'
+        self.sim_args = '--log ref.dump --log-commits --priv={0} --isa={1} {2}'
 
         self.work_dir = os.path.abspath(work_dir) + '/'
         self.test_list = load_yaml(test_list)
@@ -84,6 +83,12 @@ class spike_plugin(object):
             spike_isa += 'd' if 'd' in arch else ''
             spike_isa += 'c' if 'c' in arch else ''
 
+            spike_priv = 'm'
+            if 'S' in isa:
+                spike_priv += 'su'
+            elif 'U' in isa:
+                spike_priv += 'u'
+
             ch_cmd = 'cd {0} && '.format(work_dir)
             compile_cmd = '{0} {1} -march={2} -mabi={3} {4} {5} {6}'.format(\
                     cc, cc_args, arch, abi, link_args, link_file, asm_file)
@@ -96,7 +101,7 @@ class spike_plugin(object):
             post_process_cmd = ''
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
                     self.sim_cmd + ' ' + \
-                    self.sim_args.format(spike_isa, self.elf)
+                    self.sim_args.format(spike_priv, spike_isa, self.elf)
             make.add_target(target_cmd, test)
             self.test_names.append(test)
 
