@@ -49,8 +49,9 @@ class riscv_tests_plugin(object):
         self.jobs = spec_config['jobs']
         self.filter = spec_config['filter']
 
-        subprocess.call(shlex.split(f'git clone --recursive \
-            https://github.com/riscv/riscv-tests.git {self.output_dir}/'))
+        if not os.path.isdir(f'{self.output_dir}'):
+            subprocess.call(shlex.split(f'git clone --recursive \
+               https://github.com/riscv/riscv-tests.git {self.output_dir}/'))
 
         self.isa_dir = self.output_dir + '/isa'
         print(self.isa_dir)
@@ -77,6 +78,14 @@ class riscv_tests_plugin(object):
 
     @gen_hookimpl
     def gen(self, module_dir, output_dir):
+       
+        cwd = os.getcwd()
+        os.chdir(f'{self.output_dir}/env')
+        result = subprocess.run(shlex.split(f'git apply --check {module_dir}/{self.name}_plugin/patch'), capture_output=True, text=True)
+        if not result.stdout:
+            logger.debug('applying patch')
+            result = subprocess.run(shlex.split(f'git apply {module_dir}/{self.name}_plugin/patch'), capture_output=True, text=True)
+        os.chdir(cwd)
 
         logger.debug(f'isa_dir : {self.isa_dir}')
         isas = []

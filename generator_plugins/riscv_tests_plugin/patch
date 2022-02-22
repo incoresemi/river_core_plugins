@@ -1,0 +1,25 @@
+diff --git a/p/riscv_test.h b/p/riscv_test.h
+index a08f49e..3c94508 100644
+--- a/p/riscv_test.h
++++ b/p/riscv_test.h
+@@ -190,12 +190,17 @@ handle_exception:                                                       \
+   1:    ori TESTNUM, TESTNUM, 1337;                                     \
+   write_tohost:                                                         \
+         sw TESTNUM, tohost, t5;                                         \
+-        j write_tohost;                                                 \
++      rtl_end:                                                     \
++        fence.i;                                                        \
++        li t6,  0x20000;                                                \
++        la t5, begin_signature;                                         \
++        sw t5, 0(t6);                                                   \
++        la t5, end_signature;                                           \
++        sw t5, 8(t6);                                                   \
++        sw t5,  12(t6);
+ reset_vector:                                                           \
+         INIT_XREG;                                                      \
+         RISCV_MULTICORE_DISABLE;                                        \
+-        INIT_SATP;                                                      \
+-        INIT_PMP;                                                       \
+         DELEGATE_NO_TRAPS;                                              \
+         li TESTNUM, 0;                                                  \
+         la t0, trap_vector;                                             \
