@@ -77,11 +77,11 @@ class spike_plugin(object):
             asm_file = attr['asm_file']
 
             spike_isa = 'rv' + str(self.xlen) + 'i'
-            spike_isa += 'm' if 'm' in arch else ''
-            spike_isa += 'a' if 'a' in arch else ''
-            spike_isa += 'f' if 'f' in arch else ''
-            spike_isa += 'd' if 'd' in arch else ''
-            spike_isa += 'c' if 'c' in arch else ''
+            spike_isa += 'm' if 'm' in arch or 'g' in arch else ''
+            spike_isa += 'a' if 'a' in arch or 'g' in arch else ''
+            spike_isa += 'f' if 'f' in arch or 'g' in arch else ''
+            spike_isa += 'd' if 'd' in arch or 'g' in arch else ''
+            spike_isa += 'c' if 'c' in arch or 'g' in arch else ''
 
             spike_priv = 'm'
             if 'S' in isa:
