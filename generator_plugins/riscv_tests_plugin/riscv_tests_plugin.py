@@ -102,7 +102,7 @@ class riscv_tests_plugin(object):
         for i in isas:
             with open(f'{self.isa_dir}/{i}/Makefrag', 'r') as file:
                 data = file.read()
-                if re.findall(r'.*_v_tests',data):
+                if re.findall(r'.*_v_tests',data) and 'S' in self.isa:
                     virtual = True
                 else:
                     virtual = False
@@ -152,7 +152,8 @@ class riscv_tests_plugin(object):
                                 f'{self.isa_dir}/macros/scalar',]
                         test_list[base_key]['extra_compile'] = [\
                                 f'{self.output_dir}/env/v/vm.c',
-                                f'{self.output_dir}/env/v/string.c']
+                                f'{self.output_dir}/env/v/string.c',
+                                f'{self.output_dir}/env/v/entry.S']
                         test_list[base_key]['compile_macros'] = [f'ENTROPY=0x{entropy}']
                         test_list[base_key]['result'] = 'Unavailable'
                         if (os.path.isdir(work_dir)):
