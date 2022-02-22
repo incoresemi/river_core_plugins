@@ -14,7 +14,7 @@ index a08f49e..3c94508 100644
 +        sw t5, 0(t6);                                                   \
 +        la t5, end_signature;                                           \
 +        sw t5, 8(t6);                                                   \
-+        sw t5,  12(t6);
++        sw t5,  12(t6);                                                 \
  reset_vector:                                                           \
          INIT_XREG;                                                      \
          RISCV_MULTICORE_DISABLE;                                        \
