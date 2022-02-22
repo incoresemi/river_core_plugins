@@ -28,6 +28,10 @@ class chromite_verilator_plugin(object):
         logger.info('Pre Compile Stage')
 
         self.src_dir = ini_config['src_dir'].split(',')
+        if 'stop_on_failure' in ini_config:
+            self.stop_on_failure = ini_config['stop_on_failure']
+        else:
+            self.stop_on_failure = False
 
         self.top_module = ini_config['top_module']
 
@@ -217,9 +221,8 @@ class chromite_verilator_plugin(object):
 
         # TODO Regression list currently removed, check back later
         # TODO The logger doesn't exactly work like in the pytest module
-        pytest_state = pytest.main([
+        pytest_args = [
             pytest_file,
-            '-x',  # Stop on first failure 
             '-n={0}'.format(self.jobs),
             '-k={0}'.format(self.filter),
             '--html={0}.html'.format(self.work_dir + '/reports/' + self.name),
@@ -228,9 +231,10 @@ class chromite_verilator_plugin(object):
             '--make_file={0}'.format(self.make_file),
             '--key_list={0}'.format(self.test_names),
             '--log-cli-level=DEBUG',
-            '-o log_cli=true',
-        ])
-        # , '--regress_list={0}'.format(self.regress_list), '-v', '--compile_config={0}'.format(compile_config),
+            '-o log_cli=true',]
+        if self.stop_on_failure:
+            pytest_args.append('-x')
+        pytest_state = pytest.main(pytest_args)
         if pytest_state == (pytest.ExitCode.INTERRUPTED or
                             pytest.ExitCode.TESTS_FAILED):
             logger.error(
