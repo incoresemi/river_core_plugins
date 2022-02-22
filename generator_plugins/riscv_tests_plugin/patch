@@ -23,11 +23,66 @@ index a08f49e..a80c002 100644
          DELEGATE_NO_TRAPS;                                              \
          li TESTNUM, 0;                                                  \
          la t0, trap_vector;                                             \
+diff --git a/v/entry.S b/v/entry.S
+index 49b2d3e..da11a05 100644
+--- a/v/entry.S
++++ b/v/entry.S
+@@ -25,7 +25,19 @@ nmi_vector:
+ 
+   .align 2
+ trap_vector:
+-  j wtf
++  csrr t5, mcause                                                                                  
++  li t6, CAUSE_SUPERVISOR_ECALL                                                                    
++  bne t5, t6, wtf                                                                                  
++write_tohost:                                                                                      
++  sw TESTNUM, tohost, t5                                                                           
++rtl2_end:                                                                                        
++  fence.i                                                                                          
++  li t6,  0x20000                                                                                  
++  la t5, begin_signature                                                                           
++  sw t5, 0(t6)                                                                                     
++  la t5, end_signature                                                                             
++  sw t5, 8(t6)                                                                                     
++  sw t5,  12(t6) 
+ 
+ handle_reset:
+   li x1, 0
+diff --git a/v/riscv_test.h b/v/riscv_test.h
+index c74e05d..01aac2d 100644
+--- a/v/riscv_test.h
++++ b/v/riscv_test.h
+@@ -42,8 +42,15 @@ userstart:                                                              \
+ // Data Section Macro
+ //-----------------------------------------------------------------------
+ 
+-#undef RVTEST_DATA_END
+-#define RVTEST_DATA_END
++#define RVTEST_DATA_BEGIN                                               \
++        EXTRA_DATA                                                      \
++        .pushsection .tohost,"aw",@progbits;                            \
++        .align 6; .global tohost; tohost: .dword 0;                     \
++        .align 6; .global fromhost; fromhost: .dword 0;                 \
++        .popsection;                                                    \
++        .align 4; .global begin_signature; begin_signature:
++
++#define RVTEST_DATA_END .align 4; .global end_signature; end_signature:
+ 
+ //-----------------------------------------------------------------------
+ // Supervisor mode definitions and macros
 diff --git a/v/vm.c b/v/vm.c
-index 9802fb7..95a7594 100644
+index 9802fb7..a7a3269 100644
 --- a/v/vm.c
 +++ b/v/vm.c
-@@ -262,14 +262,6 @@ void vm_boot(uintptr_t test_addr)
+@@ -52,6 +52,7 @@ static void cputstring(const char* s)
+ static void terminate(int code)
+ {
+   do_tohost(code);
++  asm volatile ("scall\n\t");
+   while (1);
+ }
+ 
+@@ -262,14 +263,6 @@ void vm_boot(uintptr_t test_addr)
    // Set up PMPs if present, ignoring illegal instruction trap if not.
    uintptr_t pmpc = PMP_NAPOT | PMP_R | PMP_W | PMP_X;
    uintptr_t pmpa = ((uintptr_t)1 << (__riscv_xlen == 32 ? 31 : 53)) - 1;
