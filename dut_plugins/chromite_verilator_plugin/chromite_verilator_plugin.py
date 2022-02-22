@@ -187,6 +187,7 @@ class chromite_verilator_plugin(object):
             cc = attr['cc']
             cc_args = attr['cc_args']
             asm_file = attr['asm_file']
+            skip_lines = attr['ignore_lines'] if 'ignore_lines' in attr else 4
 
             ch_cmd = 'cd {0} && '.format(work_dir)
             compile_cmd = '{0} {1} -march={2} -mabi={3} {4} {5} {6}'.format(\
@@ -200,7 +201,7 @@ class chromite_verilator_plugin(object):
             compile_cmd += ' -o dut.elf && '
             sim_setup = 'ln -f -s ' + self.sim_path + '/chromite_core . && '
             sim_setup += 'ln -f -s ' + self.sim_path + '/boot.mem . && '
-            post_process_cmd = 'head -n -4 rtl.dump > dut.dump && rm -f rtl.dump'
+            post_process_cmd = f'head -n -{skip_lines} rtl.dump > dut.dump && rm -f rtl.dump'
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
                     self.elf2hex_cmd + sim_setup + self.sim_cmd + ' ' + \
                     self.sim_args + ' && '+ post_process_cmd + \
