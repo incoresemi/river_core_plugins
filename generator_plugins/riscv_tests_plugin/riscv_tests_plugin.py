@@ -67,13 +67,14 @@ class riscv_tests_plugin(object):
             logger.debug(self.json_dir + ' Directory exists')
         else:
             os.makedirs(self.json_dir)
+        march = self.isa.replace('S','').replace('U','').replace('Zicsr','').lower()
         if '32' in self.isa:
             self.xlen = 32
             self.mabi = 'ilp32'
-            self.march = 'rv32g'
+            self.march = march
         else:
             self.xlen = 64
-            self.march = 'rv64g'
+            self.march = march
             self.mabi = 'lp64'
 
     @gen_hookimpl
@@ -108,6 +109,8 @@ class riscv_tests_plugin(object):
                     virtual = False
 
             for t in os.listdir(self.isa_dir + '/' + i):
+                if 'breakpoint' in t:
+                    continue
                 if t.endswith('.S'):
                     work_dir = f'{self.isa_dir}/p/{i}-{t[:-2]}'
                     base_key = f'{i}-{t[:-2]}-p'
@@ -128,11 +131,21 @@ class riscv_tests_plugin(object):
                     test_list[base_key]['extra_compile'] = []
                     test_list[base_key]['compile_macros'] = []
                     test_list[base_key]['result'] = 'Unavailable'
+                    test_list[base_key]['ignore_lines'] = 4
                     if (os.path.isdir(work_dir)):
                         logger.debug(f'{work_dir} exists')
                         shutil.rmtree(work_dir, ignore_errors=True)
                     os.makedirs(work_dir)
                     if virtual:
+                        march = self.march
+                        if 'f' not in march:
+                            if 'a' in march:
+                                march = march[:march.index('a')+1]+'f'+march[march.index('a')+1:]
+                            elif 'm' in march:
+                                march = march[:march.index('m')+1]+'f'+march[march.index('m')+1:]
+                            elif 'i' in march: 
+                                march = march[:march.index('i')+1]+'f'+march[march.index('i')+1:]
+
                         work_dir = f'{self.isa_dir}/v/{i}-{t[:-2]}'
                         entropy = 'bf12e4d'
                         base_key = f'{i}-{t[:-2]}-v'
@@ -140,7 +153,7 @@ class riscv_tests_plugin(object):
                         test_list[base_key]['work_dir']= work_dir
                         test_list[base_key]['generator'] = self.name
                         test_list[base_key]['isa'] = self.isa
-                        test_list[base_key]['march'] = self.march
+                        test_list[base_key]['march'] = march
                         test_list[base_key]['mabi'] = self.mabi
                         test_list[base_key]['cc'] = 'riscv64-unknown-elf-gcc'
                         test_list[base_key]['cc_args'] = '-static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles' 
@@ -156,6 +169,7 @@ class riscv_tests_plugin(object):
                                 f'{self.output_dir}/env/v/entry.S']
                         test_list[base_key]['compile_macros'] = [f'ENTROPY=0x{entropy}']
                         test_list[base_key]['result'] = 'Unavailable'
+                        test_list[base_key]['ignore_lines'] = 13
                         if (os.path.isdir(work_dir)):
                             logger.debug(f'{work_dir} exists')
                             shutil.rmtree(work_dir, ignore_errors=True)
