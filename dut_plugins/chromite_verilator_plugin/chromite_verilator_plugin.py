@@ -27,7 +27,7 @@ class chromite_verilator_plugin(object):
         self.name = 'chromite_verilator'
         logger.info('Pre Compile Stage')
 
-        self.src_dir = ini_config['src_dir'].split(',')
+        self.src_dir = [os.path.abspath(x) for x in ini_config['src_dir'].split(',')]
         if 'stop_on_failure' in ini_config:
             self.stop_on_failure = ini_config['stop_on_failure']
         else:
