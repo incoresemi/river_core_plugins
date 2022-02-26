@@ -17,22 +17,26 @@ import pytest
 import shlex
 
 def gen_cmd_list(config, work_dir, linker_dir, module, output_dir, module_dir,
-                 gen_cvg, modules_dir, alias_file):
+                 gen_cvg, modules_dir, alias_file, index_file, jobs):
 
 
     config = config.split(', ')
     logger.debug('Generating commands for gen plugin')
     
     uatg_command = (f"uatg generate --verbose debug"
+                    f" --jobs {jobs}"
+                    f" --index_file {index_file}"
+                    f" --modules {module}"
+                    f" --work_dir {work_dir}"
+                    f" --linker_dir {linker_dir}"
+                    f" --gen_test_list"
+                    f" --module_dir {modules_dir}"
                     f" --configuration {config[0]}"
                     f" --configuration {config[1]}"
                     f" --configuration {config[2]}"
                     f" --configuration {config[3]}"
-                    f" --module_dir {modules_dir}"
-                    f" --work_dir {work_dir}"
-                    f" --modules {module}"
-                    f" --linker_dir {linker_dir}"
-                    f" --alias_file {alias_file} {gen_cvg}")
+                    f" --configuration {config[4]}"
+                    f" --alias_file {alias_file}")
     run_command = []
     run_command.append(uatg_command)
     logger.debug(run_command)
@@ -53,7 +57,10 @@ def pytest_generate_tests(metafunc):
                                  metafunc.config.getoption("module_dir"),
                                  metafunc.config.getoption("gen_cvg"),
                                  metafunc.config.getoption("modules_dir"),
-                                 metafunc.config.getoption("alias_file"))
+                                 metafunc.config.getoption("alias_file"),
+                                 metafunc.config.getoption("index_file"),
+                                 metafunc.config.getoption("jobs")
+                                 )
         metafunc.parametrize('test_input', test_list, ids=idfnc, indirect=True)
 
 

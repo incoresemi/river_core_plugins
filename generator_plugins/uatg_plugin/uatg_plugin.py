@@ -42,18 +42,16 @@ class uatg_plugin(object):
         if os.path.isdir(output_dir) and os.path.exists(output_dir):
             logger.debug('Output Directory exists. Removing Contents.')
             rmtree(output_dir)
-        os.mkdir(output_dir)
+        os.makedirs(output_dir)
         self.jobs = int(spec_config['jobs'])
-        self.seed = spec_config['seed']
-        self.count = int(spec_config['count'])
         self.uarch_dir = os.path.dirname(uatg.__file__)
         logger.warn('UATG_dir is {0}'.format(self.uarch_dir))
         logger.warn('output_dir is {0}'.format(output_dir))
         self.work_dir = spec_config['work_dir']
         logger.debug("work dir is {0}".format(self.work_dir))
-        self.linker_dir = spec_config['linker_dir']
+        self.linker_dir = os.path.abspath(spec_config['linker_dir'])
         if self.linker_dir:
-            self.linker_dir = spec_config['linker_dir']
+            self.linker_dir = os.path.abspath(spec_config['linker_dir'])
         else:
             self.linker_dir = self.work_dir
             logger.warn('Default linker is used, uatg will generate the linker')
@@ -63,13 +61,15 @@ class uatg_plugin(object):
         self.modules_str = self.modules
         # converting self.modules into a list from string
         self.modules = [x.strip() for x in self.modules.split(',')]
-        self.modules_dir = spec_config['modules_dir']
+        self.modules_dir = os.path.abspath(spec_config['modules_dir'])
         self.config = []
-        self.config.append(spec_config['isa_config_yaml'])
-        self.config.append(spec_config['core_config_yaml'])
-        self.config.append(spec_config['custom_config_yaml'])
-        self.config.append(spec_config['csr_grouping_yaml'])
-        self.alias_file = spec_config['alias_file']
+        self.config.append(os.path.abspath(spec_config['config_isa']))
+        self.config.append(os.path.abspath(spec_config['config_core']))
+        self.config.append(os.path.abspath(spec_config['config_custom']))
+        self.config.append(os.path.abspath(spec_config['config_csr_grouping']))
+        self.config.append(os.path.abspath(spec_config['config_debug']))
+        self.index_file = os.path.abspath(spec_config['index_file'])
+        self.alias_file = os.path.abspath(spec_config['alias_file'])
         if ((spec_config['generate_covergroups']).lower() == 'true'):
             self.cvg = '--gen_cvg'
             logger.debug('Generating covergroups')
@@ -113,14 +113,22 @@ class uatg_plugin(object):
 
         # pytest for test generation
         pytest.main([
-            pytest_file, '-n=1', '--config={0}'.format(str(self.config)[1:-1]), '-v',
+            pytest_file, 
+            '-n=1', 
+            '--config={0}'.format(str(self.config)[1:-1]), 
+            '-v',
+            '--jobs={0}'.format(self.jobs),
+            '--index_file={0}'.format(self.index_file),
             '--html={0}/reports/utg.html'.format(output_dir),
             '--report-log={0}.json'.format(report_file_name),
-            '--self-contained-html', '--output_dir={0}'.format(output_dir),
-            '--module_dir={0}'.format(module_dir), '--work_dir={0}'.format(
-                self.work_dir), '--linker_dir={0}'.format(self.linker_dir),
-            '--module={0}'.format(self.modules_str), '--gen_cvg={0}'.format(
-                self.cvg), '--modules_dir={0}'.format(self.modules_dir),
+            '--self-contained-html', 
+            '--output_dir={0}'.format(output_dir),
+            '--module_dir={0}'.format(module_dir), 
+            '--work_dir={0}'.format(self.work_dir), 
+            '--linker_dir={0}'.format(self.linker_dir),
+            '--module={0}'.format(self.modules_str), 
+            '--gen_cvg={0}'.format(self.cvg), 
+            '--modules_dir={0}'.format(self.modules_dir),
             '--alias_file={0}'.format(self.alias_file)
         ])
 
