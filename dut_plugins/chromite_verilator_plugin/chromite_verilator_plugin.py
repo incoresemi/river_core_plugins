@@ -57,8 +57,9 @@ class chromite_verilator_plugin(object):
         if coverage_config:
             logger.warn('Hope RTL binary has coverage enabled')
 
-        self.elf2hex_cmd = 'elf2hex {0} 4194304 dut.elf 2147483648 > code.mem && '.format(
-            str(int(self.xlen / 8)))
+        filesize = str(int(4194304*64/self.xlen))
+        self.elf2hex_cmd = 'elf2hex {0} {1} dut.elf 2147483648 > code.mem && '.format(
+            str(int(self.xlen / 8)), filesize)
         self.objdump_cmd = ''#riscv{0}-unknown-elf-objdump -D dut.elf > dut.disass && '.format( self.xlen)
         self.sim_cmd = './chromite_core'
         self.sim_args = '+rtldump > /dev/null'
