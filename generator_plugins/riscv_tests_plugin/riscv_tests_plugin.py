@@ -120,9 +120,9 @@ class riscv_tests_plugin(object):
                     test_list[base_key]['isa'] = self.isa
                     test_list[base_key]['march'] = self.march
                     test_list[base_key]['mabi'] = self.mabi
-                    test_list[base_key]['cc'] = 'riscv64-unknown-elf-gcc'
-                    test_list[base_key]['cc_args'] = '-static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles' 
-                    test_list[base_key]['linker_args'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
+                    test_list[base_key]['cc'] = f'riscv{self.xlen}-unknown-elf-gcc'
+                    test_list[base_key]['cc_args'] = '-static -std=gnu99 -O2 -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles' 
+                    test_list[base_key]['linker_args'] = '-lm -lgcc -T'
                     test_list[base_key]['linker_file'] = f'{self.output_dir}/env/p/link.ld'
                     test_list[base_key]['asm_file'] = f'{self.isa_dir}/{i}/{t}'
                     test_list[base_key]['include'] = [\
@@ -141,6 +141,7 @@ class riscv_tests_plugin(object):
                         if 'f' not in march:
                             if 'a' in march:
                                 march = march[:march.index('a')+1]+'f'+march[march.index('a')+1:]
+
                             elif 'm' in march:
                                 march = march[:march.index('m')+1]+'f'+march[march.index('m')+1:]
                             elif 'i' in march: 
@@ -155,9 +156,9 @@ class riscv_tests_plugin(object):
                         test_list[base_key]['isa'] = self.isa
                         test_list[base_key]['march'] = march
                         test_list[base_key]['mabi'] = self.mabi
-                        test_list[base_key]['cc'] = 'riscv64-unknown-elf-gcc'
-                        test_list[base_key]['cc_args'] = '-static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles' 
-                        test_list[base_key]['linker_args'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
+                        test_list[base_key]['cc'] = f'riscv{self.xlen}-unknown-elf-gcc'
+                        test_list[base_key]['cc_args'] = '-static -std=gnu99 -O2 -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles' 
+                        test_list[base_key]['linker_args'] = '-lm -lgcc -T'
                         test_list[base_key]['linker_file'] = f'{self.output_dir}/env/v/link.ld'
                         test_list[base_key]['asm_file'] = f'{self.isa_dir}/{i}/{t}'
                         test_list[base_key]['include'] = [\
