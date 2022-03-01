@@ -109,7 +109,7 @@ class riscv_tests_plugin(object):
                     virtual = False
 
             for t in os.listdir(self.isa_dir + '/' + i):
-                if 'breakpoint' in t:
+                if 'breakpoint' in t or (i=='rv32si' and 'wfi' in t):
                     continue
                 if t.endswith('.S'):
                     work_dir = f'{self.isa_dir}/p/{i}-{t[:-2]}'
