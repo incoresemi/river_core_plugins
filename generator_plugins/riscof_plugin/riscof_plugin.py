@@ -38,6 +38,7 @@ class riscof_plugin(object):
         os.makedirs(output_dir)
         self.jobs = int(spec_config['jobs'])
         self.config_file = os.path.abspath(spec_config['riscof_config'])
+        self.gitbranch = spec_config['version']
 
     @gen_hookimpl
     def gen(self, module_dir, output_dir):
@@ -58,10 +59,11 @@ class riscof_plugin(object):
             '--html={0}/reports/riscof.html'.format(output_dir),
             '--report-log={0}.json'.format(report_file_name),
             '--self-contained-html', '--output_dir={0}'.format(asm_path),
-            '--module_dir={0}'.format(this)])
+            '--module_dir={0}'.format(this),
+            '--git_branch={0}'.format(self.gitbranch)])
         work_dir = os.path.join(output_dir,"riscof/riscof_work/")
         includes = asm_path+'/riscv-arch-test/riscv-test-suite/env'
-        model_include = riscof_config['RISCOF']['DUTPluginPath']+'/env/'
+        model_include = os.path.abspath(riscof_config['RISCOF']['DUTPluginPath']+'/env/')
         riscof_test_list = utils.load_yaml(os.path.join(work_dir,"test_list.yaml"))
         if len(riscof_test_list) == 0:
             logger.error('No tests selected by RISCOF')
@@ -83,7 +85,7 @@ class riscof_plugin(object):
             new_entry['result'] = "Unavailable"
             new_entry['cc_args'] = ' -mcmodel=medany -static -std=gnu99 -O2 -fno-common -fno-builtin-printf -fvisibility=hidden '
             new_entry['linker_args'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
-            new_entry['linker_file'] = riscof_config['RISCOF']['DUTPluginPath']+'/env/link.ld'
+            new_entry['linker_file'] = model_include+'/link.ld'
             new_entry['mabi'] = mabi_str
             new_entry['compile_macros'] = riscof_test_list[entry]['macros']
             new_entry['extra_compile'] = []
