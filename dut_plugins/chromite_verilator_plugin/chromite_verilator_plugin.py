@@ -307,5 +307,6 @@ class chromite_verilator_plugin(object):
                         os.remove(work_dir + '/dut.dump')
                         os.remove(work_dir + '/signature')
                     except:
-                        logger.info(
-                            "Something went wrong trying to remove the files")
+                        pass
+#                        logger.info(
+#                            "Something went wrong trying to remove the files")
