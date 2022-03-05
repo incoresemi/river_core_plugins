@@ -39,6 +39,7 @@ class riscof_plugin(object):
         self.jobs = int(spec_config['jobs'])
         self.config_file = os.path.abspath(spec_config['riscof_config'])
         self.gitbranch = spec_config['version']
+        self.isa = spec_config['isa']
 
     @gen_hookimpl
     def gen(self, module_dir, output_dir):
@@ -76,7 +77,7 @@ class riscof_plugin(object):
                 mabi_str = 'lp64'
             elif 'd' not in riscof_test_list[entry]["isa"].lower():
                 mabi_str = 'ilp32'
-            new_entry["isa"] = riscof_test_list[entry]["isa"]
+            new_entry["isa"] = self.isa
             new_entry['work_dir'] = riscof_test_list[entry]['work_dir']
             new_entry['asm_file'] = riscof_test_list[entry]['test_path']
             new_entry['generator'] = self.name
@@ -89,7 +90,7 @@ class riscof_plugin(object):
             new_entry['mabi'] = mabi_str
             new_entry['compile_macros'] = riscof_test_list[entry]['macros']
             new_entry['extra_compile'] = []
-            new_entry['march'] = new_entry['isa'].lower()
+            new_entry['march'] = riscof_test_list[entry]["isa"].lower()
             test_list[key] = new_entry
         return test_list
 
