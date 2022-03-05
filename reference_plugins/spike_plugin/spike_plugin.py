@@ -31,6 +31,7 @@ class spike_plugin(object):
         self.filter = ini_config['filter']
 
         self.riscv_isa = ini_config['isa']
+        self.isa = ini_config['isa']
         if '64' in self.riscv_isa:
             self.xlen = 64
         else:
@@ -77,11 +78,11 @@ class spike_plugin(object):
             asm_file = attr['asm_file']
 
             spike_isa = 'rv' + str(self.xlen) + 'i'
-            spike_isa += 'm' if 'm' in arch or 'g' in arch else ''
-            spike_isa += 'a' if 'a' in arch or 'g' in arch else ''
-            spike_isa += 'f' if 'f' in arch or 'g' in arch else ''
-            spike_isa += 'd' if 'd' in arch or 'g' in arch else ''
-            spike_isa += 'c' if 'c' in arch or 'g' in arch else ''
+            spike_isa += 'm' if 'M' in self.isa or 'G' in self.isa else ''
+            spike_isa += 'a' if 'A' in self.isa or 'G' in self.isa else ''
+            spike_isa += 'f' if 'F' in self.isa or 'G' in self.isa else ''
+            spike_isa += 'd' if 'D' in self.isa or 'G' in self.isa else ''
+            spike_isa += 'c' if 'C' in self.isa or 'G' in self.isa else ''
 
             spike_priv = 'm'
             if 'S' in isa:
@@ -146,5 +147,6 @@ class spike_plugin(object):
                         os.remove(work_dir + '/ref.disass')
                         os.remove(work_dir + '/ref.dump')
                     except:
-                        logger.info(
-                            "Something went wrong trying to remove the files")
+                        pass
+#                        logger.info(
+#                            "Something went wrong trying to remove the files")
