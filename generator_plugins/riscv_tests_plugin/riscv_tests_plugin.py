@@ -52,6 +52,10 @@ class riscv_tests_plugin(object):
         if not os.path.isdir(f'{self.output_dir}'):
             subprocess.call(shlex.split(f'git clone --recursive \
                https://github.com/riscv/riscv-tests.git {self.output_dir}/'))
+            cwd = os.getcwd()
+            os.chdir(f'{self.output_dir}/env')
+            subprocess.call(shlex.split('git checkout master'))
+            os.chdir(cwd)
 
         self.isa_dir = self.output_dir + '/isa'
 
