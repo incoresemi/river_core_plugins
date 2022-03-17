@@ -1,11 +1,11 @@
 diff --git a/p/riscv_test.h b/p/riscv_test.h
-index a08f49e..a80c002 100644
+index fe14f08..55081e5 100644
 --- a/p/riscv_test.h
 +++ b/p/riscv_test.h
-@@ -190,12 +190,17 @@ handle_exception:                                                       \
-   1:    ori TESTNUM, TESTNUM, 1337;                                     \
+@@ -191,12 +191,17 @@ handle_exception:                                                       \
    write_tohost:                                                         \
          sw TESTNUM, tohost, t5;                                         \
+         sw zero, tohost + 4, t5;                                        \
 -        j write_tohost;                                                 \
 +      rtl_end:                                                     \
 +        fence.i;                                                        \
@@ -71,7 +71,7 @@ index c74e05d..01aac2d 100644
  //-----------------------------------------------------------------------
  // Supervisor mode definitions and macros
 diff --git a/v/vm.c b/v/vm.c
-index 9802fb7..a7a3269 100644
+index 277b67c..809deeb 100644
 --- a/v/vm.c
 +++ b/v/vm.c
 @@ -52,6 +52,7 @@ static void cputstring(const char* s)

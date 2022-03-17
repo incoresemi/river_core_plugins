@@ -103,7 +103,7 @@ def test_input(request, autouse=True):
     # compile tests
     (program, exec_dir) = request.param
     (ret, out, err) = sys_command(program, cwd=exec_dir)
-    for x in range(1):
+    for x in range(3):
         if ret != 0 :
             (ret, out, err) = sys_command(program, cwd=exec_dir)
         else:
