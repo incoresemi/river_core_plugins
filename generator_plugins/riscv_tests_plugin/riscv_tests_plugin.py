@@ -54,7 +54,6 @@ class riscv_tests_plugin(object):
                https://github.com/riscv/riscv-tests.git {self.output_dir}/'))
 
         self.isa_dir = self.output_dir + '/isa'
-        print(self.isa_dir)
 
         # TODO Might  be useful later on
         # Eventually add support for riscv_config
