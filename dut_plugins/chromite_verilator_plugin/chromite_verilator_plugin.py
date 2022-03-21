@@ -27,7 +27,8 @@ class chromite_verilator_plugin(object):
         self.name = 'chromite_verilator'
         logger.info('Pre Compile Stage')
 
-        self.src_dir = [os.path.abspath(x) for x in ini_config['src_dir'].split(',')]
+        #self.src_dir = [os.path.abspath(x) for x in ini_config['src_dir'].split(',')]
+        self.chromite_root = os.path.abspath(ini_config['chromite_root'])
         if 'stop_on_failure' in ini_config:
             self.stop_on_failure = ini_config['stop_on_failure']
         else:
@@ -57,12 +58,19 @@ class chromite_verilator_plugin(object):
         if coverage_config:
             logger.warn('Hope RTL binary has coverage enabled')
 
+        self.elfmem = ini_config['elfmem']
+
         filesize = str(int(4194304*64/self.xlen))
-        self.elf2hex_cmd = 'elf2hex {0} {1} dut.elf 2147483648 > code.mem && '.format(
-            str(int(self.xlen / 8)), filesize)
+        if self.elfmem:
+            self.elf2hex_cmd = ''
+            self.cpp_files = f'{self.chromite_root}/test_soc/sim_main.cpp {self.chromite_root}/devices/elfmem/elfmem.cpp'
+            self.sim_args = '+elf=dut.elf +rtldump > /dev/null'
+        else:
+            self.elf2hex_cmd = 'elf2hex {0} {1} dut.elf 2147483648 > code.mem && '.format(str(int(self.xlen / 8)), filesize)
+            self.cpp_files = ''
+            self.sim_args = '+rtldump > /dev/null'
         self.objdump_cmd = ''#riscv{0}-unknown-elf-objdump -D dut.elf > dut.disass && '.format( self.xlen)
         self.sim_cmd = './chromite_core'
-        self.sim_args = '+rtldump > /dev/null'
         self.clean_up = 'rm -f code.mem app_log signature'
 
         self.work_dir = os.path.abspath(work_dir) + '/'
@@ -84,10 +92,9 @@ class chromite_verilator_plugin(object):
             logger.error('Sim binary Path ' + self.sim_path + ' does not exist')
             raise SystemExit
 
-        for path in self.src_dir:
-            if not os.path.exists(path):
-                logger.error('Source code ' + path + ' does not exist')
-                raise SystemExit
+        if not os.path.exists(self.chromite_root):
+            logger.error(f'Path: {self.chromite_root} does not exist')
+            raise SystemExit
 
         if shutil.which('elf2hex') is None:
             logger.error('elf2hex utility not found in $PATH')
@@ -107,7 +114,7 @@ class chromite_verilator_plugin(object):
             raise SystemExit
         # Build verilator again
 
-        self.verilator_speed = 'OPT_SLOW="-O3" OPT_FAST="-O3"'
+        self.verilator_speed = 'OPT_SLOW="-O3 -march=znver3" OPT_FAST="-O3 -march=znver3"'
 
         orig_path = os.getcwd()
         logger.info("Build verilator")
@@ -115,16 +122,16 @@ class chromite_verilator_plugin(object):
         # header_generate = 'mkdir -p bin obj_dir + echo "#define TOPMODULE V{0}" > sim_main.h + echo "#include "V{0}.h"" >> sim_main.h'.format(
         #     self.top_module)
         # sys_command(header_generate)
-        verilator_command = 'verilator {0} -O3 -LDFLAGS \
+        verilator_command = 'verilator --threads-dpi all {0} -O3 -LDFLAGS \
                 "-static" --x-assign fast  --x-initial fast \
                 --noassert sim_main.cpp --bbox-sys -Wno-STMTDLY  \
                 -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY \
                 -Wno-INITIALDLY  --autoflush   --threads 1 \
                 -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY \
                 --output-split 20000  --output-split-ctrace 10000 \
-                --cc '                                            + self.top_module + '.v  -y ' + self.src_dir[0] + \
-                ' -y ' + self.src_dir[1] + ' -y ' + self.src_dir[2] + \
-                ' --exe'
+                --cc ' + self.top_module + '.v ' + \
+                f'-y {self.chromite_root}/build/hw/verilog/' + \
+                ' --exe ' + self.cpp_files
         if coverage_config:
             logger.info(
                 "Coverage is enabled, compiling the chromite with coverage")
@@ -147,6 +154,9 @@ class chromite_verilator_plugin(object):
 
         sys_command(verilator_command, 500)
         logger.info("Linking verilator simulation sources")
+        if self.elfmem:
+            sys_command(f"ln -f -s {self.chromite_root}/elfio/elfio obj_dir/elfio")
+            sys_command(f"ln -f -s {self.chromite_root}/devices/elfmem/elfmem.cpp obj_dir/elfmem.cpp")
         sys_command("ln -f -s ../sim_main.cpp obj_dir/sim_main.cpp")
         sys_command("ln -f -s ../sim_main.h obj_dir/sim_main.h")
         make_command = 'make ' + self.verilator_speed + ' VM_PARALLEL_BUILDS=1 -j' + self.jobs + ' -C obj_dir -f V' + self.top_module + '.mk'
@@ -258,10 +268,10 @@ class chromite_verilator_plugin(object):
                             test + ' is missing')
                 else:
                     coverage_cmd += ' ' + test_wd + '/coverage.dat'
-            (ret, out, error) = sys_command(coverage_cmd)
+            sys_command(coverage_cmd)
             logger.info('Final coverage file is at: {0}'.format(final_cov_file))
             logger.info('Annotating source files with final_coverage.dat')
-            (ret, out, error) = sys_command(\
+            sys_command(\
                 'verilator_coverage {0} --annotate {1}'.format(final_cov_file,
                     self.work_dir+'/annotated_src/'))
             logger.info(
