@@ -114,7 +114,7 @@ class chromite_verilator_plugin(object):
             raise SystemExit
         # Build verilator again
 
-        self.verilator_speed = 'OPT_SLOW="-O3 -march=znver3" OPT_FAST="-O3 -march=znver3"'
+        self.verilator_speed = 'OPT_SLOW="-O3" OPT_FAST="-O3" OPT="-O3"'
 
         orig_path = os.getcwd()
         logger.info("Build verilator")
