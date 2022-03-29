@@ -70,6 +70,10 @@ class uatg_plugin(object):
         self.config.append(os.path.abspath(spec_config['config_debug']))
         self.index_file = os.path.abspath(spec_config['index_file'])
         self.alias_file = os.path.abspath(spec_config['alias_file'])
+        if 'paging_modes' not in spec_config:
+            self.paging_modes = None
+        else:
+            self.paging_modes = spec_config['paging_modes']
         self.isa = spec_config['isa']
         if ((spec_config['generate_covergroups']).lower() == 'true'):
             self.cvg = '--gen_cvg'
@@ -140,39 +144,11 @@ class uatg_plugin(object):
             '--module={0}'.format(self.modules_str), 
             '--gen_cvg={0}'.format(self.cvg), 
             '--modules_dir={0}'.format(self.modules_dir),
-            '--alias_file={0}'.format(self.alias_file)
+            '--alias_file={0}'.format(self.alias_file),
+            '--paging_modes={0}'.format(self.paging_modes)
         ])
 
-        test_list = {}
-        for module in self.modules:
-            asm_dir = os.path.abspath(self.work_dir + '/' + module)
-            asm_test_list = glob.glob(asm_dir + '/**/*.S')
-            env_dir = os.path.join(os.path.abspath(self.uarch_dir), 'env/')
-            target_dir = os.path.abspath(self.work_dir)
-
-            for test in asm_test_list:
-                logger.debug("Current test is {0}".format(test))
-                base_key = os.path.basename(test)[:-2]
-                test_list[base_key] = {}
-                test_list[base_key]['generator'] = self.name
-                test_list[base_key]['work_dir'] = asm_dir + '/' + base_key
-                test_list[base_key]['isa'] = self.isa 
-                test_list[base_key]['march'] = 'rv64imafdc'
-                test_list[base_key]['mabi'] = 'lp64'
-                test_list[base_key]['cc'] = 'riscv64-unknown-elf-gcc'
-                test_list[base_key][
-                    'cc_args'] = ' -mcmodel=medany -static -std=gnu99 -O2 -fno-common -fno-builtin-printf -fvisibility=hidden '
-                test_list[base_key][
-                    'linker_args'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
-                test_list[base_key][
-                    'linker_file'] = target_dir + '/' + 'link.ld'
-                test_list[base_key][
-                    'asm_file'] = asm_dir + '/' + base_key + '/' + base_key + '.S'
-                test_list[base_key]['include'] = [env_dir, target_dir]
-                test_list[base_key]['compile_macros'] = ['XLEN=64']
-                test_list[base_key]['extra_compile'] = []
-                test_list[base_key]['result'] = 'Unavailable'
-
+        test_list = utils.load_yaml(f'{self.work_dir}/test_list.yaml')
         return test_list
 
     @gen_hookimpl

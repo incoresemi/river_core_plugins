@@ -17,11 +17,16 @@ import pytest
 import shlex
 
 def gen_cmd_list(config, work_dir, linker_dir, module, output_dir, module_dir,
-                 gen_cvg, modules_dir, alias_file, index_file, jobs):
+                 gen_cvg, modules_dir, alias_file, index_file, paging_modes, jobs):
 
 
     config = config.split(', ')
     logger.debug('Generating commands for gen plugin')
+
+    if paging_modes is None:
+        paging_modes = ''
+    else:
+        paging_args = ' -pm ' + " -pm ".join(paging_modes.split(','))
     
     uatg_command = (f"uatg generate --verbose debug"
                     f" --jobs {jobs}"
@@ -36,7 +41,8 @@ def gen_cmd_list(config, work_dir, linker_dir, module, output_dir, module_dir,
                     f" --configuration {config[2]}"
                     f" --configuration {config[3]}"
                     f" --configuration {config[4]}"
-                    f" --alias_file {alias_file}")
+                    f" --alias_file {alias_file}"
+                    f" {paging_args}")
     run_command = []
     run_command.append(uatg_command)
     logger.debug(run_command)
@@ -59,6 +65,7 @@ def pytest_generate_tests(metafunc):
                                  metafunc.config.getoption("modules_dir"),
                                  metafunc.config.getoption("alias_file"),
                                  metafunc.config.getoption("index_file"),
+                                 metafunc.config.getoption("paging_modes"),
                                  metafunc.config.getoption("jobs")
                                  )
         metafunc.parametrize('test_input', test_list, ids=idfnc, indirect=True)

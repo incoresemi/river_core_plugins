@@ -30,4 +30,6 @@ def pytest_addoption(parser):
 
     parser.addoption("--alias_file", action="store")
     
+    parser.addoption("--paging_modes", action="store")
+    
     parser.addoption("--index_file", action="store")
