@@ -70,6 +70,7 @@ class uatg_plugin(object):
         self.config.append(os.path.abspath(spec_config['config_debug']))
         self.index_file = os.path.abspath(spec_config['index_file'])
         self.alias_file = os.path.abspath(spec_config['alias_file'])
+        self.isa = spec_config['isa']
         if ((spec_config['generate_covergroups']).lower() == 'true'):
             self.cvg = '--gen_cvg'
             logger.debug('Generating covergroups')
@@ -77,6 +78,16 @@ class uatg_plugin(object):
             self.cvg = ''
             logger.debug('Not generating covergroups')
         logger.debug("μArchitectural Test Generator, Completed Pre-Gen Phase")
+
+        march = self.isa.replace('S','').replace('U','').replace('Zicsr','').lower()
+        if '32' in self.isa:
+            self.xlen = 32
+            self.mabi = 'ilp32'
+            self.march = march
+        else:
+            self.xlen = 64
+            self.march = march
+            self.mabi = 'lp64'
 
     @gen_hookimpl
     def gen(self, module_dir, output_dir):
@@ -145,7 +156,7 @@ class uatg_plugin(object):
                 test_list[base_key] = {}
                 test_list[base_key]['generator'] = self.name
                 test_list[base_key]['work_dir'] = asm_dir + '/' + base_key
-                test_list[base_key]['isa'] = 'rv64imafdc'
+                test_list[base_key]['isa'] = self.isa 
                 test_list[base_key]['march'] = 'rv64imafdc'
                 test_list[base_key]['mabi'] = 'lp64'
                 test_list[base_key]['cc'] = 'riscv64-unknown-elf-gcc'
