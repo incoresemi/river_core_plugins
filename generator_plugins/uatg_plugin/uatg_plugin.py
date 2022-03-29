@@ -134,10 +134,10 @@ class uatg_plugin(object):
 
         test_list = {}
         for module in self.modules:
-            asm_dir = self.work_dir + '/' + module
+            asm_dir = os.path.abspath(self.work_dir + '/' + module)
             asm_test_list = glob.glob(asm_dir + '/**/*.S')
-            env_dir = os.path.join(self.uarch_dir, 'env/')
-            target_dir = self.work_dir
+            env_dir = os.path.join(os.path.abspath(self.uarch_dir), 'env/')
+            target_dir = os.path.abspath(self.work_dir)
 
             for test in asm_test_list:
                 logger.debug("Current test is {0}".format(test))
