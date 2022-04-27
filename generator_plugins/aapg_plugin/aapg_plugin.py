@@ -108,15 +108,14 @@ class aapg_plugin(object):
                 test_asm = file.read()
             isa = set()
             isa.add('i')
-            xlen = 64
-            dist_list = re.findall(r'^#\s*(rel_.*?)$', test_asm, re.M | re.S)
+            xlen = 64 if '64' in self.isa else '32'
+            dist_list = re.findall(r'^#\s*rel_(.*?)(\.\w*)*:\s*(\d*)\s*$', test_asm, re.M | re.S)
             for dist in dist_list:
-                ext = dist.split(':')[0][4:].split('.')[0]
-                ext_count = int(dist.split(':')[1])
+#                ext = dist.split(':')[0][4:].split('.')[0]
+                logger.debug(f'{dist}')
+                (ext,misc,ext_count) = dist
 
-                if ext_count != 0:
-                    if 'rv64' in ext:
-                        xlen = 64
+                if int(ext_count) != 0:
                     if 'm' in ext:
                         isa.add('m')
                     if 'a' in ext:
@@ -130,11 +129,11 @@ class aapg_plugin(object):
             canonical_order = {'i': 0, 'm': 1, 'a': 2, 'f': 3, 'd': 4, 'c': 5}
             canonical_isa = sorted(list(isa), key=lambda d: canonical_order[d])
 
-            march_str = 'rv' + str(xlen) + "".join(canonical_order)
+            march_str = 'rv' + str(xlen) + "".join(canonical_isa)
             if xlen == 64:
                 mabi_str = 'lp64'
-            elif 'd' not in march_str:
-                mabi_str = 'ilp32d'
+            else:
+                mabi_str = 'ilp32'
 
             # Create the base key for the test i.e. the main file under which everything is stored
             # NOTE: Here we expect the developers to probably have the proper GCC and the args, objdump as well
@@ -147,7 +146,7 @@ class aapg_plugin(object):
             test_list[base_key]['march'] = march_str
             test_list[base_key]['mabi'] = mabi_str
             # test_list[base_key]['gcc_cmd'] = gcc_compile_bin + " " + "-march=" + arch + " " + "-mabi=" + abi + " " + gcc_compile_args + " -I " + asm_dir + include_dir + " -o $@ $< $(CRT_FILE) " + linker_args + " $(<D)/$*.ld"
-            test_list[base_key]['cc'] = 'riscv64-unknown-elf-gcc'
+            test_list[base_key]['cc'] = f'riscv{xlen}-unknown-elf-gcc'
             test_list[base_key][
                 'cc_args'] = ' -mcmodel=medany -static -std=gnu99 -O2 -fno-common -fno-builtin-printf -fvisibility=hidden '
             test_list[base_key][

@@ -43,9 +43,10 @@ def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
 
             for template_key, template_value in gen_list[key].items():
                 # config_file_path = config_path + '/' + gen_list[key]['path'] + '/'
-                config_file_path = config_path + '/' + gen_list[key][
-                    template_key]['path'] + '/'
+                config_file_path = gen_list[key][template_key]['path'] + '/'
+                logger.debug(f'config_file_path:{config_file_path}')
                 files = os.listdir(config_file_path)
+                logger.debug(f'files:{files}')
                 for config_file_name in files:
                     config_file = config_file_path + config_file_name
                     template_name = os.path.basename(config_file)

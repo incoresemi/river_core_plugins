@@ -140,7 +140,7 @@ class riscv_torture_plugin(object):
             test_list[base_key]['generator'] = self.name
             test_list[base_key]['work_dir'] = test.split('test.S')[0]
             test_list[base_key]['isa'] = self.isa
-            test_list[base_key]['march'] = 'rv64imafd'
+            test_list[base_key]['march'] = march
             test_list[base_key]['mabi'] = self.mabi
             test_list[base_key]['cc'] = f'riscv{self.xlen}-unknown-elf-gcc'
             test_list[base_key]['cc_args'] = ' -mcmodel=medany -nostartfiles -nostdlib -static -std=gnu99 -O2 -fno-common -fno-builtin-printf -fvisibility=hidden '
