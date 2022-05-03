@@ -70,6 +70,7 @@ class riscof_plugin(object):
             logger.error('No tests selected by RISCOF')
             raise SystemExit
         test_list = {}
+        xlen = 64 if '64' in self.isa else 32
         for entry in riscof_test_list.keys():
             key = os.path.basename(entry)[:-2]
             new_entry = {}
@@ -82,7 +83,7 @@ class riscof_plugin(object):
             new_entry['asm_file'] = riscof_test_list[entry]['test_path']
             new_entry['generator'] = self.name
             new_entry['include'] = [includes, model_include]
-            new_entry['cc'] = 'riscv64-unknown-elf-gcc'
+            new_entry['cc'] = f'riscv{xlen}-unknown-elf-gcc'
             new_entry['result'] = "Unavailable"
             new_entry['cc_args'] = ' -mcmodel=medany -static -std=gnu99 -O2 -fno-common -fno-builtin-printf -fvisibility=hidden '
             new_entry['linker_args'] = '-static -nostdlib -nostartfiles -lm -lgcc -T'
