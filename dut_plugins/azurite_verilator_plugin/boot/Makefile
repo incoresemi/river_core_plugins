@@ -2,7 +2,7 @@
 include ./Makefile.inc
 
 default:
-	@python create_boot.py $(XLEN)
+	@python3 create_boot.py $(XLEN)
 
 .PHONY: clean
 clean:
