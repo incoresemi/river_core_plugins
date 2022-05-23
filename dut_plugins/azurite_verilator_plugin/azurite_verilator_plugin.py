@@ -60,15 +60,22 @@ class azurite_verilator_plugin(object):
 
         self.elfmem = ini_config['elfmem']
 
+        if os.path.exists(f'{self.azurite_root}/build/debug_checked.yaml'):
+            self.debug = True
+        else:
+            self.debug = False
+
         filesize = str(int(4194304*64/self.xlen))
+        self.cpp_files = f'{self.azurite_root}/test_soc/sim_main.cpp'
         if self.elfmem:
             self.elf2hex_cmd = ''
-            self.cpp_files = f'{self.azurite_root}/test_soc/sim_main.cpp {self.azurite_root}/devices/elfmem/elfmem.cpp'
+            self.cpp_files += f' {self.azurite_root}/devices/elfmem/elfmem.cpp'
             self.sim_args = '+elf=dut.elf +rtldump > /dev/null'
         else:
             self.elf2hex_cmd = 'elf2hex {0} {1} dut.elf 2147483648 > code.mem && '.format(str(int(self.xlen / 8)), filesize)
-            self.cpp_files = ''
             self.sim_args = '+rtldump > /dev/null'
+        if self.debug:
+            self.cpp_files += f' {self.azurite_root}/devices/jtagdtm/remotebitbang.c'
         self.objdump_cmd = ''#riscv{0}-unknown-elf-objdump -D dut.elf > dut.disass && '.format( self.xlen)
         self.sim_cmd = './azurite_core'
         self.clean_up = 'rm -f code.mem app_log signature'
@@ -157,6 +164,8 @@ class azurite_verilator_plugin(object):
         if self.elfmem:
             sys_command(f"ln -f -s {self.azurite_root}/elfio/elfio obj_dir/elfio")
             sys_command(f"ln -f -s {self.azurite_root}/devices/elfmem/elfmem.cpp obj_dir/elfmem.cpp")
+        if self.debug:
+            sys_command(f"ln -f -s {self.azurite_root}/devices/jtagdtm/remotebitbang.c obj_dir/remotebitbang.c")
         sys_command("ln -f -s ../sim_main.cpp obj_dir/sim_main.cpp")
         sys_command("ln -f -s ../sim_main.h obj_dir/sim_main.h")
         make_command = 'make ' + self.verilator_speed + ' VM_PARALLEL_BUILDS=1 -j' + self.jobs + ' -C obj_dir -f V' + self.top_module + '.mk'
