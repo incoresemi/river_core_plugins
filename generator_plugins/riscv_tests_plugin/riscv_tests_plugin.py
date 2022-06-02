@@ -114,6 +114,8 @@ class riscv_tests_plugin(object):
             for t in os.listdir(self.isa_dir + '/' + i):
                 if 'breakpoint' in t or ('wfi' in t):
                     continue
+                if 'sbreak' in t and 'S' not in self.isa:
+                    continue
                 if t.endswith('.S'):
                     work_dir = f'{self.isa_dir}/p/{i}-{t[:-2]}'
                     base_key = f'{i}-{t[:-2]}-p'
