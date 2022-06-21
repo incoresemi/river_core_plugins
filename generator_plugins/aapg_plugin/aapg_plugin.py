@@ -129,6 +129,14 @@ class aapg_plugin(object):
             canonical_isa = sorted(list(isa), key=lambda d: canonical_order[d])
 
             march_str = 'rv' + str(xlen) + "".join(canonical_isa)
+            if 'Zba' in self.isa:
+                march_str += 'zba'
+            if 'Zbb' in self.isa:
+                march_str += '_zbb'
+            if 'Zbc' in self.isa:
+                march_str += '_zbc'
+            if 'Zbs' in self.isa:
+                march_str += '_zbs'
             if xlen == 64:
                 mabi_str = 'lp64'
             else:
