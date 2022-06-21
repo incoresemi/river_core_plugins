@@ -13,15 +13,15 @@ import datetime
 import pytest
 
 
-def gen_cmd_list(gen_config, jobs, randomize, output_dir, module_dir, git_branch):
+def gen_cmd_list(gen_config, jobs, randomize, output_dir, module_dir,
+        git_branch, suite, env):
 
     run_command = []
     run_command.append("riscof arch-test --clone --get-version {1} --dir {0}".format( \
             output_dir+'/riscv-arch-test', git_branch))
     run_command.append("riscof testlist --config {0} --work-dir {1} --suite {2} --env {3} ".format(\
-            gen_config, output_dir+'/riscof_work',
-            output_dir+'/riscv-arch-test/riscv-test-suite/', 
-            output_dir+'/riscv-arch-test/riscv-test-suite/env'))
+            gen_config, output_dir+'/riscof_work', f"{suite}/", 
+            f"{env}/"))
     print(run_command)
     logger.debug(run_command)
     return run_command
@@ -38,7 +38,9 @@ def pytest_generate_tests(metafunc):
                                  metafunc.config.getoption("randomize"),
                                  metafunc.config.getoption("output_dir"),
                                  metafunc.config.getoption("module_dir"),
-                                 metafunc.config.getoption("git_branch"))
+                                 metafunc.config.getoption("git_branch"),
+                                 metafunc.config.getoption("suite"),
+                                 metafunc.config.getoption("env"))
         metafunc.parametrize('test_input', test_list, ids=idfnc, indirect=True)
 
 

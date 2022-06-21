@@ -29,17 +29,26 @@ class riscof_plugin(object):
             jobs: number of parallel processes to spawn for riscof
             riscof_config: config file for riscof
         '''
-        logger.debug("RISCV-CTG Pre Gen.")
+        logger.debug("RISCOF Pre Gen.")
         self.name = 'riscof'
         output_dir = os.path.abspath(output_dir)
         if (os.path.isdir(output_dir)):
             logger.debug('Output Directory exists. Removing Contents.')
             shutil.rmtree(output_dir, ignore_errors=True)
         os.makedirs(output_dir)
+        logger.debug(f"-- config is : {spec_config['suite']}")
         self.jobs = int(spec_config['jobs'])
         self.config_file = os.path.abspath(spec_config['riscof_config'])
         self.gitbranch = spec_config['version']
         self.isa = spec_config['isa']
+        if 'suite' not in spec_config or spec_config['suite'] == '':
+            self.suite = f'{output_dir}/riscv-arch-test/riscv-test-suite'
+            self.env = f'{output_dir}/riscv-arch-test/riscv-test-suite/env'
+        else:
+            self.suite = os.path.abspath(spec_config['suite'])
+            self.env = os.path.abspath(spec_config['env'])
+
+        logger.info(f'RISCOF using suite : {self.suite}')
 
     @gen_hookimpl
     def gen(self, module_dir, output_dir):
@@ -61,9 +70,12 @@ class riscof_plugin(object):
             '--report-log={0}.json'.format(report_file_name),
             '--self-contained-html', '--output_dir={0}'.format(asm_path),
             '--module_dir={0}'.format(this),
-            '--git_branch={0}'.format(self.gitbranch)])
+            '--git_branch={0}'.format(self.gitbranch),
+            '--suite={0}'.format(self.suite),
+            '--env={0}'.format(self.env)]
+            )
         work_dir = os.path.join(output_dir,"riscof/riscof_work/")
-        includes = asm_path+'/riscv-arch-test/riscv-test-suite/env'
+        includes = self.env
         model_include = os.path.abspath(riscof_config['RISCOF']['DUTPluginPath']+'/env/')
         riscof_test_list = utils.load_yaml(os.path.join(work_dir,"test_list.yaml"))
         if len(riscof_test_list) == 0:
