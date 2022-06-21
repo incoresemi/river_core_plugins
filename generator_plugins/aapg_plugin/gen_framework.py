@@ -17,60 +17,40 @@ from envyaml import EnvYAML
 def gen_cmd_list(gen_config, seed, count, output_dir, module_dir):
 
     logger.debug('Now generating commands for gen plugin')
-    pwd = os.getcwd()
-    try:
-        env_gen_list = EnvYAML(gen_config)
-    except:
-        logger.error("Is your plugin YAML file properly configured?")
-        raise SystemExit
 
     gen_list = utils.load_yaml(gen_config)
-    # gen_list['global_home'] = env_gen_list['global_home']
     setup_dir = ''
     run_command = []
+    dirname = output_dir + '/aapg'
+    utils.sys_command('aapg setup --setup_dir {0}'.format(dirname))
+    setup_dir = dirname
+
     for key, value in gen_list.items():
-        if key == 'global_config_path':
-            config_path = module_dir + gen_list[key]
-        if key == 'global_command':
-            command = 'bash {0}'.format(gen_list[key])
-        if key == 'global_args':
-            args = gen_list[key]
-        dirname = output_dir + '/aapg'
-        utils.sys_command('aapg setup --setup_dir {0}'.format(dirname))
-        setup_dir = dirname
+        if key == 'configs':
+            for configs in gen_list[key]:
+                template_name = os.path.basename(configs)
+                config_file = os.path.abspath(configs)
+                for i in range(int(count)):
+                    if seed == 'random':
+                        gen_seed = random.randint(0, 10000)
+                    else:
+                        gen_seed = int(seed)
 
-        if re.search('^templates', key):
-
-            for template_key, template_value in gen_list[key].items():
-                # config_file_path = config_path + '/' + gen_list[key]['path'] + '/'
-                config_file_path = gen_list[key][template_key]['path'] + '/'
-                logger.debug(f'config_file_path:{config_file_path}')
-                files = os.listdir(config_file_path)
-                logger.debug(f'files:{files}')
-                for config_file_name in files:
-                    config_file = config_file_path + config_file_name
-                    template_name = os.path.basename(config_file)
-                    for i in range(int(count)):
-                        if seed == 'random':
-                            gen_seed = random.randint(0, 10000)
-                        else:
-                            gen_seed = int(seed)
-
-                        now = datetime.datetime.now()
-                        gen_prefix = '{0:06}_{1}'.format(
-                            gen_seed, now.strftime('%d%m%Y%H%M%S%f'))
-                        test_prefix = 'aapg_{0}_{1}_{2:05}'.format(
-                            template_name.replace('.yaml', ''), gen_prefix, i)
-                        testdir = '{0}/asm/{1}'.format(dirname, test_prefix)
-                        run_command.append('aapg gen \
-                                            --config_file {0} \
-                                            --setup_dir {1} \
-                                            --output_dir {2} \
-                                            --asm_name {3} \
-                                            --seed {4}\
-                                            '.format(config_file, setup_dir,
-                                                     testdir, test_prefix,
-                                                     gen_seed))
+                    now = datetime.datetime.now()
+                    gen_prefix = '{0:06}_{1}'.format(
+                        gen_seed, now.strftime('%d%m%Y%H%M%S%f'))
+                    test_prefix = 'aapg_{0}_{1}_{2:05}'.format(
+                        template_name.replace('.yaml', ''), gen_prefix, i)
+                    testdir = '{0}/asm/{1}'.format(dirname, test_prefix)
+                    run_command.append('aapg gen \
+                                        --config_file {0} \
+                                        --setup_dir {1} \
+                                        --output_dir {2} \
+                                        --asm_name {3} \
+                                        --seed {4}\
+                                        '.format(config_file, setup_dir,
+                                                 testdir, test_prefix,
+                                                 gen_seed))
 
     return run_command
 

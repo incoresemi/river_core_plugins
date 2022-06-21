@@ -112,7 +112,6 @@ class aapg_plugin(object):
             dist_list = re.findall(r'^#\s*rel_(.*?)(\.\w*)*:\s*(\d*)\s*$', test_asm, re.M | re.S)
             for dist in dist_list:
 #                ext = dist.split(':')[0][4:].split('.')[0]
-                logger.debug(f'{dist}')
                 (ext,misc,ext_count) = dist
 
                 if int(ext_count) != 0:
