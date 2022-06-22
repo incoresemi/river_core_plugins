@@ -83,6 +83,7 @@ class spike_plugin(object):
             spike_isa += 'f' if 'F' in self.isa or 'G' in self.isa else ''
             spike_isa += 'd' if 'D' in self.isa or 'G' in self.isa else ''
             spike_isa += 'c' if 'C' in self.isa or 'G' in self.isa else ''
+            spike_isa += 'h' if 'H' in self.isa else ''
             spike_isa += '_zba' if 'Zba' in self.isa else ''
             spike_isa += '_zbb' if 'Zbb' in self.isa else ''
             spike_isa += '_zbc' if 'Zbc' in self.isa else ''
