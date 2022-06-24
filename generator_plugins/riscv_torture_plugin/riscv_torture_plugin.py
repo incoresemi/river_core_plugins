@@ -62,7 +62,7 @@ class riscv_torture_plugin(object):
         else:
             os.makedirs(self.json_dir)
 
-        march = self.isa.replace('S','').replace('U','').replace('Zicsr','').lower()
+        march = self.isa.replace('S','').replace('U','').replace('Zicsr','').replace('H','').lower()
         if '32' in self.isa:
             self.xlen = 32
             self.mabi = 'ilp32'
