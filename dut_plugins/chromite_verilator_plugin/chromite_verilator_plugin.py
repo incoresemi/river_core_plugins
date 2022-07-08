@@ -190,7 +190,7 @@ class chromite_verilator_plugin(object):
         for test, attr in self.test_list.items():
             logger.debug('Creating Make Target for ' + str(test))
             abi = attr['mabi']
-            arch = attr['march']
+            arch = attr['march'].replace('zicsr','')
             isa = attr['isa']
             work_dir = attr['work_dir']
             link_args = attr['linker_args']
