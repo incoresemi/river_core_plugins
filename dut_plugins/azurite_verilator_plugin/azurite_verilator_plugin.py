@@ -53,6 +53,12 @@ class azurite_verilator_plugin(object):
             self.xlen = 64
         else:
             self.xlen = 32
+        if 'D' in self.riscv_isa:
+            self.flen = 64
+        elif 'F' in self.riscv_isa:
+            self.flen = 32
+        else:
+            self.flen = self.xlen
         self.elf = 'dut.elf'
 
         if coverage_config:
@@ -177,7 +183,7 @@ class azurite_verilator_plugin(object):
 
         logger.info('Creating boot-files')
         sys_command('make -C {0} XLEN={1}'.format(
-            self.plugin_path + self.name + '_plugin/boot/', str(self.xlen)))
+            self.plugin_path + self.name + '_plugin/boot/', str(max(self.xlen, self.flen))))
         shutil.copy(self.plugin_path+self.name+'_plugin/boot/boot.hex' , \
                 self.sim_path+'/boot.mem')
 
@@ -199,7 +205,7 @@ class azurite_verilator_plugin(object):
         for test, attr in self.test_list.items():
             logger.debug('Creating Make Target for ' + str(test))
             abi = attr['mabi']
-            arch = attr['march']
+            arch = attr['march'].replace('zicsr','')
             isa = attr['isa']
             work_dir = attr['work_dir']
             link_args = attr['linker_args']
