@@ -116,6 +116,9 @@ class riscv_tests_plugin(object):
                     continue
                 if 'sbreak' in t and 'S' not in self.isa:
                     continue
+                if self.xlen == 32 and 'D' in self.isa:
+                    if i == 'rv32ud' and 'move' in t:
+                        continue
                 if t.endswith('.S'):
                     work_dir = f'{self.isa_dir}/p/{i}-{t[:-2]}'
                     base_key = f'{i}-{t[:-2]}-p'
