@@ -53,6 +53,9 @@ class riscv_tests_plugin(object):
             subprocess.call(shlex.split(f'git clone --recursive \
                https://github.com/riscv/riscv-tests.git {self.output_dir}/'))
             cwd = os.getcwd()
+            os.chdir(f'{self.output_dir}/')
+            subprocess.call(shlex.split(f'git checkout \
+93208aa5492263d43a3576d879900854ed3fef42'))
             os.chdir(f'{self.output_dir}/env')
             subprocess.call(shlex.split('git checkout master'))
             os.chdir(cwd)
@@ -82,7 +85,7 @@ class riscv_tests_plugin(object):
 
     @gen_hookimpl
     def gen(self, module_dir, output_dir):
-       
+
         cwd = os.getcwd()
         os.chdir(f'{self.output_dir}/env')
         result = subprocess.run(shlex.split(f'git apply --check {module_dir}/{self.name}_plugin/patch'), capture_output=True, text=True)
@@ -129,7 +132,7 @@ class riscv_tests_plugin(object):
                     test_list[base_key]['march'] = self.march
                     test_list[base_key]['mabi'] = self.mabi
                     test_list[base_key]['cc'] = f'riscv{self.xlen}-unknown-elf-gcc'
-                    test_list[base_key]['cc_args'] = '-static -std=gnu99 -O2 -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles' 
+                    test_list[base_key]['cc_args'] = '-static -std=gnu99 -O2 -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles'
                     test_list[base_key]['linker_args'] = '-lm -lgcc -T'
                     test_list[base_key]['linker_file'] = f'{self.output_dir}/env/p/link.ld'
                     test_list[base_key]['asm_file'] = f'{self.isa_dir}/{i}/{t}'
@@ -152,7 +155,7 @@ class riscv_tests_plugin(object):
 
                             elif 'm' in march:
                                 march = march[:march.index('m')+1]+'f'+march[march.index('m')+1:]
-                            elif 'i' in march: 
+                            elif 'i' in march:
                                 march = march[:march.index('i')+1]+'f'+march[march.index('i')+1:]
 
                         work_dir = f'{self.isa_dir}/v/{i}-{t[:-2]}'
@@ -165,7 +168,7 @@ class riscv_tests_plugin(object):
                         test_list[base_key]['march'] = march
                         test_list[base_key]['mabi'] = self.mabi
                         test_list[base_key]['cc'] = f'riscv{self.xlen}-unknown-elf-gcc'
-                        test_list[base_key]['cc_args'] = '-static -std=gnu99 -O2 -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles' 
+                        test_list[base_key]['cc_args'] = '-static -std=gnu99 -O2 -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles'
                         test_list[base_key]['linker_args'] = '-lm -lgcc -T'
                         test_list[base_key]['linker_file'] = f'{self.output_dir}/env/v/link.ld'
                         test_list[base_key]['asm_file'] = f'{self.isa_dir}/{i}/{t}'
