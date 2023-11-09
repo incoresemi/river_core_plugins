@@ -48,6 +48,7 @@ class riscv_tests_plugin(object):
         # Extract plugin specific info
         self.jobs = spec_config['jobs']
         self.filter = spec_config['filter']
+        self.pmp_enabled = True if str(spec_config['pmp_enabled']).lower() == "true" else False
 
         if not os.path.isdir(f'{self.output_dir}'):
             subprocess.call(shlex.split(f'git clone --recursive \
@@ -88,10 +89,11 @@ class riscv_tests_plugin(object):
 
         cwd = os.getcwd()
         os.chdir(f'{self.output_dir}/env')
-        result = subprocess.run(shlex.split(f'git apply --check {module_dir}/{self.name}_plugin/patch'), capture_output=True, text=True)
+        patch_name = "init_pmp.patch" if self.pmp_enabled else "patch"
+        result = subprocess.run(shlex.split(f'git apply --check {module_dir}/{self.name}_plugin/{patch_name}'), capture_output=True, text=True)
         if not result.stdout:
             logger.debug('applying patch')
-            result = subprocess.run(shlex.split(f'git apply {module_dir}/{self.name}_plugin/patch'), capture_output=True, text=True)
+            result = subprocess.run(shlex.split(f'git apply {module_dir}/{self.name}_plugin/{patch_name}'), capture_output=True, text=True)
         os.chdir(cwd)
 
         logger.debug(f'isa_dir : {self.isa_dir}')
