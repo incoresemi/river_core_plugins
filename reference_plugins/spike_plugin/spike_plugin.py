@@ -32,6 +32,9 @@ class spike_plugin(object):
 
         self.riscv_isa = ini_config['isa']
         self.isa = ini_config['isa']
+        self.pmp_regions = ini_config['pmp_regions']
+        self.pmp_granularity = ini_config['pmp_granularity']
+        self.pmp_enabled = True if str(self.pmp_regions) != "0" else False
         if '64' in self.riscv_isa:
             self.xlen = 64
         else:
@@ -40,7 +43,7 @@ class spike_plugin(object):
 
         self.objdump_cmd = ''#riscv{0}-unknown-elf-objdump -D ref.elf > ref.disass && '.format( self.xlen)
         self.sim_cmd = 'spike'
-        self.sim_args = '--log ref.dump --log-commits --priv={0} --isa={1} {2}'
+        self.sim_args = '--log ref.dump --log-commits --priv={0} --isa={1} --pmpregions={2} --pmpgranularity={3} {4}'
 
         self.work_dir = os.path.abspath(work_dir) + '/'
         self.test_list = load_yaml(test_list)
@@ -107,7 +110,7 @@ class spike_plugin(object):
             post_process_cmd = ''
             target_cmd = ch_cmd + compile_cmd + self.objdump_cmd +\
                     self.sim_cmd + ' ' + \
-                    self.sim_args.format(spike_priv, spike_isa, self.elf)
+                    self.sim_args.format(spike_priv, spike_isa, self.pmp_regions, self.pmp_granularity, self.elf)
             make.add_target(target_cmd, test)
             self.test_names.append(test)
 
